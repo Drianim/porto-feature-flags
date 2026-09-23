@@ -82,3 +82,10 @@ test('diff acusa toggle publicado como STRING (tipo esperado BOOLEAN)', () => {
   const t = fresh(); t.parameterGroups.Grupo.parameters.ft_a.valueType = 'STRING';
   assert.match(diff(t, plan()).problems.join('|'), /ft_a: tipo esperado BOOLEAN, atual STRING/);
 });
+
+test('rollout em % usa semente com o nome da FF', () => {
+  const f = [{ key: 'ft_z', description: 'd', owner: 'x', criticality: 'baixa', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 25 }, android: { value: 'true' } } } }];
+  const p = build(f, [], 'nonprod', cfg);
+  assert.strictEqual(p.conditions.find((c) => c.name === 'ft_z_ios').expression, "device.os == 'ios' && percent('ft_z') <= 25");
+  assert.strictEqual(p.conditions.find((c) => c.name === 'ft_z_android').expression, "device.os == 'android'");
+});
