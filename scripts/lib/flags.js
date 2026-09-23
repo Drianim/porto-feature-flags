@@ -22,6 +22,7 @@ function rules(flag, env) {
 // Flag "ativa" no ambiente = está liberando algo (exige RM e horário em PROD).
 // Desligar (rollback) nunca é bloqueado.
 function isActive(flag, env) {
+  if (!flag.environments[env]) return false;
   if (kindOf(flag.key) === 'config') return true;
   return Object.values(rules(flag, env).overrides).some((o) => o.value === 'true' && o.rolloutPercent !== 0);
 }

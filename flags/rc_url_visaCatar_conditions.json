@@ -3,16 +3,5 @@
   "description": "Termo do Regulamento Promoção Visa Catar",
   "owner": "a-definir",
   "criticality": "baixa",
-  "valueType": "STRING",
-  "environments": {
-    "dev": {
-      "default": "https://promocoes.visa.com.br/site/porto-seguro/porto-bank-visa/regulamento"
-    },
-    "hml": {
-      "default": "https://promocoes.visa.com.br/site/porto-seguro/porto-bank-visa/regulamento"
-    },
-    "prod": {
-      "default": "https://promocoes.visa.com.br/site/porto-seguro/porto-bank-visa/regulamento"
-    }
-  }
+  "valueType": "STRING"
 }

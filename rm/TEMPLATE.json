@@ -4,8 +4,6 @@
     "ft_exemplo_nova_home"
   ],
   "targetEnvironments": [
-    "dev",
-    "hml",
     "prod"
   ],
   "criticality": "media",

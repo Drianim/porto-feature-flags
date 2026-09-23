@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Cria rm/RM-<data>-<flag>.json. Uso: node scripts/new-rm.js --flags a,b --squad <squad> --schedule <ISO> [--envs dev,hml,prod]
+// Cria rm/RM-<data>-<flag>.json. Uso: node scripts/new-rm.js --flags a,b --squad <squad> --schedule <ISO> [--envs prod]
 // Plano de rollout padrão vem da maior criticidade entre as flags.
 const fs = require('fs');
 const path = require('path');
@@ -7,7 +7,7 @@ const { root, loadFlags, parseArgs } = require('./lib/common');
 
 const a = parseArgs(process.argv.slice(2));
 if (!a.flags || !a.squad || !a.schedule) {
-  console.error('Uso: node scripts/new-rm.js --flags a,b --squad <squad> --schedule <ISO 8601> [--envs dev,hml,prod]');
+  console.error('Uso: node scripts/new-rm.js --flags a,b --squad <squad> --schedule <ISO 8601> [--envs prod]');
   process.exit(1);
 }
 const keys = a.flags.split(',');
@@ -31,7 +31,7 @@ const id = `RM-${date}-${keys[0]}`;
 const rm = {
   id,
   flags: keys,
-  targetEnvironments: a.envs ? a.envs.split(',') : ['dev', 'hml', 'prod'],
+  targetEnvironments: a.envs ? a.envs.split(',') : ['prod'],
   criticality: crit,
   squad: a.squad,
   rollback: 'Voltar o toggle para false e publicar novamente',

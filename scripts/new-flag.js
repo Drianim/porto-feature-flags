@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Cria flags/<key>.json.
+// Cria a definição (flags/) e os ambientes não produtivos (env/nonprod/). PROD fica para a release/*.
 // Toggle: node scripts/new-flag.js ft_minha_flag --owner <squad> --criticality <nivel> --description "..." [--group "Vitrine Hub"]
 // Config: node scripts/new-flag.js rc_url_x --owner <squad> --criticality <nivel> --description "..." --value "https://..."
 const fs = require('fs');
@@ -26,7 +27,10 @@ const flag = {
   owner: a.owner,
   criticality: a.criticality,
   valueType: 'STRING',
-  environments: { dev: { ...def }, hml: { ...def }, prod: { ...def } },
 };
+const envFile = path.join(root, 'env', 'nonprod', `${key}.json`);
+fs.mkdirSync(path.dirname(envFile), { recursive: true });
 fs.writeFileSync(file, JSON.stringify(flag, null, 2) + '\n');
-console.log(`✓ flags/${key}.json criado${toggle ? ' (desligada em todos os ambientes)' : ''}. Rode: npm run catalog && npm run validate`);
+fs.writeFileSync(envFile, JSON.stringify({ nonprod: { ...def } }, null, 2) + '\n');
+console.log(`✓ flags/${key}.json e env/nonprod/${key}.json criados. PROD é configurado depois, numa release/* (env/prod/${key}.json + RM).`);
+console.log('  Rode: npm run catalog && npm run validate');

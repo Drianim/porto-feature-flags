@@ -4,16 +4,5 @@
   "group": "Vitrine Hub",
   "owner": "a-definir",
   "criticality": "baixa",
-  "valueType": "STRING",
-  "environments": {
-    "dev": {
-      "default": "false"
-    },
-    "hml": {
-      "default": "false"
-    },
-    "prod": {
-      "default": "false"
-    }
-  }
+  "valueType": "STRING"
 }

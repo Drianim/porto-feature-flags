@@ -3,12 +3,13 @@
 const fs = require('fs');
 const path = require('path');
 const { PLATFORMS, KEY_RE, kindOf, isActive } = require('./lib/flags');
+const { mergeFlag } = require('./lib/common');
 
 const root = path.join(__dirname, '..');
 const prod = process.argv.includes('--prod');
 const CRIT = ['baixa', 'media', 'alta', 'critica'];
 const TYPES = ['STRING', 'BOOLEAN', 'NUMBER', 'JSON'];
-const ENVS = ['dev', 'hml', 'prod'];
+const ENVS = ['nonprod', 'prod'];
 const errors = [];
 const err = (f, m) => errors.push(`${f}: ${m}`);
 
@@ -22,7 +23,26 @@ const readJson = (dir, filter) =>
     }
   }).filter(Boolean);
 
-const flags = readJson('flags', (f) => f.endsWith('.json'));
+const metas = readJson('flags', (f) => f.endsWith('.json'));
+const flags = [];
+for (const m of metas) {
+  const ok = KEY_RE.test(m.data.key || '');
+  try { flags.push({ file: m.file, data: ok ? mergeFlag(m.data) : m.data }); } catch (e) { err(m.file, `env inválido (${e.message})`); }
+}
+// env/*: arquivos órfãos e chaves no lugar errado
+const ENV_DIRS = { nonprod: ['nonprod'], prod: ['prod'] };
+for (const [dir, allowed] of Object.entries(ENV_DIRS)) {
+  if (!fs.existsSync(path.join(root, 'env', dir))) continue;
+  for (const f of fs.readdirSync(path.join(root, 'env', dir)).filter((x) => x.endsWith('.json'))) {
+    const key = f.replace(/\.json$/, '');
+    if (!metas.some((m) => m.data.key === key)) err(`env/${dir}/${f}`, `sem definição em flags/${key}.json`);
+    try {
+      for (const k of Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'env', dir, f), 'utf8')))) {
+        if (!allowed.includes(k)) err(`env/${dir}/${f}`, `só aceita ${allowed.join('/')} (encontrado "${k}")`);
+      }
+    } catch (e) { err(`env/${dir}/${f}`, `JSON inválido (${e.message})`); }
+  }
+}
 const rms = readJson('rm', (f) => /^RM-.*\.json$/.test(f));
 const seen = new Set();
 
@@ -40,7 +60,7 @@ for (const { file, data: d } of flags) {
   const okValue = (v) => (toggle ? v === 'true' || v === 'false' : typeof v === 'string' && v.length > 0);
   for (const env of ENVS) {
     const e = (d.environments || {})[env];
-    if (!e) { err(file, `environments.${env} ausente`); continue; }
+    if (!e) { if (env !== 'prod') err(file, `env/nonprod/${d.key}.json: ${env} ausente`); continue; }
     if (!okValue(e.default)) err(file, `${env}.default ${toggle ? 'deve ser "true" ou "false"' : 'deve ser um texto não vazio'}`);
     for (const p of PLATFORMS) {
       const o = e[p];
