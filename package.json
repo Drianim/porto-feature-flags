@@ -1,0 +1,15 @@
+{
+  "name": "feature-flags",
+  "private": true,
+  "scripts": {
+    "test": "node --test \"scripts/**/*.test.js\"",
+    "validate": "node scripts/validate.js",
+    "validate:prod": "node scripts/validate.js --prod",
+    "new:flag": "node scripts/new-flag.js",
+    "new:rm": "node scripts/new-rm.js",
+    "plan": "node scripts/deploy.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

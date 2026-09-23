@@ -1,0 +1,19 @@
+{
+  "id": "RM-YYYYMMDD-nome-da-flag",
+  "flags": ["exemplo_nova_home"],
+  "targetEnvironments": ["dev", "hml", "prod"],
+  "criticality": "media",
+  "squad": "squad-exemplo",
+  "rollback": "Desligar a flag (enabled=false) e publicar novamente",
+  "prodSchedule": "2026-10-01T14:00:00-03:00",
+  "rolloutPlan": [
+    { "percent": 5, "monitorMinutes": 30 },
+    { "percent": 25, "monitorMinutes": 60 },
+    { "percent": 50, "monitorMinutes": 120 },
+    { "percent": 100, "monitorMinutes": 0 }
+  ],
+  "approvals": {
+    "team": { "name": "", "date": "" },
+    "platform": { "name": "", "date": "" }
+  }
+}

@@ -1,0 +1,78 @@
+image: node:22
+
+definitions:
+  caches:
+    npm: ~/.npm
+  steps:
+    - step: &validate
+        name: Testes e validação das flags
+        caches: [npm]
+        script:
+          - npm install --no-audit --no-fund
+          - npm test
+          - npm run validate
+    - step: &validate-prod
+        name: Validar regras de PROD (RM + dupla aprovação)
+        caches: [npm]
+        script:
+          - npm install --no-audit --no-fund
+          - npm run validate:prod
+    - step: &approval-gate
+        name: Gate de aprovação (plataforma + equipe)
+        script:
+          - node scripts/check-approvals.js
+
+pipelines:
+  pull-requests:
+    '**':
+      - step: *validate
+
+  branches:
+    # Não produtivo: sobe na hora, logo após o merge (que exige aprovação da equipe)
+    develop:
+      - step: *validate
+      - step:
+          name: Deploy DEV
+          deployment: dev
+          script:
+            - npm install --no-audit --no-fund
+            - node scripts/deploy.js dev
+      - step:
+          name: Deploy HML
+          deployment: staging
+          script:
+            - npm install --no-audit --no-fund
+            - node scripts/deploy.js hml
+
+    # PROD: main só recebe PR com dupla aprovação. O deploy é time-gated pelo RM:
+    # antes de prodSchedule nada muda; depois segue o rolloutPlan.
+    main:
+      - step: *validate
+      - step: *validate-prod
+      - step: *approval-gate
+      - step:
+          name: Deploy PROD
+          deployment: production
+          script:
+            - npm install --no-audit --no-fund
+            - node scripts/deploy.js prod
+
+  custom:
+    # Crie um schedule (ex.: a cada 15 min) no Bitbucket apontando para esta pipeline em main.
+    # É idempotente: avança os estágios do rollout conforme o horário.
+    prod-scheduler:
+      - step: *validate-prod
+      - step:
+          name: Deploy PROD (avanço de rollout)
+          deployment: production
+          script:
+            - npm install --no-audit --no-fund
+            - node scripts/deploy.js prod
+
+    # Simulação manual sem publicar nada
+    plan-prod:
+      - step:
+          name: Plano de PROD (dry-run)
+          script:
+            - npm install --no-audit --no-fund
+            - node scripts/deploy.js prod --dry-run

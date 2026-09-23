@@ -1,0 +1,12 @@
+{
+  "key": "exemplo_nova_home",
+  "description": "Exemplo: habilita a nova home do app",
+  "owner": "squad-exemplo",
+  "criticality": "media",
+  "valueType": "BOOLEAN",
+  "environments": {
+    "dev": { "enabled": true },
+    "hml": { "enabled": true },
+    "prod": { "enabled": false, "rolloutPercent": 0 }
+  }
+}
