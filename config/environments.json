@@ -1,4 +1,4 @@
 {
-  "nonprod": { "projectVar": "FIREBASE_PROJECT_NONPROD", "keyVar": "FIREBASE_SA_KEY_NONPROD", "timeGated": false },
+  "nonprod": { "projectVar": "FIREBASE_PROJECT_NONPROD", "projectId": "cursoapp-ac8e4", "keyVar": "FIREBASE_SA_KEY_NONPROD", "timeGated": false },
   "prod":    { "projectVar": "FIREBASE_PROJECT_PROD",    "keyVar": "FIREBASE_SA_KEY_PROD",    "timeGated": true }
 }
