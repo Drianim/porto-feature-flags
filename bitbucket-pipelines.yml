@@ -7,6 +7,7 @@ image: node:22
 #  - PR feature/* -> main (mergeado)  -> NÃO PROD, FF NOVA (após aprovação manual no pipeline)
 #  - PR update/*  -> main (mergeado)  -> NÃO PROD, alteração de FF EXISTENTE (após aprovação manual)
 #    (feature/* e update/* só alteram flags/ e env/nonprod/; nome de FF nunca se repete)
+#  - PR remove/*  -> main (mergeado)  -> REMOVE a FF do NÃO PROD (após aprovação manual); só apaga FF
 #  - PR release/* -> main (mergeado)  -> PROD (aprovação manual), time-gated pelo RM (release/* só altera env/prod/ e rm/)
 # A origem do merge vem da mensagem do commit ("Merged in <branch> (pull request #N)").
 # Merge sem origem identificável (fast-forward, push direto) não publica nada.
@@ -93,10 +94,10 @@ pipelines:
           name: Reconferir regras do merge (escopo e nome de FF)
           script:
             - sh scripts/ci/recheck-merge.sh
-      # feature/* e update/* -> main: NÃO PROD. Só aparece se o merge alterou flags/ ou env/nonprod/.
+      # feature/*, update/* e remove/* -> main: NÃO PROD. Só aparece se o merge alterou flags/ ou env/nonprod/.
       # APROVAÇÃO: fica pausado até alguém clicar em "Run" no pipeline.
       - step:
-          name: Aprovar, publicar e verificar NÃO PROD (merge de feature/* ou update/*)
+          name: Aprovar, publicar ou remover e verificar NÃO PROD (merge de feature/*, update/* ou remove/*)
           trigger: manual
           deployment: test
           condition:
@@ -107,9 +108,11 @@ pipelines:
           script:
             - npm install --no-audit --no-fund
             - sh scripts/ci/run-if-source.sh "feature/|update/" node scripts/deploy.js nonprod
+            # remove/*: apaga do Remote Config as FFs cujo flags/<key>.json foi removido neste merge.
+            - sh scripts/ci/run-if-source.sh "remove/" node scripts/remove-flags.js nonprod --base HEAD^1
             # Confere se main e o Remote Config NÃO PROD ficaram idênticos. Se falhar, use a pipeline sync-nonprod.
             # (No mesmo step: o Bitbucket só aceita cada ambiente de deployment uma vez por pipeline.)
-            - sh scripts/ci/run-if-source.sh "feature/|update/" node scripts/verify-sync.js nonprod
+            - sh scripts/ci/run-if-source.sh "feature/|update/|remove/" node scripts/verify-sync.js nonprod
       # release/* -> main: PROD, time-gated pelo RM (antes de prodSchedule nada muda).
       # Só aparece se o merge alterou env/prod/ ou rm/.
       - step:

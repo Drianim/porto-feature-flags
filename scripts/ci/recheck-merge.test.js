@@ -25,7 +25,10 @@ function mergeAndRecheck(branch, change) {
   fs.writeFileSync(path.join(dir, '.gitignore'), 'node_modules\nmerge-source.txt\n');
   git('init -q -b main'); git('add -A'); git('commit -q -m base');
   git(`checkout -q -b ${branch}`);
-  change((rel, content) => { fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true }); fs.writeFileSync(path.join(dir, rel), content); });
+  change(
+    (rel, content) => { fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true }); fs.writeFileSync(path.join(dir, rel), content); },
+    (rel) => fs.rmSync(path.join(dir, rel)),
+  );
   git('add -A'); git('commit -q -m change');
   git('checkout -q main');
   git(`merge -q --no-ff ${branch} -m "Merged in ${branch} (pull request #9)"`);
@@ -66,4 +69,19 @@ test('origem sem publicação (chore) não é reconferida', () => {
   const r = mergeAndRecheck('chore/x', (w) => w('env/prod/ft_a.json', JSON.stringify({ prod: { default: 'false' } })));
   assert.strictEqual(r.ok, true, r.out);
   assert.match(r.out, /nada a reconferir/);
+});
+
+test('remove apagando FF passa', () => {
+  const r = mergeAndRecheck('remove/x', (w, rm) => { rm('flags/ft_a.json'); rm('env/nonprod/ft_a.json'); });
+  assert.strictEqual(r.ok, true, r.out);
+});
+test('remove alterando FF existente é reprovada', () => {
+  const r = mergeAndRecheck('remove/x', (w) => w('env/nonprod/ft_a.json', np('true')));
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /remove\/\* só apaga/);
+});
+test('feature apagando FF é reprovada e manda usar remove/*', () => {
+  const r = mergeAndRecheck('feature/x', (w, rm) => { rm('flags/ft_a.json'); rm('env/nonprod/ft_a.json'); });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /remove\/\*/);
 });

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { build, apply, diff } = require('./remote-config');
+const { build, apply, diff, removeKeys, findRemote } = require('./remote-config');
 
 const flags = [
   { key: 'ft_a', description: 'A', owner: 'x', criticality: 'baixa', valueType: 'STRING', group: 'Grupo',
@@ -51,4 +51,22 @@ test('apply é idempotente e preserva chaves de fora', () => {
   const again = apply(JSON.parse(JSON.stringify(t)), plan());
   assert.deepStrictEqual(diff(again, plan()), { problems: [], extras: ['legado'] });
   assert.ok(again.parameters.legado);
+});
+
+test('removeKeys apaga parâmetro, condições próprias e grupo que ficou vazio', () => {
+  const t = fresh(); t.parameters.legado = { defaultValue: { value: '1' } };
+  removeKeys(t, ['ft_a', 'rc_url']);
+  assert.strictEqual(findRemote(t, 'ft_a'), null);
+  assert.strictEqual(findRemote(t, 'rc_url'), null);
+  assert.deepStrictEqual(t.parameterGroups, {});
+  assert.deepStrictEqual(t.conditions, []);
+  assert.ok(t.parameters.legado, 'não mexe em chave de fora');
+});
+test('removeKeys mantém grupo que ainda tem outras chaves', () => {
+  const t = fresh(); t.parameterGroups.Grupo.parameters.outra = { defaultValue: { value: 'x' } };
+  removeKeys(t, ['ft_a']);
+  assert.deepStrictEqual(Object.keys(t.parameterGroups.Grupo.parameters), ['outra']);
+});
+test('removeKeys de chave inexistente não falha', () => {
+  const t = fresh(); assert.doesNotThrow(() => removeKeys(t, ['nao_existe']));
 });

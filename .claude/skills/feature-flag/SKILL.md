@@ -19,6 +19,7 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 
 - **FF nova** → `feature/*`. O nome nunca pode existir em `main` nem no Firebase NÃO PROD (o PR consulta o Firebase e bloqueia).
 - **Alterar FF que já existe** → `update/*` (uma `feature/*` que mexe em FF existente é bloqueada). Ambas só mexem em `flags/` e `env/nonprod/`.
+- **Remover FF** → `remove/*` (só apaga `flags/`, `env/nonprod/`, `env/prod/`, `rm/`). No merge, o Run apaga a chave do Remote Config NÃO PROD (`scripts/remove-flags.js`). Nunca apague FF em `feature/*` ou `update/*`.
 - **PROD** → `release/*`. Antes de abrir o PR: `node scripts/check-new-flags.js <branch> origin/main`.
 
 ## Criar uma flag nova

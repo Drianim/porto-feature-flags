@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 7,
+  "total": 8,
   "keys": [
     {
       "key": "ft_additional_card_address_info",

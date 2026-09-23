@@ -7,7 +7,7 @@ const readJson = (...p) => JSON.parse(fs.readFileSync(path.join(root, ...p), 'ut
 const exists = (...p) => fs.existsSync(path.join(root, ...p));
 
 const listJson = (dir, filter = () => true) =>
-  fs.readdirSync(path.join(root, dir))
+  (exists(dir) ? fs.readdirSync(path.join(root, dir)) : [])
     .filter((f) => f.endsWith('.json') && filter(f))
     .map((f) => ({ file: `${dir}/${f}`, data: readJson(dir, f) }));
 
