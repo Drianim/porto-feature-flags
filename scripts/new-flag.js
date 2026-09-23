@@ -26,7 +26,6 @@ const flag = {
   ...(a.group ? { group: a.group } : {}),
   owner: a.owner,
   criticality: a.criticality,
-  valueType: 'STRING',
 };
 const envFile = path.join(root, 'env', 'nonprod', `${key}.json`);
 fs.mkdirSync(path.dirname(envFile), { recursive: true });

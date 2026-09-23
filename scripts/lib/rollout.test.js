@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { currentStage, effectivePercent } = require('./rollout');
-const { rules, isActive, kindOf } = require('./flags');
+const { rules, isActive, kindOf, valueTypeOf } = require('./flags');
 
 const rm = {
   prodSchedule: '2026-10-01T14:00:00-03:00',
@@ -51,4 +51,12 @@ test('toggle desligado não é ativo (rollback nunca bloqueia)', () => {
 test('toggle com override true é ativo; config sempre é', () => {
   assert.strictEqual(isActive({ key: 'ft_a', environments: { prod: { default: 'false', android: { value: 'true' } } } }, 'prod'), true);
   assert.strictEqual(isActive({ key: 'rc_u', environments: { prod: { default: 'https://x' } } }, 'prod'), true);
+});
+
+test('valueTypeOf deriva dos valores', () => {
+  const f = (envs, extra = {}) => ({ key: 'x', environments: envs, ...extra });
+  assert.strictEqual(valueTypeOf(f({ nonprod: { default: 'false', ios: { value: 'true' } } })), 'BOOLEAN');
+  assert.strictEqual(valueTypeOf(f({ nonprod: { default: 'https://x' } })), 'STRING');
+  assert.strictEqual(valueTypeOf(f({ nonprod: { default: 'false' }, prod: { default: 'false', android: { value: 'talvez' } } })), 'STRING', 'um valor não booleano em qualquer ambiente torna String');
+  assert.strictEqual(valueTypeOf(f({ nonprod: { default: 'false' } }, { valueType: 'STRING' })), 'BOOLEAN', 'campo valueType é ignorado');
 });

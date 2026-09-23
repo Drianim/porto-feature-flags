@@ -9,7 +9,7 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 
 ## Estrutura
 
-- `flags/<key>.json` — definição (owner, criticality, valueType, definição; valores em `env/nonprod/` e `env/prod/`)
+- `flags/<key>.json` — definição (owner, criticality, descrição; o tipo Boolean/String é derivado dos valores; valores em `env/nonprod/` e `env/prod/`)
 - `rm/RM-*.json` — arquivo de RM (obrigatório para PROD)
 - `config/environments.json` — variáveis por ambiente e regras (PROD é time-gated e exige `team` + `platform`)
 - `scripts/` — `new-flag.js`, `new-rm.js`, `validate.js`, `deploy.js`

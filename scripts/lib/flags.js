@@ -27,4 +27,17 @@ function isActive(flag, env) {
   return Object.values(rules(flag, env).overrides).some((o) => o.value === 'true' && o.rolloutPercent !== 0);
 }
 
-module.exports = { PLATFORMS, KEY_RE, kindOf, rules, isActive };
+// Tipo no Remote Config, derivado dos VALORES da FF (todos os ambientes/plataformas):
+// todos "true"/"false" -> BOOLEAN; qualquer outro valor (URL, texto...) -> STRING.
+// Vale para ft_ e rc_; o campo valueType do arquivo é ignorado.
+const isBoolean = (v) => v === 'true' || v === 'false';
+function valueTypeOf(flag) {
+  const values = [];
+  for (const e of Object.values(flag.environments || {})) {
+    values.push(String(e.default));
+    for (const p of PLATFORMS) if (e[p]) values.push(String(e[p].value));
+  }
+  return values.length && values.every(isBoolean) ? 'BOOLEAN' : 'STRING';
+}
+
+module.exports = { PLATFORMS, KEY_RE, kindOf, rules, isActive, valueTypeOf };

@@ -70,3 +70,15 @@ test('removeKeys mantém grupo que ainda tem outras chaves', () => {
 test('removeKeys de chave inexistente não falha', () => {
   const t = fresh(); assert.doesNotThrow(() => removeKeys(t, ['nao_existe']));
 });
+
+test('tipo vem dos valores: true/false = BOOLEAN; URL/texto = STRING', () => {
+  const p = build(flags, [], 'nonprod', cfg);
+  assert.strictEqual(p.items.find((i) => i.key === 'ft_a').param.valueType, 'BOOLEAN');
+  assert.strictEqual(p.items.find((i) => i.key === 'rc_url').param.valueType, 'STRING');
+  const b = build([{ key: 'rc_flag', description: 'd', owner: 'x', criticality: 'baixa', environments: { nonprod: { default: 'true' } } }], [], 'nonprod', cfg);
+  assert.strictEqual(b.items[0].param.valueType, 'BOOLEAN', 'rc_ com true/false também é BOOLEAN');
+});
+test('diff acusa toggle publicado como STRING (tipo esperado BOOLEAN)', () => {
+  const t = fresh(); t.parameterGroups.Grupo.parameters.ft_a.valueType = 'STRING';
+  assert.match(diff(t, plan()).problems.join('|'), /ft_a: tipo esperado BOOLEAN, atual STRING/);
+});
