@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 3,
+  "total": 4,
   "keys": [
     {
       "key": "ft_additional_card_address_info",
@@ -51,6 +51,44 @@
         },
         "prod": {
           "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_nova_home_teste",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "STRING",
+      "criticality": "media",
+      "owner": "squad-poc",
+      "description": "Nova home do app (flag de teste da PoC)",
+      "environments": {
+        "dev": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
+        },
+        "hml": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
         }
       }
     },
