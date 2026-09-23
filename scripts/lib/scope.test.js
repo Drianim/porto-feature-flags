@@ -21,3 +21,7 @@ test('release não pode alterar flags nem env/nonprod nem código', () => {
 test('outros prefixos não são restringidos', () => {
   assert.strictEqual(checkScope('chore/x', ['env/prod/ft_a.json', 'scripts/deploy.js']).ok, true);
 });
+test('update tem o mesmo escopo de feature', () => {
+  assert.strictEqual(checkScope('update/x', ['flags/ft_a.json', 'env/nonprod/ft_a.json']).ok, true);
+  assert.strictEqual(checkScope('update/x', ['env/prod/ft_a.json']).ok, false);
+});

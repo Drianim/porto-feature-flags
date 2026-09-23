@@ -16,6 +16,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 | `scripts/check-approvals.js` | Gate de PROD: confere no Bitbucket o PR mergeado (1 aprovação da plataforma + 1 da equipe, nenhuma do autor) |
 | `config/approvers.json` | `account_id` das pessoas da plataforma (preencher) |
 | `catalog/keys.json` | Catálogo gerado com todas as chaves do Remote Config e o estado por ambiente (`npm run catalog`; a pipeline falha se estiver desatualizado) |
+| `scripts/check-new-flags.js` | Bloqueia nome de FF duplicado: feature/* só cria FF nova (consulta o Firebase), update/* só altera existente |
 | `scripts/verify-sync.js` | Compara `main` com o Remote Config real (`--fix` publica se houver divergência, `--strict` também reprova chaves fora do repo) |
 | `scripts/deploy.js` | Publica no Remote Config (`--dry-run`, `--now <ISO>` para simular) |
 | `scripts/lib/` | Código compartilhado e testes do rollout (`npm test`) |
@@ -53,12 +54,21 @@ Todo step que publica no Firebase é `trigger: manual`: a pipeline **pausa** e s
 
 ## Regra por tipo de branch
 
-| Branch | Pode alterar | Deploy ao mergear em `main` |
-|---|---|---|
-| `feature/*` | `flags/`, `env/nonprod/`, scripts, config (**não** `env/prod/` nem `rm/`) | NÃO PROD |
-| `release/*` | somente `env/prod/`, `rm/` e `catalog/` | PROD (time-gated pelo RM) |
+| Branch | Para quê | Pode alterar | Deploy ao mergear em `main` |
+|---|---|---|---|
+| `feature/*` | criar FF **nova** | `flags/`, `env/nonprod/`, scripts, config (**não** `env/prod/` nem `rm/`) | NÃO PROD |
+| `update/*` | alterar FF que **já existe** | `flags/`, `env/nonprod/` (**não** `env/prod/` nem `rm/`) | NÃO PROD |
+| `release/*` | levar para PROD | somente `env/prod/`, `rm/` e `catalog/` | PROD (time-gated pelo RM) |
 
-O CI (`scripts/check-scope.js`) reprova o PR que violar isso. Outros prefixos (`chore/`...) não são restringidos e **não disparam deploy**.
+O CI reprova o PR que violar isso: `scripts/check-scope.js` (pastas) e `scripts/check-new-flags.js` (nome de FF). Outros prefixos (`chore/`...) não são restringidos e **não disparam deploy**.
+
+### Nome de FF nunca se repete
+
+- `feature/*` só pode **criar** FF nova. O nome não pode existir em `main` (ignorando maiúsculas) nem no **Remote Config NÃO PROD**: o PR consulta o Firebase de verdade.
+- Se a FF já existe (no repo ou no Firebase) e você precisa alterá-la, o PR de `feature/*` é bloqueado com a mensagem *"essa FF já existe… use uma branch update/*"*. Abra a mudança numa `update/*`.
+- O contrário também vale: `update/*` não pode criar FF nova (deve ser `feature/*`).
+- Para o PR consultar o Firebase, `FIREBASE_SA_KEY_NONPROD` precisa ser variável de **repositório** (secured), porque PR pipelines não recebem variáveis de Deployment. Sem credencial, o step falha (não libera o nome às cegas).
+- Localmente: `node scripts/check-new-flags.js feature/minha-flag origin/main` (`--skip-remote` pula a consulta ao Firebase).
 
 ## Fluxo
 

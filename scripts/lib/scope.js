@@ -1,5 +1,5 @@
 // Escopo por tipo de branch:
-//   feature/* -> só ambientes NÃO produtivos (não pode tocar em env/prod/ nem rm/)
+//   feature/* e update/* -> só ambientes NÃO produtivos (não podem tocar em env/prod/ nem rm/)
 //   release/* -> só PROD (pode tocar apenas em env/prod/, rm/ e catalog/)
 // Outros prefixos (chore/, hotfix/...) não são restringidos aqui e também não disparam deploy.
 const PROD_PATHS = ['env/prod/', 'rm/'];
@@ -11,9 +11,9 @@ function checkScope(branch, files) {
     for (const f of files) {
       if (!isProd(f) && !f.startsWith('catalog/')) problems.push(`${f}: release/* só pode alterar env/prod/, rm/ e catalog/`);
     }
-  } else if (branch.startsWith('feature/')) {
+  } else if (branch.startsWith('feature/') || branch.startsWith('update/')) {
     for (const f of files) {
-      if (isProd(f)) problems.push(`${f}: feature/* não pode alterar PROD (env/prod/, rm/); use uma release/*`);
+      if (isProd(f)) problems.push(`${f}: ${branch.split('/')[0]}/* não pode alterar PROD (env/prod/, rm/); use uma release/*`);
     }
   }
   return { ok: problems.length === 0, problems };
