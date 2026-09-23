@@ -30,7 +30,9 @@ function build(flags, rms, env, cfgEnv, now = new Date()) {
       if (toggle && stagePercent !== undefined) pct = Math.min(pct, stagePercent);
       if (pct <= 0) continue;
       const name = `${flag.key}_${platform}`;
-      conditions.push({ name, expression: `device.os == '${platform}'${pct < 100 ? ` && percent <= ${pct}` : ''}` });
+      // Semente = nome da FF: cada FF sorteia o seu próprio grupo de usuários (sem semente, todas as FFs em % pegariam os mesmos)
+      // e quem entra em 5% continua dentro quando o rollout sobe para 25%.
+      conditions.push({ name, expression: `device.os == '${platform}'${pct < 100 ? ` && percent('${flag.key}') <= ${pct}` : ''}` });
       param.conditionalValues[name] = { value: o.value };
     }
     items.push({ key: flag.key, group: flag.group, param });
