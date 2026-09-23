@@ -3,11 +3,12 @@
   "private": true,
   "scripts": {
     "test": "node --test \"scripts/**/*.test.js\"",
-    "validate": "node scripts/validate.js",
+    "validate": "node scripts/validate.js && node scripts/catalog.js --check",
     "validate:prod": "node scripts/validate.js --prod",
     "new:flag": "node scripts/new-flag.js",
     "new:rm": "node scripts/new-rm.js",
-    "plan": "node scripts/deploy.js"
+    "plan": "node scripts/deploy.js",
+    "catalog": "node scripts/catalog.js"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0"

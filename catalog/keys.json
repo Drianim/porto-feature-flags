@@ -1,0 +1,27 @@
+{
+  "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
+  "total": 1,
+  "keys": [
+    {
+      "key": "exemplo_nova_home",
+      "type": "BOOLEAN",
+      "criticality": "media",
+      "owner": "squad-exemplo",
+      "description": "Exemplo: habilita a nova home do app",
+      "environments": {
+        "dev": {
+          "enabled": true,
+          "rolloutPercent": 100
+        },
+        "hml": {
+          "enabled": true,
+          "rolloutPercent": 100
+        },
+        "prod": {
+          "enabled": false,
+          "rolloutPercent": 0
+        }
+      }
+    }
+  ]
+}

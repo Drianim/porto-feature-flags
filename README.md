@@ -13,6 +13,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 | `scripts/validate.js` | Valida flags e RM (`--prod` aplica as regras de PROD) |
 | `scripts/check-approvals.js` | Gate de PROD: confere no Bitbucket o PR mergeado (1 aprovação da plataforma + 1 da equipe, nenhuma do autor) |
 | `config/approvers.json` | `account_id` das pessoas da plataforma (preencher) |
+| `catalog/keys.json` | Catálogo gerado com todas as chaves do Remote Config e o estado por ambiente (`npm run catalog`; a pipeline falha se estiver desatualizado) |
 | `scripts/deploy.js` | Publica no Remote Config (`--dry-run`, `--now <ISO>` para simular) |
 | `scripts/lib/` | Código compartilhado e testes do rollout (`npm test`) |
 | `.claude/skills/feature-flag/` | Skill do Claude Code para operar este repo |
@@ -22,7 +23,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 
 1. Branch a partir de `develop`. Crie a flag: `npm run new:flag -- minha_flag --owner squad-x --criticality media`.
 2. PR: a pipeline roda testes e `validate`. Precisa de **1 aprovação da equipe**.
-3. Merge em `develop` → **DEV e HML sobem na hora**.
+3. Rode `npm run catalog` e commite o resultado. Merge em `develop` → **DEV e HML sobem na hora**.
 4. Para PROD: `npm run new:rm -- --flags minha_flag --squad squad-x --schedule 2026-10-01T14:00:00-03:00` e ligue `environments.prod.enabled`. Preencha `approvals.team` e `approvals.platform` (pessoas diferentes).
 5. PR `develop` → `main` exige **2 aprovações, uma da plataforma**. A pipeline roda `validate:prod`.
 6. O deploy de PROD é **time-gated**: antes de `prodSchedule` nada muda; depois segue o `rolloutPlan` (ex.: 5% → 25% → 50% → 100%). O estágio é calculado pelo horário, sem estado, então rodar a pipeline várias vezes é seguro.
@@ -49,6 +50,11 @@ Simular sem publicar: `node scripts/deploy.js prod --dry-run --now 2026-10-01T18
 - **`config/approvers.json`**: preencha `platform` com os `account_id` do time de plataforma.
 - **Deployment `production`**: restrinja quem pode fazer deploy (plataforma/admins).
 - **Schedules**: agende a pipeline `prod-scheduler` em `main` (ex.: a cada 15 min). Ela avança os estágios do rollout no horário certo.
+
+## Chaves e segredos
+
+- O **catálogo de chaves** de flag é `catalog/keys.json` (gerado de `flags/`). Rode `npm run catalog` ao criar ou alterar uma flag.
+- **Credenciais nunca entram no repo**: IDs de projeto e service accounts ficam nas variáveis secured do Bitbucket (`FIREBASE_PROJECT_*`, `FIREBASE_SA_KEY_*`). O `.gitignore` bloqueia `service-account*.json`.
 
 ## Limitações
 
