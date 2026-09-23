@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Publica as flags no Firebase Remote Config de um ambiente.
 // Uso: node scripts/deploy.js <nonprod|prod> [--dry-run] [--now <ISO>]
-// Env (ver config/environments.json): FIREBASE_PROJECT_<ENV> e FIREBASE_SA_KEY_<ENV> (JSON do service account em base64).
+// Env (ver config/environments.json): FIREBASE_SA_KEY_<ENV> (JSON do service account em base64, obrigatório)
+// e FIREBASE_PROJECT_<ENV> (opcional: sobrescreve o projectId padrão do config).
 // PROD é "time-gated": flags que liberam algo só sobem quando prodSchedule do RM chegou, seguindo o rolloutPlan.
 const { loadFlags, loadRms, environments, parseArgs } = require('./lib/common');
 const { currentStage } = require('./lib/rollout');
@@ -73,7 +74,8 @@ function apply(template, { items, conditions }) {
 
 async function main() {
   const plan = build(loadFlags(), loadRms());
-  const projectId = process.env[cfgEnv.projectVar];
+  // A variável de ambiente tem prioridade; o projectId do config é só um padrão (ID de projeto não é segredo).
+  const projectId = process.env[cfgEnv.projectVar] || cfgEnv.projectId;
   if (args['dry-run']) {
     console.log(JSON.stringify({ env, projectId: projectId || `(${cfgEnv.projectVar} não definido)`, now: now.toISOString(), ...plan }, null, 2));
     return;

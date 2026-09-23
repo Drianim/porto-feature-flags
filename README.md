@@ -31,7 +31,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 
 ## Escopo da PoC: só NÃO PROD
 
-Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de teste (`cursoapp-ac8e4`). Basta configurar no Deployment `test`: `FIREBASE_PROJECT_NONPROD` e `FIREBASE_SA_KEY_NONPROD`. Os steps de PROD (validação, gate de aprovação, deploy) ficam definidos mas só executam em merge de `release/*`, que não é usado na PoC. Variáveis de PROD, `BB_ACCESS_TOKEN` e `config/approvers.json` só serão necessários quando PROD entrar.
+Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de teste (`cursoapp-ac8e4`). O ID do projeto já está em `config/environments.json` (`projectId`); no Deployment `test` basta a variável secured `FIREBASE_SA_KEY_NONPROD` (JSON do service account em base64). `FIREBASE_PROJECT_NONPROD` é opcional e sobrescreve o padrão. **Nunca** versione a chave. Os steps de PROD (validação, gate de aprovação, deploy) ficam definidos mas só executam em merge de `release/*`, que não é usado na PoC. Variáveis de PROD, `BB_ACCESS_TOKEN` e `config/approvers.json` só serão necessários quando PROD entrar.
 
 ## Aprovação dentro da pipeline
 
