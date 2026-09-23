@@ -33,6 +33,15 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 
 Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de teste (`cursoapp-ac8e4`). Basta configurar no Deployment `test`: `FIREBASE_PROJECT_NONPROD` e `FIREBASE_SA_KEY_NONPROD`. Os steps de PROD (validação, gate de aprovação, deploy) ficam definidos mas só executam em merge de `release/*`, que não é usado na PoC. Variáveis de PROD, `BB_ACCESS_TOKEN` e `config/approvers.json` só serão necessários quando PROD entrar.
 
+## Aprovação dentro da pipeline
+
+Todo step que publica no Firebase é `trigger: manual`: a pipeline **pausa** e só segue quando uma pessoa clica em **Run** no Bitbucket. Sem o clique, nada é publicado.
+
+- Cada step só aparece quando o merge alterou a pasta certa (`condition: changesets`): `flags/` e `env/nonprod/` mostram o step de NÃO PROD; `env/prod/` e `rm/` mostram os de PROD.
+- Para restringir **quem** pode clicar: *Repository settings → Deployments →* ambiente *→ Deployment permissions* (pode exigir plano pago).
+- A aprovação do PR (antes do merge) continua sendo configurada em *Branch restrictions* (mín. de aprovações).
+- O `prod-scheduler` (avanço do rollout por horário) é automático de propósito: depende do RM já aprovado.
+
 ## Regra por tipo de branch
 
 | Branch | Pode alterar | Deploy ao mergear em `main` |
@@ -46,7 +55,7 @@ O CI (`scripts/check-scope.js`) reprova o PR que violar isso. Outros prefixos (`
 
 1. Branch a partir de `develop`. Crie a flag: `npm run new:flag -- ft_minha_flag --owner squad-x --criticality media --description "..."`.
 2. PR: a pipeline roda testes e `validate`. Precisa de **1 aprovação da equipe**.
-3. Rode `npm run catalog` e commite o resultado. Merge em `develop` → **NÃO PROD sobe na hora**.
+3. Rode `npm run catalog` e commite o resultado. Merge em `develop` → a pipeline pausa no step **"Aprovar e publicar NÃO PROD"**; quem aprova clica em *Run* e só então o Remote Config é atualizado.
 4. Para PROD: `npm run new:rm -- --flags ft_minha_flag --squad squad-x --schedule 2026-10-01T14:00:00-03:00` e defina em `environments.prod` o override por plataforma (ex.: `"ios": {"value": "true"}`). Preencha `approvals.team` e `approvals.platform` (pessoas diferentes).
 5. PR `develop` → `main` exige **2 aprovações, uma da plataforma**. A pipeline roda `validate:prod`.
 6. O deploy de PROD é **time-gated**: antes de `prodSchedule` nada muda; depois segue o `rolloutPlan` (ex.: 5% → 25% → 50% → 100%). O estágio é calculado pelo horário, sem estado, então rodar a pipeline várias vezes é seguro.

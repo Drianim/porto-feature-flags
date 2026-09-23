@@ -3,9 +3,9 @@ image: node:22
 # Ambientes no Remote Config: NÃO PROD (nonprod) e PROD (prod). Um projeto Firebase para cada.
 #
 # Regras de deploy:
-#  - develop                          -> NÃO PROD na hora
-#  - PR feature/* -> main (mergeado)  -> NÃO PROD (feature/* só altera flags/ e env/nonprod/)
-#  - PR release/* -> main (mergeado)  -> PROD, time-gated pelo RM (release/* só altera env/prod/ e rm/)
+#  - develop                          -> NÃO PROD (após aprovação manual no pipeline)
+#  - PR feature/* -> main (mergeado)  -> NÃO PROD (após aprovação manual no pipeline) (feature/* só altera flags/ e env/nonprod/)
+#  - PR release/* -> main (mergeado)  -> PROD (aprovação manual), time-gated pelo RM (release/* só altera env/prod/ e rm/)
 # A origem do merge vem da mensagem do commit ("Merged in <branch> (pull request #N)").
 # Merge sem origem identificável (fast-forward, push direto) não publica nada.
 
@@ -62,8 +62,10 @@ pipelines:
   branches:
     develop:
       - step: *validate
+      # APROVAÇÃO: o deploy fica pausado até alguém clicar em "Run" no pipeline.
       - step:
-          name: Deploy NÃO PROD
+          name: Aprovar e publicar NÃO PROD
+          trigger: manual
           deployment: test
           script:
             - npm install --no-audit --no-fund
@@ -72,26 +74,51 @@ pipelines:
     main:
       - step: *merge-source
       - step: *validate
-      # feature/* -> main: NÃO PROD
+      # feature/* -> main: NÃO PROD. Só aparece se o merge alterou flags/ ou env/nonprod/.
+      # APROVAÇÃO: fica pausado até alguém clicar em "Run" no pipeline.
       - step:
-          name: Deploy NÃO PROD (merge de feature/*)
+          name: Aprovar e publicar NÃO PROD (merge de feature/*)
+          trigger: manual
           deployment: test
+          condition:
+            changesets:
+              includePaths:
+                - "flags/**"
+                - "env/nonprod/**"
           script:
             - npm install --no-audit --no-fund
             - sh scripts/ci/run-if-source.sh feature/ node scripts/deploy.js nonprod
-      # release/* -> main: PROD, time-gated pelo RM (antes de prodSchedule nada muda)
+      # release/* -> main: PROD, time-gated pelo RM (antes de prodSchedule nada muda).
+      # Só aparece se o merge alterou env/prod/ ou rm/.
       - step:
           name: Validar regras de PROD (merge de release/*)
+          condition:
+            changesets:
+              includePaths:
+                - "env/prod/**"
+                - "rm/**"
           script:
             - npm install --no-audit --no-fund
             - sh scripts/ci/run-if-source.sh release/ npm run validate:prod
       - step:
           name: Gate de aprovação (plataforma + equipe)
+          condition:
+            changesets:
+              includePaths:
+                - "env/prod/**"
+                - "rm/**"
           script:
             - sh scripts/ci/run-if-source.sh release/ node scripts/check-approvals.js
+      # APROVAÇÃO: fica pausado até alguém clicar em "Run" (restrinja quem pode em Deployments).
       - step:
-          name: Deploy PROD (merge de release/*)
+          name: Aprovar e publicar PROD (merge de release/*)
+          trigger: manual
           deployment: production
+          condition:
+            changesets:
+              includePaths:
+                - "env/prod/**"
+                - "rm/**"
           script:
             - npm install --no-audit --no-fund
             - sh scripts/ci/run-if-source.sh release/ node scripts/deploy.js prod
