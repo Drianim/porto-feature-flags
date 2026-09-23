@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { root, loadFlags, parseArgs } = require('./lib/common');
-const { kindOf } = require('./lib/flags');
+const { kindOf, valueTypeOf } = require('./lib/flags');
 
 const flags = loadFlags().sort((a, b) => a.key.localeCompare(b.key));
 const catalog = {
@@ -14,7 +14,7 @@ const catalog = {
     key: f.key,
     kind: kindOf(f.key),
     group: f.group || null,
-    valueType: f.valueType || 'STRING',
+    valueType: valueTypeOf(f),
     criticality: f.criticality,
     owner: f.owner,
     description: f.description,

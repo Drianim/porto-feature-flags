@@ -1,7 +1,7 @@
 // Lógica compartilhada entre deploy.js e verify-sync.js: monta o que deve existir no Remote Config,
 // aplica no template e compara com o que existe de fato no Firebase.
 const { currentStage } = require('./rollout');
-const { kindOf, rules, isActive } = require('./flags');
+const { kindOf, rules, isActive, valueTypeOf } = require('./flags');
 
 // flags + RMs -> { items, conditions, skipped } (o "estado desejado" do ambiente)
 function build(flags, rms, env, cfgEnv, now = new Date()) {
@@ -21,7 +21,7 @@ function build(flags, rms, env, cfgEnv, now = new Date()) {
     }
     const param = {
       description: flag.description,
-      valueType: flag.valueType || 'STRING',
+      valueType: valueTypeOf(flag),
       defaultValue: { value: defaultValue },
       conditionalValues: {},
     };

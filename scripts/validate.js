@@ -2,13 +2,12 @@
 // Valida flags/*.json e rm/RM-*.json. Uso: node scripts/validate.js [--prod]
 const fs = require('fs');
 const path = require('path');
-const { PLATFORMS, KEY_RE, kindOf, isActive } = require('./lib/flags');
+const { PLATFORMS, KEY_RE, kindOf, isActive, valueTypeOf } = require('./lib/flags');
 const { mergeFlag } = require('./lib/common');
 
 const root = path.join(__dirname, '..');
 const prod = process.argv.includes('--prod');
 const CRIT = ['baixa', 'media', 'alta', 'critica'];
-const TYPES = ['STRING', 'BOOLEAN', 'NUMBER', 'JSON'];
 const ENVS = ['nonprod', 'prod'];
 const errors = [];
 const err = (f, m) => errors.push(`${f}: ${m}`);
@@ -56,7 +55,10 @@ for (const { file, data: d } of flags) {
   if (!d.owner) err(file, 'owner obrigatório');
   if (d.group !== undefined && (typeof d.group !== 'string' || !d.group)) err(file, 'group deve ser texto');
   if (!CRIT.includes(d.criticality)) err(file, `criticality deve ser ${CRIT.join('|')}`);
-  if (d.valueType !== undefined && !TYPES.includes(d.valueType)) err(file, `valueType deve ser ${TYPES.join('|')}`);
+  if (d.valueType !== undefined) {
+    const derived = valueTypeOf(d);
+    if (d.valueType !== derived) console.warn(`! ${file}: valueType "${d.valueType}" é ignorado: o tipo vem dos valores (true/false = BOOLEAN, senão STRING) e aqui seria ${derived}. Pode remover o campo.`);
+  }
   const okValue = (v) => (toggle ? v === 'true' || v === 'false' : typeof v === 'string' && v.length > 0);
   for (const env of ENVS) {
     const e = (d.environments || {})[env];

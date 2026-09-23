@@ -6,7 +6,7 @@
       "key": "ft_exemplo_checkout",
       "kind": "toggle",
       "group": null,
-      "valueType": "STRING",
+      "valueType": "BOOLEAN",
       "criticality": "baixa",
       "owner": "squad-poc",
       "description": "Exemplo: novo fluxo de checkout (PoC)",
