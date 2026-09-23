@@ -2,7 +2,8 @@
   "nonprod": {
     "default": "false",
     "ios": {
-      "value": "true"
+      "value": "true",
+      "rolloutPercent": 50
     },
     "android": {
       "value": "true"
