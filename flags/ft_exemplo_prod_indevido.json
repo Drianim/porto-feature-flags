@@ -1,7 +1,0 @@
-{
-  "key": "ft_exemplo_prod_indevido",
-  "description": "Exemplo: feature não pode tocar em PROD",
-  "owner": "squad-poc",
-  "criticality": "baixa",
-  "valueType": "STRING"
-}

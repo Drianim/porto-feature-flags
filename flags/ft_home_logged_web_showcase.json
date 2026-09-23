@@ -1,8 +1,0 @@
-{
-  "key": "ft_home_logged_web_showcase",
-  "description": "Leva o usuário para o portal de vendas da Porto no navegador, ao acessar a vitrine da área logada (v2)",
-  "group": "Vitrine Hub",
-  "owner": "a-definir",
-  "criticality": "baixa",
-  "valueType": "STRING"
-}

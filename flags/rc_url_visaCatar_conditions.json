@@ -1,7 +1,0 @@
-{
-  "key": "rc_url_visaCatar_conditions",
-  "description": "Termo do Regulamento Promoção Visa Catar",
-  "owner": "a-definir",
-  "criticality": "baixa",
-  "valueType": "STRING"
-}
