@@ -66,6 +66,23 @@
       }
     },
     {
+      "key": "ft_exemplo_prod_indevido",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "STRING",
+      "criticality": "baixa",
+      "owner": "squad-poc",
+      "description": "Exemplo: feature não pode tocar em PROD",
+      "environments": {
+        "nonprod": {
+          "default": "false"
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
       "key": "ft_home_logged_web_showcase",
       "kind": "toggle",
       "group": "Vitrine Hub",
