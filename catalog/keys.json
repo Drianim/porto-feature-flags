@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 6,
+  "total": 7,
   "keys": [
     {
       "key": "ft_additional_card_address_info",
@@ -19,6 +19,23 @@
           "android": {
             "value": "true"
           }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_exemplo_bloqueada",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "STRING",
+      "criticality": "baixa",
+      "owner": "squad-poc",
+      "description": "Exemplo: update não pode criar FF",
+      "environments": {
+        "nonprod": {
+          "default": "false"
         },
         "prod": {
           "default": "false"
