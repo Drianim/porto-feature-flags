@@ -22,6 +22,7 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 2. Ligue nos ambientes não produtivos com override por plataforma, ex.: em `env/nonprod/<key>.json`: `{"nonprod": {"default": "false", "ios": {"value": "true"}, "android": {"value": "true"}}}` (ou `default: "true"` para todas). `rolloutPercent` opcional limita o percentual.
 3. `npm run catalog && npm run validate` (o catálogo `catalog/keys.json` é gerado e conferido na pipeline)
 4. Simule: `node scripts/deploy.js nonprod --dry-run`
+5. `main` deve ficar idêntico ao Firebase NÃO PROD: `node scripts/verify-sync.js nonprod` confere; `--fix` publica se divergir. Se um deploy falhar, a pipeline `sync-nonprod` retenta.
 
 ## Levar para PROD (branch `release/*`, separada da feature)
 

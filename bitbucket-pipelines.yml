@@ -3,11 +3,17 @@ image: node:22
 # Ambientes no Remote Config: NÃO PROD (nonprod) e PROD (prod). Um projeto Firebase para cada.
 #
 # Regras de deploy:
-#  - develop                          -> NÃO PROD (após aprovação manual no pipeline)
+#  - develop                          -> só valida (NÃO publica: main é a única fonte do Firebase NÃO PROD)
 #  - PR feature/* -> main (mergeado)  -> NÃO PROD (após aprovação manual no pipeline) (feature/* só altera flags/ e env/nonprod/)
 #  - PR release/* -> main (mergeado)  -> PROD (aprovação manual), time-gated pelo RM (release/* só altera env/prod/ e rm/)
 # A origem do merge vem da mensagem do commit ("Merged in <branch> (pull request #N)").
 # Merge sem origem identificável (fast-forward, push direto) não publica nada.
+#
+# Garantia "main = Firebase NÃO PROD":
+#  - depois de cada deploy, o step "Verificar sincronia" compara main com o Remote Config real;
+#  - se o deploy falhar, a pipeline custom `sync-nonprod` (agendada e/ou manual, sempre em main)
+#    publica o que está em main quando houver divergência e confere de novo;
+#  - `verify-nonprod` é a checagem só de leitura (--strict) para alarme.
 
 definitions:
   caches:
@@ -60,16 +66,9 @@ pipelines:
               fi
 
   branches:
+    # develop NÃO publica no Firebase: o que está em main é a única fonte do NÃO PROD.
     develop:
       - step: *validate
-      # APROVAÇÃO: o deploy fica pausado até alguém clicar em "Run" no pipeline.
-      - step:
-          name: Aprovar e publicar NÃO PROD
-          trigger: manual
-          deployment: test
-          script:
-            - npm install --no-audit --no-fund
-            - node scripts/deploy.js nonprod
 
     main:
       - step: *merge-source
@@ -88,6 +87,18 @@ pipelines:
           script:
             - npm install --no-audit --no-fund
             - sh scripts/ci/run-if-source.sh feature/ node scripts/deploy.js nonprod
+      # Confere se main e o Remote Config NÃO PROD ficaram idênticos. Se falhar, use a pipeline sync-nonprod.
+      - step:
+          name: Verificar sincronia NÃO PROD (main = Firebase)
+          deployment: test
+          condition:
+            changesets:
+              includePaths:
+                - "flags/**"
+                - "env/nonprod/**"
+          script:
+            - npm install --no-audit --no-fund
+            - node scripts/verify-sync.js nonprod
       # release/* -> main: PROD, time-gated pelo RM (antes de prodSchedule nada muda).
       # Só aparece se o merge alterou env/prod/ ou rm/.
       - step:
@@ -124,6 +135,30 @@ pipelines:
             - sh scripts/ci/run-if-source.sh release/ node scripts/deploy.js prod
 
   custom:
+    # Retentativa/sincronia do NÃO PROD: se houver divergência entre main e o Firebase (ex.: um deploy falhou),
+    # publica o que está em main e confere de novo. Sem divergência, não muda nada.
+    # Agende (ex.: a cada 30 min) e/ou rode manualmente, SEMPRE em main. Só publica conteúdo que já passou pelo PR.
+    sync-nonprod:
+      - step:
+          name: Sincronizar NÃO PROD com main
+          deployment: test
+          script:
+            - |
+              if [ "$BITBUCKET_BRANCH" != "main" ]; then echo "Rode esta pipeline na branch main (atual: $BITBUCKET_BRANCH)"; exit 1; fi
+            - npm install --no-audit --no-fund
+            - node scripts/verify-sync.js nonprod --fix
+
+    # Só leitura: falha se main e o Firebase NÃO PROD divergirem (inclui chaves que só existem no Firebase).
+    verify-nonprod:
+      - step:
+          name: Verificar sincronia NÃO PROD (só leitura)
+          deployment: test
+          script:
+            - |
+              if [ "$BITBUCKET_BRANCH" != "main" ]; then echo "Rode esta pipeline na branch main (atual: $BITBUCKET_BRANCH)"; exit 1; fi
+            - npm install --no-audit --no-fund
+            - node scripts/verify-sync.js nonprod --strict
+
     # Crie um schedule (ex.: a cada 15 min) no Bitbucket apontando para esta pipeline em main.
     # É idempotente: avança os estágios do rollout conforme o horário.
     prod-scheduler:
