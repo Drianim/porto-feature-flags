@@ -29,7 +29,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 - `ft_*` = feature toggle (valores `"true"`/`"false"`); `rc_*` = valor de configuração (texto, URL etc.). O **tipo no Remote Config vem dos valores**: se todos os valores da FF (padrão e overrides, em todos os ambientes) forem `true`/`false`, ela é publicada como **Boolean**; qualquer outro valor (URL, texto) a torna **String**. Vale para `ft_` e `rc_`; o campo `valueType` do arquivo é ignorado.
 - Por ambiente: `default` + override opcional por plataforma (`ios`, `android`), cada um com `value` e `rolloutPercent` (teto opcional).
 - `group` opcional coloca o parâmetro num grupo do console (ex.: "Vitrine Hub").
-- No Firebase viram condições `device.os == 'ios'` / `'android'` (com `&& percent <= N` durante o rollout).
+- No Firebase viram condições `device.os == 'ios'` / `'android'` (com `&& percent('<chave-da-FF>') <= N` durante o rollout). A semente com o nome da FF faz cada FF sortear o seu próprio grupo de usuários, e quem entra em 5% continua dentro quando o rollout sobe.
 - Em PROD, toggles que liberam algo e todas as `rc_*` exigem RM e sobem só depois do `prodSchedule`. Desligar um toggle (rollback) nunca é bloqueado.
 
 ## Escopo da PoC: só NÃO PROD
