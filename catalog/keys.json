@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 6,
+  "total": 7,
   "keys": [
     {
       "key": "ft_additional_card_address_info",
@@ -43,13 +43,36 @@
       }
     },
     {
+      "key": "ft_exemplo_checkout",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "STRING",
+      "criticality": "baixa",
+      "owner": "squad-poc",
+      "description": "Exemplo: novo fluxo de checkout (teste da PoC)",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
       "key": "ft_home_logged_web_showcase",
       "kind": "toggle",
       "group": "Vitrine Hub",
       "valueType": "STRING",
       "criticality": "baixa",
       "owner": "a-definir",
-      "description": "Leva o usuário para o portal de vendas da Porto no navegador, ao acessar a vitrine da área logada",
+      "description": "Leva o usuário para o portal de vendas da Porto no navegador, ao acessar a vitrine da área logada (v2)",
       "environments": {
         "nonprod": {
           "default": "false"
@@ -100,7 +123,8 @@
         "nonprod": {
           "default": "false",
           "ios": {
-            "value": "true"
+            "value": "true",
+            "rolloutPercent": 50
           },
           "android": {
             "value": "true"
