@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 5,
+  "total": 6,
   "keys": [
     {
       "key": "ft_additional_card_address_info",
@@ -10,6 +10,29 @@
       "criticality": "media",
       "owner": "a-definir",
       "description": "Exibe informações de endereço no cartão adicional",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_exemplo_checkout",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "STRING",
+      "criticality": "baixa",
+      "owner": "squad-poc",
+      "description": "Exemplo: novo fluxo de checkout (teste da PoC)",
       "environments": {
         "nonprod": {
           "default": "false",
