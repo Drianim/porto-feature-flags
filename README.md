@@ -43,6 +43,12 @@ Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de test
 - Local: `FIREBASE_SA_KEY_NONPROD=$(base64 -i chave.json) node scripts/verify-sync.js nonprod`.
 - Limite: o verificador confere as chaves do repositório e reporta chaves extras; não apaga nada que só exista no Firebase.
 
+## Proteção extra na pipeline de main
+
+O Bitbucket só bloqueia o merge de PR com pipeline vermelha se você configurar *Merge checks* (recomendado: exigir build com sucesso). Mesmo sem isso, o step **Reconferir regras do merge** (`scripts/ci/recheck-merge.sh`) roda logo no início da pipeline de `main`: lê a origem do merge e o 1º pai do commit de merge e reaplica o escopo de pastas (`check-scope`) e a regra FF nova x existente (`check-new-flags --skip-remote`). Se um PR fora das regras for mergeado, a pipeline falha ali e o step de deploy nem chega a ser oferecido.
+
+Limites: o conteúdo que já entrou em `main` continua lá e a pipeline agendada `sync-nonprod` publica o que estiver em `main`. Para desfazer, reverta o commit de merge. A consulta ao Firebase não se repete aqui (foi feita no PR; depois do deploy o nome já existiria e daria falso bloqueio).
+
 ## Aprovação dentro da pipeline
 
 Todo step que publica no Firebase é `trigger: manual`: a pipeline **pausa** e só segue quando uma pessoa clica em **Run** no Bitbucket. Sem o clique, nada é publicado.

@@ -16,6 +16,9 @@ image: node:22
 #  - se o deploy falhar, a pipeline custom `sync-nonprod` (agendada e/ou manual, sempre em main)
 #    publica o que está em main quando houver divergência e confere de novo;
 #  - `verify-nonprod` é a checagem só de leitura (--strict) para alarme.
+#
+# Proteção extra: o 2º passo de main reconfere escopo e nome de FF no commit de merge, mesmo que o Bitbucket
+# tenha deixado mergear um PR com pipeline vermelha.
 
 definitions:
   caches:
@@ -84,6 +87,12 @@ pipelines:
     main:
       - step: *merge-source
       - step: *validate
+      # Proteção extra: reconfere no commit de merge o escopo de pastas e a regra FF nova x existente.
+      # Se um PR com pipeline vermelha for mergeado, a pipeline de main para aqui e o deploy nem é oferecido.
+      - step:
+          name: Reconferir regras do merge (escopo e nome de FF)
+          script:
+            - sh scripts/ci/recheck-merge.sh
       # feature/* e update/* -> main: NÃO PROD. Só aparece se o merge alterou flags/ ou env/nonprod/.
       # APROVAÇÃO: fica pausado até alguém clicar em "Run" no pipeline.
       - step:
