@@ -15,6 +15,12 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 - `scripts/` — `new-flag.js`, `new-rm.js`, `validate.js`, `deploy.js`
 - `bitbucket-pipelines.yml` — validação em PR, NÃO PROD em `develop` e em feature→main, PROD em release→main
 
+## Qual branch usar
+
+- **FF nova** → `feature/*`. O nome nunca pode existir em `main` nem no Firebase NÃO PROD (o PR consulta o Firebase e bloqueia).
+- **Alterar FF que já existe** → `update/*` (uma `feature/*` que mexe em FF existente é bloqueada). Ambas só mexem em `flags/` e `env/nonprod/`.
+- **PROD** → `release/*`. Antes de abrir o PR: `node scripts/check-new-flags.js <branch> origin/main`.
+
 ## Criar uma flag nova
 
 1. `node scripts/new-flag.js <ft_ou_rc_chave> --owner <squad> --criticality <baixa|media|alta|critica> --description "..."`

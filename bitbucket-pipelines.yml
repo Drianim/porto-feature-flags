@@ -4,7 +4,9 @@ image: node:22
 #
 # Regras de deploy:
 #  - develop                          -> só valida (NÃO publica: main é a única fonte do Firebase NÃO PROD)
-#  - PR feature/* -> main (mergeado)  -> NÃO PROD (após aprovação manual no pipeline) (feature/* só altera flags/ e env/nonprod/)
+#  - PR feature/* -> main (mergeado)  -> NÃO PROD, FF NOVA (após aprovação manual no pipeline)
+#  - PR update/*  -> main (mergeado)  -> NÃO PROD, alteração de FF EXISTENTE (após aprovação manual)
+#    (feature/* e update/* só alteram flags/ e env/nonprod/; nome de FF nunca se repete)
 #  - PR release/* -> main (mergeado)  -> PROD (aprovação manual), time-gated pelo RM (release/* só altera env/prod/ e rm/)
 # A origem do merge vem da mensagem do commit ("Merged in <branch> (pull request #N)").
 # Merge sem origem identificável (fast-forward, push direto) não publica nada.
@@ -44,12 +46,21 @@ pipelines:
   pull-requests:
     '**':
       - step: *validate
-      # feature/* não pode tocar em PROD; release/* só pode tocar em PROD.
+      # feature/* e update/* não podem tocar em PROD; release/* só pode tocar em PROD.
       - step:
-          name: Escopo da branch (feature = não PROD, release = PROD)
+          name: Escopo da branch (feature/update = não PROD, release = PROD)
           script:
             - git fetch origin main:refs/remotes/origin/main
             - node scripts/check-scope.js "$BITBUCKET_BRANCH" origin/main
+      # Nome de FF nunca se repete: feature/* só cria FF nova (consulta o Firebase NÃO PROD);
+      # alterar FF existente exige branch update/*. Precisa de FIREBASE_SA_KEY_NONPROD como variável
+      # de REPOSITÓRIO (secured), pois PR pipelines não recebem variáveis de Deployment.
+      - step:
+          name: FF nova x update (bloqueia nome duplicado)
+          script:
+            - git fetch origin main:refs/remotes/origin/main
+            - npm install --no-audit --no-fund
+            - node scripts/check-new-flags.js "$BITBUCKET_BRANCH" origin/main
       # Prévia: mostra no log o que seria publicado no Remote Config (não publica nada).
       # Só PR de release/* para main aplica as regras de PROD (RM + aprovações no arquivo).
       - step:
@@ -73,10 +84,10 @@ pipelines:
     main:
       - step: *merge-source
       - step: *validate
-      # feature/* -> main: NÃO PROD. Só aparece se o merge alterou flags/ ou env/nonprod/.
+      # feature/* e update/* -> main: NÃO PROD. Só aparece se o merge alterou flags/ ou env/nonprod/.
       # APROVAÇÃO: fica pausado até alguém clicar em "Run" no pipeline.
       - step:
-          name: Aprovar e publicar NÃO PROD (merge de feature/*)
+          name: Aprovar e publicar NÃO PROD (merge de feature/* ou update/*)
           trigger: manual
           deployment: test
           condition:
@@ -86,7 +97,7 @@ pipelines:
                 - "env/nonprod/**"
           script:
             - npm install --no-audit --no-fund
-            - sh scripts/ci/run-if-source.sh feature/ node scripts/deploy.js nonprod
+            - sh scripts/ci/run-if-source.sh "feature/|update/" node scripts/deploy.js nonprod
       # Confere se main e o Remote Config NÃO PROD ficaram idênticos. Se falhar, use a pipeline sync-nonprod.
       - step:
           name: Verificar sincronia NÃO PROD (main = Firebase)
