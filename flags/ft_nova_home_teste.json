@@ -1,7 +1,0 @@
-{
-  "key": "ft_nova_home_teste",
-  "description": "Nova home do app (flag de teste da PoC)",
-  "owner": "squad-poc",
-  "criticality": "media",
-  "valueType": "STRING"
-}

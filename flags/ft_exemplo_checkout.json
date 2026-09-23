@@ -1,7 +1,0 @@
-{
-  "key": "ft_exemplo_checkout",
-  "description": "Exemplo: novo fluxo de checkout (teste da PoC)",
-  "owner": "squad-poc",
-  "criticality": "baixa",
-  "valueType": "STRING"
-}

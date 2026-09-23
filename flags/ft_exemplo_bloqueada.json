@@ -1,7 +1,0 @@
-{
-  "key": "ft_exemplo_bloqueada",
-  "description": "Exemplo: update não pode criar FF",
-  "owner": "squad-poc",
-  "criticality": "baixa",
-  "valueType": "STRING"
-}

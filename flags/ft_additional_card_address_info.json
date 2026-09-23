@@ -1,7 +1,0 @@
-{
-  "key": "ft_additional_card_address_info",
-  "description": "Exibe informações de endereço no cartão adicional",
-  "owner": "a-definir",
-  "criticality": "media",
-  "valueType": "STRING"
-}
