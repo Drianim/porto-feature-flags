@@ -32,7 +32,7 @@
       "valueType": "STRING",
       "criticality": "baixa",
       "owner": "a-definir",
-      "description": "Leva o usuário para o portal de vendas da Porto no navegador, ao acessar a vitrine da área logada",
+      "description": "Leva o usuário para o portal de vendas da Porto no navegador, ao acessar a vitrine da área logada (v2)",
       "environments": {
         "nonprod": {
           "default": "false"
