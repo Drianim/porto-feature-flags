@@ -16,6 +16,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 | `scripts/check-approvals.js` | Gate de PROD: confere no Bitbucket o PR mergeado (1 aprovação da plataforma + 1 da equipe, nenhuma do autor) |
 | `config/approvers.json` | `account_id` das pessoas da plataforma (preencher) |
 | `catalog/keys.json` | Catálogo gerado com todas as chaves do Remote Config e o estado por ambiente (`npm run catalog`; a pipeline falha se estiver desatualizado) |
+| `scripts/verify-sync.js` | Compara `main` com o Remote Config real (`--fix` publica se houver divergência, `--strict` também reprova chaves fora do repo) |
 | `scripts/deploy.js` | Publica no Remote Config (`--dry-run`, `--now <ISO>` para simular) |
 | `scripts/lib/` | Código compartilhado e testes do rollout (`npm test`) |
 | `.claude/skills/feature-flag/` | Skill do Claude Code para operar este repo |
@@ -32,6 +33,14 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 ## Escopo da PoC: só NÃO PROD
 
 Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de teste (`cursoapp-ac8e4`). O ID do projeto já está em `config/environments.json` (`projectId`); no Deployment `test` basta a variável secured `FIREBASE_SA_KEY_NONPROD` (JSON do service account em base64). `FIREBASE_PROJECT_NONPROD` é opcional e sobrescreve o padrão. **Nunca** versione a chave. Os steps de PROD (validação, gate de aprovação, deploy) ficam definidos mas só executam em merge de `release/*`, que não é usado na PoC. Variáveis de PROD, `BB_ACCESS_TOKEN` e `config/approvers.json` só serão necessários quando PROD entrar.
+
+## Garantia: main = Firebase NÃO PROD
+
+- Depois de cada deploy, o step **Verificar sincronia** compara `main` com o Remote Config real (valor padrão, condições iOS/Android, tipo, descrição, grupo e chaves ausentes).
+- Se o deploy falhar, `main` e Firebase divergem. A pipeline separada **`sync-nonprod`** (agendada, ex.: a cada 30 min, e/ou manual, sempre em `main`) publica o que está em `main` quando houver divergência e confere de novo. Sem divergência não muda nada.
+- **`verify-nonprod`** é só leitura (`--strict`): falha se houver divergência ou chave no Firebase que não está no repo. Use como alarme agendado.
+- Local: `FIREBASE_SA_KEY_NONPROD=$(base64 -i chave.json) node scripts/verify-sync.js nonprod`.
+- Limite: o verificador confere as chaves do repositório e reporta chaves extras; não apaga nada que só exista no Firebase.
 
 ## Aprovação dentro da pipeline
 
@@ -55,7 +64,7 @@ O CI (`scripts/check-scope.js`) reprova o PR que violar isso. Outros prefixos (`
 
 1. Branch a partir de `develop`. Crie a flag: `npm run new:flag -- ft_minha_flag --owner squad-x --criticality media --description "..."`.
 2. PR: a pipeline roda testes e `validate`. Precisa de **1 aprovação da equipe**.
-3. Rode `npm run catalog` e commite o resultado. Merge em `develop` → a pipeline pausa no step **"Aprovar e publicar NÃO PROD"**; quem aprova clica em *Run* e só então o Remote Config é atualizado.
+3. Rode `npm run catalog` e commite o resultado. Merge em `develop` **não publica** no Firebase (só valida): `main` é a única fonte do NÃO PROD.
 4. Para PROD: `npm run new:rm -- --flags ft_minha_flag --squad squad-x --schedule 2026-10-01T14:00:00-03:00` e defina em `environments.prod` o override por plataforma (ex.: `"ios": {"value": "true"}`). Preencha `approvals.team` e `approvals.platform` (pessoas diferentes).
 5. PR `develop` → `main` exige **2 aprovações, uma da plataforma**. A pipeline roda `validate:prod`.
 6. O deploy de PROD é **time-gated**: antes de `prodSchedule` nada muda; depois segue o `rolloutPlan` (ex.: 5% → 25% → 50% → 100%). O estágio é calculado pelo horário, sem estado, então rodar a pipeline várias vezes é seguro.
@@ -81,7 +90,7 @@ Simular sem publicar: `node scripts/deploy.js prod --dry-run --now 2026-10-01T18
 - **Repository variable** `BB_ACCESS_TOKEN` (secured): repository access token com escopo `pullrequest:read`, usado pelo gate de aprovação.
 - **`config/approvers.json`**: preencha `platform` com os `account_id` do time de plataforma.
 - **Deployment `production`**: restrinja quem pode fazer deploy (plataforma/admins).
-- **Schedules**: agende a pipeline `prod-scheduler` em `main` (ex.: a cada 15 min). Ela avança os estágios do rollout no horário certo.
+- **Schedules**: agende `sync-nonprod` em `main` (ex.: a cada 30 min) para retentar deploys que falharam, e `prod-scheduler` em `main` (ex.: a cada 15 min). Ela avança os estágios do rollout no horário certo.
 
 ## Chaves e segredos
 

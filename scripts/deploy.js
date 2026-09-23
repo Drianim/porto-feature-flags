@@ -5,8 +5,7 @@
 // e FIREBASE_PROJECT_<ENV> (opcional: sobrescreve o projectId padrão do config).
 // PROD é "time-gated": flags que liberam algo só sobem quando prodSchedule do RM chegou, seguindo o rolloutPlan.
 const { loadFlags, loadRms, environments, parseArgs } = require('./lib/common');
-const { currentStage } = require('./lib/rollout');
-const { kindOf, rules, isActive } = require('./lib/flags');
+const { build, apply, connect } = require('./lib/remote-config');
 
 const args = parseArgs(process.argv.slice(2));
 const env = args._[0];
@@ -18,76 +17,14 @@ if (!envs[env]) {
 const cfgEnv = envs[env];
 const now = args.now ? new Date(args.now) : new Date();
 
-function build(flags, rms) {
-  const items = [];
-  const conditions = [];
-  const skipped = [];
-  for (const flag of flags) {
-    if (!flag.environments[env]) { skipped.push(`${flag.key} (sem env/${env === 'prod' ? 'prod' : 'nonprod'})`); continue; }
-    const toggle = kindOf(flag.key) === 'toggle';
-    const { defaultValue, overrides } = rules(flag, env);
-    let stagePercent;
-    if (cfgEnv.timeGated && isActive(flag, env)) {
-      const rm = rms.find((r) => (r.flags || []).includes(flag.key) && (r.targetEnvironments || []).includes(env));
-      const stage = rm && currentStage(rm, now);
-      if (!stage) { skipped.push(flag.key); continue; }
-      stagePercent = stage.percent;
-    }
-    const param = {
-      description: flag.description,
-      valueType: flag.valueType || 'STRING',
-      defaultValue: { value: defaultValue },
-      conditionalValues: {},
-    };
-    for (const [platform, o] of Object.entries(overrides)) {
-      let pct = o.rolloutPercent ?? 100;
-      if (toggle && stagePercent !== undefined) pct = Math.min(pct, stagePercent);
-      if (pct <= 0) continue;
-      const name = `${flag.key}_${platform}`;
-      conditions.push({ name, expression: `device.os == '${platform}'${pct < 100 ? ` && percent <= ${pct}` : ''}` });
-      param.conditionalValues[name] = { value: o.value };
-    }
-    items.push({ key: flag.key, group: flag.group, param });
-  }
-  return { items, conditions, skipped };
-}
-
-function apply(template, { items, conditions }) {
-  const owned = new Set(items.map((i) => i.key));
-  const isOwnedCond = (n) => [...owned].some((k) => n === `${k}_ios` || n === `${k}_android` || n === `${k}_rollout`);
-  template.conditions = [...template.conditions.filter((c) => !isOwnedCond(c.name)), ...conditions];
-  template.parameterGroups = template.parameterGroups || {};
-  for (const key of owned) {
-    delete template.parameters[key];
-    for (const g of Object.values(template.parameterGroups)) delete (g.parameters || {})[key];
-  }
-  for (const { key, group, param } of items) {
-    if (group) {
-      template.parameterGroups[group] = template.parameterGroups[group] || { description: '', parameters: {} };
-      template.parameterGroups[group].parameters = { ...template.parameterGroups[group].parameters, [key]: param };
-    } else {
-      template.parameters[key] = param;
-    }
-  }
-  return template;
-}
-
 async function main() {
-  const plan = build(loadFlags(), loadRms());
-  // A variável de ambiente tem prioridade; o projectId do config é só um padrão (ID de projeto não é segredo).
-  const projectId = process.env[cfgEnv.projectVar] || cfgEnv.projectId;
+  const plan = build(loadFlags(), loadRms(), env, cfgEnv, now);
   if (args['dry-run']) {
+    const projectId = process.env[cfgEnv.projectVar] || cfgEnv.projectId;
     console.log(JSON.stringify({ env, projectId: projectId || `(${cfgEnv.projectVar} não definido)`, now: now.toISOString(), ...plan }, null, 2));
     return;
   }
-  if (!projectId) throw new Error(`${cfgEnv.projectVar} não definido`);
-  const keyB64 = process.env[cfgEnv.keyVar];
-  if (!keyB64) throw new Error(`${cfgEnv.keyVar} não definido`);
-
-  const admin = require('firebase-admin');
-  const credential = admin.credential.cert(JSON.parse(Buffer.from(keyB64, 'base64').toString('utf8')));
-  admin.initializeApp({ credential, projectId });
-  const rc = admin.remoteConfig();
+  const { rc } = await connect(cfgEnv);
   const template = apply(await rc.getTemplate(), plan);
   await rc.validateTemplate(template);
   const published = await rc.publishTemplate(template);
