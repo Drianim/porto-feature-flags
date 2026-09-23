@@ -78,7 +78,7 @@
       "valueType": "STRING",
       "criticality": "baixa",
       "owner": "squad-poc",
-      "description": "Flag de teste do fluxo de PR e deploy em NÃO PROD",
+      "description": "Flag de teste do fluxo de PR e deploy em NÃO PROD (v2)",
       "environments": {
         "nonprod": {
           "default": "false",
