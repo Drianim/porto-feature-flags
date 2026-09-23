@@ -11,16 +11,7 @@
       "owner": "a-definir",
       "description": "Exibe informações de endereço no cartão adicional",
       "environments": {
-        "dev": {
-          "default": "false",
-          "ios": {
-            "value": "true"
-          },
-          "android": {
-            "value": "true"
-          }
-        },
-        "hml": {
+        "nonprod": {
           "default": "false",
           "ios": {
             "value": "true"
@@ -43,10 +34,7 @@
       "owner": "a-definir",
       "description": "Leva o usuário para o portal de vendas da Porto no navegador, ao acessar a vitrine da área logada",
       "environments": {
-        "dev": {
-          "default": "false"
-        },
-        "hml": {
+        "nonprod": {
           "default": "false"
         },
         "prod": {
@@ -63,16 +51,7 @@
       "owner": "squad-poc",
       "description": "Nova home do app (flag de teste da PoC)",
       "environments": {
-        "dev": {
-          "default": "false",
-          "ios": {
-            "value": "true"
-          },
-          "android": {
-            "value": "true"
-          }
-        },
-        "hml": {
+        "nonprod": {
           "default": "false",
           "ios": {
             "value": "true"
@@ -101,10 +80,7 @@
       "owner": "a-definir",
       "description": "Termo do Regulamento Promoção Visa Catar",
       "environments": {
-        "dev": {
-          "default": "https://promocoes.visa.com.br/site/porto-seguro/porto-bank-visa/regulamento"
-        },
-        "hml": {
+        "nonprod": {
           "default": "https://promocoes.visa.com.br/site/porto-seguro/porto-bank-visa/regulamento"
         },
         "prod": {

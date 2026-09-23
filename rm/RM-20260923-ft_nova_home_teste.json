@@ -5,8 +5,6 @@
     "rc_url_visaCatar_conditions"
   ],
   "targetEnvironments": [
-    "dev",
-    "hml",
     "prod"
   ],
   "criticality": "media",

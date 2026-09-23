@@ -3,28 +3,5 @@
   "description": "Exibe informações de endereço no cartão adicional",
   "owner": "a-definir",
   "criticality": "media",
-  "valueType": "STRING",
-  "environments": {
-    "dev": {
-      "default": "false",
-      "ios": {
-        "value": "true"
-      },
-      "android": {
-        "value": "true"
-      }
-    },
-    "hml": {
-      "default": "false",
-      "ios": {
-        "value": "true"
-      },
-      "android": {
-        "value": "true"
-      }
-    },
-    "prod": {
-      "default": "false"
-    }
-  }
+  "valueType": "STRING"
 }

@@ -1,5 +1,4 @@
 {
-  "dev":  { "projectVar": "FIREBASE_PROJECT_DEV",  "keyVar": "FIREBASE_SA_KEY_DEV",  "approvals": ["team"], "timeGated": false },
-  "hml":  { "projectVar": "FIREBASE_PROJECT_HML",  "keyVar": "FIREBASE_SA_KEY_HML",  "approvals": ["team"], "timeGated": false },
-  "prod": { "projectVar": "FIREBASE_PROJECT_PROD", "keyVar": "FIREBASE_SA_KEY_PROD", "approvals": ["team", "platform"], "timeGated": true }
+  "nonprod": { "projectVar": "FIREBASE_PROJECT_NONPROD", "keyVar": "FIREBASE_SA_KEY_NONPROD", "timeGated": false },
+  "prod":    { "projectVar": "FIREBASE_PROJECT_PROD",    "keyVar": "FIREBASE_SA_KEY_PROD",    "timeGated": true }
 }

@@ -1,5 +1,14 @@
 image: node:22
 
+# Ambientes no Remote Config: NÃO PROD (nonprod) e PROD (prod). Um projeto Firebase para cada.
+#
+# Regras de deploy:
+#  - develop                          -> NÃO PROD (após aprovação manual no pipeline)
+#  - PR feature/* -> main (mergeado)  -> NÃO PROD (após aprovação manual no pipeline) (feature/* só altera flags/ e env/nonprod/)
+#  - PR release/* -> main (mergeado)  -> PROD (aprovação manual), time-gated pelo RM (release/* só altera env/prod/ e rm/)
+# A origem do merge vem da mensagem do commit ("Merged in <branch> (pull request #N)").
+# Merge sem origem identificável (fast-forward, push direto) não publica nada.
+
 definitions:
   caches:
     npm: ~/.npm
@@ -17,53 +26,102 @@ definitions:
         script:
           - npm install --no-audit --no-fund
           - npm run validate:prod
-    - step: &approval-gate
-        name: Gate de aprovação (plataforma + equipe)
+    - step: &merge-source
+        name: Identificar origem do merge
         script:
-          - node scripts/check-approvals.js
+          - sh scripts/ci/merge-source.sh > merge-source.txt
+          - 'echo "Origem do merge: $(cat merge-source.txt)"'
+        artifacts:
+          - merge-source.txt
 
 pipelines:
   pull-requests:
     '**':
       - step: *validate
+      # feature/* não pode tocar em PROD; release/* só pode tocar em PROD.
+      - step:
+          name: Escopo da branch (feature = não PROD, release = PROD)
+          script:
+            - git fetch origin main:refs/remotes/origin/main
+            - node scripts/check-scope.js "$BITBUCKET_BRANCH" origin/main
       # Prévia: mostra no log o que seria publicado no Remote Config (não publica nada).
-      # Em PR para main, também aplica as regras de PROD (RM + aprovações no arquivo).
+      # Só PR de release/* para main aplica as regras de PROD (RM + aprovações no arquivo).
       - step:
           name: Prévia do deploy (dry-run)
           script:
             - npm install --no-audit --no-fund
-            - node scripts/deploy.js dev --dry-run
-            - if [ "$BITBUCKET_PR_DESTINATION_BRANCH" = "main" ]; then npm run validate:prod && node scripts/deploy.js prod --dry-run; fi
+            - node scripts/deploy.js nonprod --dry-run
+            - |
+              if [ "$BITBUCKET_PR_DESTINATION_BRANCH" = "main" ]; then
+                case "$BITBUCKET_BRANCH" in
+                  release/*) npm run validate:prod && node scripts/deploy.js prod --dry-run ;;
+                  *) echo "Origem $BITBUCKET_BRANCH: regras de PROD só se aplicam a release/*" ;;
+                esac
+              fi
 
   branches:
-    # Não produtivo: sobe na hora, logo após o merge (que exige aprovação da equipe)
     develop:
       - step: *validate
+      # APROVAÇÃO: o deploy fica pausado até alguém clicar em "Run" no pipeline.
       - step:
-          name: Deploy DEV
-          deployment: dev
+          name: Aprovar e publicar NÃO PROD
+          trigger: manual
+          deployment: test
           script:
             - npm install --no-audit --no-fund
-            - node scripts/deploy.js dev
-      - step:
-          name: Deploy HML
-          deployment: staging
-          script:
-            - npm install --no-audit --no-fund
-            - node scripts/deploy.js hml
+            - node scripts/deploy.js nonprod
 
-    # PROD: main só recebe PR com dupla aprovação. O deploy é time-gated pelo RM:
-    # antes de prodSchedule nada muda; depois segue o rolloutPlan.
     main:
+      - step: *merge-source
       - step: *validate
-      - step: *validate-prod
-      - step: *approval-gate
+      # feature/* -> main: NÃO PROD. Só aparece se o merge alterou flags/ ou env/nonprod/.
+      # APROVAÇÃO: fica pausado até alguém clicar em "Run" no pipeline.
       - step:
-          name: Deploy PROD
-          deployment: production
+          name: Aprovar e publicar NÃO PROD (merge de feature/*)
+          trigger: manual
+          deployment: test
+          condition:
+            changesets:
+              includePaths:
+                - "flags/**"
+                - "env/nonprod/**"
           script:
             - npm install --no-audit --no-fund
-            - node scripts/deploy.js prod
+            - sh scripts/ci/run-if-source.sh feature/ node scripts/deploy.js nonprod
+      # release/* -> main: PROD, time-gated pelo RM (antes de prodSchedule nada muda).
+      # Só aparece se o merge alterou env/prod/ ou rm/.
+      - step:
+          name: Validar regras de PROD (merge de release/*)
+          condition:
+            changesets:
+              includePaths:
+                - "env/prod/**"
+                - "rm/**"
+          script:
+            - npm install --no-audit --no-fund
+            - sh scripts/ci/run-if-source.sh release/ npm run validate:prod
+      - step:
+          name: Gate de aprovação (plataforma + equipe)
+          condition:
+            changesets:
+              includePaths:
+                - "env/prod/**"
+                - "rm/**"
+          script:
+            - sh scripts/ci/run-if-source.sh release/ node scripts/check-approvals.js
+      # APROVAÇÃO: fica pausado até alguém clicar em "Run" (restrinja quem pode em Deployments).
+      - step:
+          name: Aprovar e publicar PROD (merge de release/*)
+          trigger: manual
+          deployment: production
+          condition:
+            changesets:
+              includePaths:
+                - "env/prod/**"
+                - "rm/**"
+          script:
+            - npm install --no-audit --no-fund
+            - sh scripts/ci/run-if-source.sh release/ node scripts/deploy.js prod
 
   custom:
     # Crie um schedule (ex.: a cada 15 min) no Bitbucket apontando para esta pipeline em main.

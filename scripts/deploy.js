@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Publica as flags no Firebase Remote Config de um ambiente.
-// Uso: node scripts/deploy.js <dev|hml|prod> [--dry-run] [--now <ISO>]
+// Uso: node scripts/deploy.js <nonprod|prod> [--dry-run] [--now <ISO>]
 // Env (ver config/environments.json): FIREBASE_PROJECT_<ENV> e FIREBASE_SA_KEY_<ENV> (JSON do service account em base64).
 // PROD é "time-gated": flags que liberam algo só sobem quando prodSchedule do RM chegou, seguindo o rolloutPlan.
 const { loadFlags, loadRms, environments, parseArgs } = require('./lib/common');
@@ -22,6 +22,7 @@ function build(flags, rms) {
   const conditions = [];
   const skipped = [];
   for (const flag of flags) {
+    if (!flag.environments[env]) { skipped.push(`${flag.key} (sem env/${env === 'prod' ? 'prod' : 'nonprod'})`); continue; }
     const toggle = kindOf(flag.key) === 'toggle';
     const { defaultValue, overrides } = rules(flag, env);
     let stagePercent;

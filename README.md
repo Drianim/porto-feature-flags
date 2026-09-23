@@ -6,7 +6,9 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 
 | Caminho | Conteúdo |
 |---|---|
-| `flags/<key>.json` | Definição da flag: dono, criticidade, tipo e valor por ambiente (`dev`, `hml`, `prod`) |
+| `flags/<key>.json` | Definição da flag: dono, criticidade, tipo e definição da flag (sem valores) |
+| `env/nonprod/<key>.json` | Valor em **NÃO PROD** (`{"nonprod": {...}}`). Só `feature/*` altera |
+| `env/prod/<key>.json` | Valor em **PROD** (`{"prod": {...}}`). Só `release/*` altera |
 | `rm/RM-*.json` | Arquivo de RM: flags, ambientes, rollback, data/hora de PROD, plano de rollout, aprovações |
 | `config/environments.json` | Variáveis por ambiente e regras (PROD é time-gated, exige equipe + plataforma) |
 | `scripts/new-flag.js`, `new-rm.js` | Geram flag e RM |
@@ -27,11 +29,33 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 - No Firebase viram condições `device.os == 'ios'` / `'android'` (com `&& percent <= N` durante o rollout).
 - Em PROD, toggles que liberam algo e todas as `rc_*` exigem RM e sobem só depois do `prodSchedule`. Desligar um toggle (rollback) nunca é bloqueado.
 
+## Escopo da PoC: só NÃO PROD
+
+Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de teste (`cursoapp-ac8e4`). Basta configurar no Deployment `test`: `FIREBASE_PROJECT_NONPROD` e `FIREBASE_SA_KEY_NONPROD`. Os steps de PROD (validação, gate de aprovação, deploy) ficam definidos mas só executam em merge de `release/*`, que não é usado na PoC. Variáveis de PROD, `BB_ACCESS_TOKEN` e `config/approvers.json` só serão necessários quando PROD entrar.
+
+## Aprovação dentro da pipeline
+
+Todo step que publica no Firebase é `trigger: manual`: a pipeline **pausa** e só segue quando uma pessoa clica em **Run** no Bitbucket. Sem o clique, nada é publicado.
+
+- Cada step só aparece quando o merge alterou a pasta certa (`condition: changesets`): `flags/` e `env/nonprod/` mostram o step de NÃO PROD; `env/prod/` e `rm/` mostram os de PROD.
+- Para restringir **quem** pode clicar: *Repository settings → Deployments →* ambiente *→ Deployment permissions* (pode exigir plano pago).
+- A aprovação do PR (antes do merge) continua sendo configurada em *Branch restrictions* (mín. de aprovações).
+- O `prod-scheduler` (avanço do rollout por horário) é automático de propósito: depende do RM já aprovado.
+
+## Regra por tipo de branch
+
+| Branch | Pode alterar | Deploy ao mergear em `main` |
+|---|---|---|
+| `feature/*` | `flags/`, `env/nonprod/`, scripts, config (**não** `env/prod/` nem `rm/`) | NÃO PROD |
+| `release/*` | somente `env/prod/`, `rm/` e `catalog/` | PROD (time-gated pelo RM) |
+
+O CI (`scripts/check-scope.js`) reprova o PR que violar isso. Outros prefixos (`chore/`...) não são restringidos e **não disparam deploy**.
+
 ## Fluxo
 
 1. Branch a partir de `develop`. Crie a flag: `npm run new:flag -- ft_minha_flag --owner squad-x --criticality media --description "..."`.
 2. PR: a pipeline roda testes e `validate`. Precisa de **1 aprovação da equipe**.
-3. Rode `npm run catalog` e commite o resultado. Merge em `develop` → **DEV e HML sobem na hora**.
+3. Rode `npm run catalog` e commite o resultado. Merge em `develop` → a pipeline pausa no step **"Aprovar e publicar NÃO PROD"**; quem aprova clica em *Run* e só então o Remote Config é atualizado.
 4. Para PROD: `npm run new:rm -- --flags ft_minha_flag --squad squad-x --schedule 2026-10-01T14:00:00-03:00` e defina em `environments.prod` o override por plataforma (ex.: `"ios": {"value": "true"}`). Preencha `approvals.team` e `approvals.platform` (pessoas diferentes).
 5. PR `develop` → `main` exige **2 aprovações, uma da plataforma**. A pipeline roda `validate:prod`.
 6. O deploy de PROD é **time-gated**: antes de `prodSchedule` nada muda; depois segue o `rolloutPlan` (ex.: 5% → 25% → 50% → 100%). O estágio é calculado pelo horário, sem estado, então rodar a pipeline várias vezes é seguro.
@@ -51,9 +75,9 @@ Simular sem publicar: `node scripts/deploy.js prod --dry-run --now 2026-10-01T18
 ## Configuração no Bitbucket (uma vez)
 
 - **Branch restrictions**: `develop` (1 aprovação, sem push direto); `main` (2 aprovações, só via PR, plataforma como reviewer padrão).
-- **Variáveis por Deployment** (secured), para `dev`, `staging` (HML) e `production`:
-  - `FIREBASE_PROJECT_DEV` / `FIREBASE_PROJECT_HML` / `FIREBASE_PROJECT_PROD`: ID do projeto Firebase
-  - `FIREBASE_SA_KEY_DEV` / `_HML` / `_PROD`: JSON do service account em base64 (`base64 -i key.json | pbcopy`), papel *Firebase Remote Config Admin*
+- **Variáveis por Deployment** (secured), para `test` (NÃO PROD) e `production`:
+  - `FIREBASE_PROJECT_NONPROD` / `FIREBASE_PROJECT_PROD`: ID do projeto Firebase
+  - `FIREBASE_SA_KEY_NONPROD` / `_PROD`: JSON do service account em base64 (`base64 -i key.json | pbcopy`), papel *Firebase Remote Config Admin*
 - **Repository variable** `BB_ACCESS_TOKEN` (secured): repository access token com escopo `pullrequest:read`, usado pelo gate de aprovação.
 - **`config/approvers.json`**: preencha `platform` com os `account_id` do time de plataforma.
 - **Deployment `production`**: restrinja quem pode fazer deploy (plataforma/admins).
