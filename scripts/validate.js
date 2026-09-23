@@ -2,11 +2,12 @@
 // Valida flags/*.json e rm/RM-*.json. Uso: node scripts/validate.js [--prod]
 const fs = require('fs');
 const path = require('path');
+const { PLATFORMS, KEY_RE, kindOf, isActive } = require('./lib/flags');
 
 const root = path.join(__dirname, '..');
 const prod = process.argv.includes('--prod');
 const CRIT = ['baixa', 'media', 'alta', 'critica'];
-const TYPES = ['BOOLEAN', 'STRING', 'NUMBER', 'JSON'];
+const TYPES = ['STRING', 'BOOLEAN', 'NUMBER', 'JSON'];
 const ENVS = ['dev', 'hml', 'prod'];
 const errors = [];
 const err = (f, m) => errors.push(`${f}: ${m}`);
@@ -23,26 +24,37 @@ const readJson = (dir, filter) =>
 
 const flags = readJson('flags', (f) => f.endsWith('.json'));
 const rms = readJson('rm', (f) => /^RM-.*\.json$/.test(f));
+const seen = new Set();
 
 for (const { file, data: d } of flags) {
-  if (!/^[a-z][a-z0-9_]*$/.test(d.key || '')) err(file, 'key deve ser snake_case');
+  if (!KEY_RE.test(d.key || '')) { err(file, 'key deve começar com ft_ (toggle) ou rc_ (config) e usar só letras, números e _'); continue; }
+  if (seen.has(d.key)) err(file, 'key duplicada');
+  seen.add(d.key);
+  const toggle = kindOf(d.key) === 'toggle';
   if (file !== `flags/${d.key}.json`) err(file, 'nome do arquivo deve ser <key>.json');
+  if (!d.description) err(file, 'description obrigatória');
   if (!d.owner) err(file, 'owner obrigatório');
+  if (d.group !== undefined && (typeof d.group !== 'string' || !d.group)) err(file, 'group deve ser texto');
   if (!CRIT.includes(d.criticality)) err(file, `criticality deve ser ${CRIT.join('|')}`);
-  if (!TYPES.includes(d.valueType)) err(file, `valueType deve ser ${TYPES.join('|')}`);
+  if (d.valueType !== undefined && !TYPES.includes(d.valueType)) err(file, `valueType deve ser ${TYPES.join('|')}`);
+  const okValue = (v) => (toggle ? v === 'true' || v === 'false' : typeof v === 'string' && v.length > 0);
   for (const env of ENVS) {
     const e = (d.environments || {})[env];
     if (!e) { err(file, `environments.${env} ausente`); continue; }
-    if (typeof e.enabled !== 'boolean') err(file, `${env}.enabled deve ser boolean`);
-    if (e.rolloutPercent !== undefined && !(e.rolloutPercent >= 0 && e.rolloutPercent <= 100)) {
-      err(file, `${env}.rolloutPercent deve estar entre 0 e 100`);
+    if (!okValue(e.default)) err(file, `${env}.default ${toggle ? 'deve ser "true" ou "false"' : 'deve ser um texto não vazio'}`);
+    for (const p of PLATFORMS) {
+      const o = e[p];
+      if (o === undefined) continue;
+      if (!okValue(o.value)) err(file, `${env}.${p}.value inválido`);
+      if (o.rolloutPercent !== undefined && !(o.rolloutPercent >= 0 && o.rolloutPercent <= 100)) err(file, `${env}.${p}.rolloutPercent deve estar entre 0 e 100`);
     }
+    for (const k of Object.keys(e)) if (k !== 'default' && !PLATFORMS.includes(k)) err(file, `${env}.${k} desconhecido (use default, ios, android)`);
   }
 }
 
 if (prod) {
-  const flagKeys = flags.map((f) => f.data.key);
-  for (const key of flagKeys.filter((k) => flags.find((f) => f.data.key === k).data.environments.prod.enabled)) {
+  for (const { data: flag } of flags.filter((f) => KEY_RE.test(f.data.key || '') && isActive(f.data, 'prod'))) {
+    const key = flag.key;
     const rm = rms.find((r) => (r.data.flags || []).includes(key) && (r.data.targetEnvironments || []).includes('prod'));
     if (!rm) { err(`flags/${key}.json`, 'PROD exige um arquivo de RM (rm/RM-*.json) cobrindo esta flag'); continue; }
     const d = rm.data;
@@ -55,7 +67,6 @@ if (prod) {
         err(rm.file, 'rolloutPlan deve ter percent crescente (1-100) e monitorMinutes >= 0');
       }
       if (p[p.length - 1].percent !== 100 || p[p.length - 1].monitorMinutes !== 0) err(rm.file, 'último estágio do rolloutPlan deve ser 100% com monitorMinutes 0');
-      const flag = flags.find((f) => f.data.key === key).data;
       if (['alta', 'critica'].includes(flag.criticality) && p.length < 2) err(rm.file, `flag ${flag.criticality} exige rollout progressivo (mais de um estágio)`);
     }
     for (const who of ['team', 'platform']) {

@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { currentStage, effectivePercent } = require('./rollout');
+const { rules, isActive, kindOf } = require('./flags');
 
 const rm = {
   prodSchedule: '2026-10-01T14:00:00-03:00',
@@ -25,13 +26,29 @@ test('após 90 min chega em 100% e permanece', () => {
   assert.strictEqual(currentStage(rm, at('2026-10-01T18:30:00Z')).percent, 100);
   assert.strictEqual(currentStage(rm, at('2026-10-05T00:00:00Z')).percent, 100);
 });
-test('flag desligada => 0 mesmo sem RM', () => {
-  assert.strictEqual(effectivePercent({ enabled: false }, null), 0);
+test('sem RM ou antes da hora => null', () => {
+  assert.strictEqual(effectivePercent(100, null), null);
+  assert.strictEqual(effectivePercent(100, rm, at('2026-10-01T10:00:00Z')), null);
 });
-test('flag ligada sem RM ou antes da hora => null', () => {
-  assert.strictEqual(effectivePercent({ enabled: true }, null), null);
-  assert.strictEqual(effectivePercent({ enabled: true }, rm, at('2026-10-01T10:00:00Z')), null);
+test('teto da flag limita o estágio', () => {
+  assert.strictEqual(effectivePercent(10, rm, at('2026-10-01T18:30:00Z')), 10);
 });
-test('rolloutPercent da flag limita o estágio', () => {
-  assert.strictEqual(effectivePercent({ enabled: true, rolloutPercent: 10 }, rm, at('2026-10-01T18:30:00Z')), 10);
+
+test('prefixo define o tipo', () => {
+  assert.strictEqual(kindOf('ft_x'), 'toggle');
+  assert.strictEqual(kindOf('rc_url_x'), 'config');
+});
+test('toggle com default true vira override nas duas plataformas', () => {
+  const f = { key: 'ft_a', environments: { prod: { default: 'true' } } };
+  const r = rules(f, 'prod');
+  assert.strictEqual(r.defaultValue, 'false');
+  assert.deepStrictEqual(Object.keys(r.overrides), ['ios', 'android']);
+});
+test('toggle desligado não é ativo (rollback nunca bloqueia)', () => {
+  assert.strictEqual(isActive({ key: 'ft_a', environments: { prod: { default: 'false' } } }, 'prod'), false);
+  assert.strictEqual(isActive({ key: 'ft_a', environments: { prod: { default: 'false', ios: { value: 'true', rolloutPercent: 0 } } } }, 'prod'), false);
+});
+test('toggle com override true é ativo; config sempre é', () => {
+  assert.strictEqual(isActive({ key: 'ft_a', environments: { prod: { default: 'false', android: { value: 'true' } } } }, 'prod'), true);
+  assert.strictEqual(isActive({ key: 'rc_u', environments: { prod: { default: 'https://x' } } }, 'prod'), true);
 });

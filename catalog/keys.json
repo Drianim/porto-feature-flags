@@ -1,25 +1,76 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 1,
+  "total": 3,
   "keys": [
     {
-      "key": "exemplo_nova_home",
-      "type": "BOOLEAN",
+      "key": "ft_additional_card_address_info",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "STRING",
       "criticality": "media",
-      "owner": "squad-exemplo",
-      "description": "Exemplo: habilita a nova home do app",
+      "owner": "a-definir",
+      "description": "Exibe informações de endereço no cartão adicional",
       "environments": {
         "dev": {
-          "enabled": true,
-          "rolloutPercent": 100
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
         },
         "hml": {
-          "enabled": true,
-          "rolloutPercent": 100
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
         },
         "prod": {
-          "enabled": false,
-          "rolloutPercent": 0
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_home_logged_web_showcase",
+      "kind": "toggle",
+      "group": "Vitrine Hub",
+      "valueType": "STRING",
+      "criticality": "baixa",
+      "owner": "a-definir",
+      "description": "Leva o usuário para o portal de vendas da Porto no navegador, ao acessar a vitrine da área logada",
+      "environments": {
+        "dev": {
+          "default": "false"
+        },
+        "hml": {
+          "default": "false"
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "rc_url_visaCatar_conditions",
+      "kind": "config",
+      "group": null,
+      "valueType": "STRING",
+      "criticality": "baixa",
+      "owner": "a-definir",
+      "description": "Termo do Regulamento Promoção Visa Catar",
+      "environments": {
+        "dev": {
+          "default": "https://promocoes.visa.com.br/site/porto-seguro/porto-bank-visa/regulamento"
+        },
+        "hml": {
+          "default": "https://promocoes.visa.com.br/site/porto-seguro/porto-bank-visa/regulamento"
+        },
+        "prod": {
+          "default": "https://promocoes.visa.com.br/site/porto-seguro/porto-bank-visa/regulamento"
         }
       }
     }

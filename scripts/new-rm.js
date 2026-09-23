@@ -34,7 +34,7 @@ const rm = {
   targetEnvironments: a.envs ? a.envs.split(',') : ['dev', 'hml', 'prod'],
   criticality: crit,
   squad: a.squad,
-  rollback: 'Desligar a flag (enabled=false) e publicar novamente',
+  rollback: 'Voltar o toggle para false e publicar novamente',
   prodSchedule: a.schedule,
   rolloutPlan: plans[crit],
   approvals: { team: { name: '', date: '' }, platform: { name: '', date: '' } },

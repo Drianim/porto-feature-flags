@@ -13,14 +13,12 @@ function currentStage(rm, now = new Date()) {
   return rm.rolloutPlan[rm.rolloutPlan.length - 1];
 }
 
-// null  = ainda não está na hora (não mexer no valor remoto)
-// número = percentual efetivo (0 = desligada, 100 = todos)
-function effectivePercent(prodCfg, rm, now = new Date()) {
-  if (!prodCfg.enabled) return 0;
+// Percentual efetivo de um override: menor entre o estágio atual e o teto declarado na flag.
+// null = ainda não está na hora (sem RM ou antes de prodSchedule).
+function effectivePercent(cap, rm, now = new Date()) {
   if (!rm) return null;
   const stage = currentStage(rm, now);
-  if (!stage) return null;
-  return Math.min(stage.percent, prodCfg.rolloutPercent ?? 100);
+  return stage ? Math.min(stage.percent, cap ?? 100) : null;
 }
 
 module.exports = { currentStage, effectivePercent };

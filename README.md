@@ -19,15 +19,23 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 | `.claude/skills/feature-flag/` | Skill do Claude Code para operar este repo |
 | `bitbucket-pipelines.yml` | Pipeline |
 
+## Modelo de chave (igual ao Remote Config do SuperApp)
+
+- `ft_*` = feature toggle (valores `"true"`/`"false"`); `rc_*` = valor de configuração (texto, URL etc.). Tudo é `STRING`.
+- Por ambiente: `default` + override opcional por plataforma (`ios`, `android`), cada um com `value` e `rolloutPercent` (teto opcional).
+- `group` opcional coloca o parâmetro num grupo do console (ex.: "Vitrine Hub").
+- No Firebase viram condições `device.os == 'ios'` / `'android'` (com `&& percent <= N` durante o rollout).
+- Em PROD, toggles que liberam algo e todas as `rc_*` exigem RM e sobem só depois do `prodSchedule`. Desligar um toggle (rollback) nunca é bloqueado.
+
 ## Fluxo
 
-1. Branch a partir de `develop`. Crie a flag: `npm run new:flag -- minha_flag --owner squad-x --criticality media`.
+1. Branch a partir de `develop`. Crie a flag: `npm run new:flag -- ft_minha_flag --owner squad-x --criticality media --description "..."`.
 2. PR: a pipeline roda testes e `validate`. Precisa de **1 aprovação da equipe**.
 3. Rode `npm run catalog` e commite o resultado. Merge em `develop` → **DEV e HML sobem na hora**.
-4. Para PROD: `npm run new:rm -- --flags minha_flag --squad squad-x --schedule 2026-10-01T14:00:00-03:00` e ligue `environments.prod.enabled`. Preencha `approvals.team` e `approvals.platform` (pessoas diferentes).
+4. Para PROD: `npm run new:rm -- --flags ft_minha_flag --squad squad-x --schedule 2026-10-01T14:00:00-03:00` e defina em `environments.prod` o override por plataforma (ex.: `"ios": {"value": "true"}`). Preencha `approvals.team` e `approvals.platform` (pessoas diferentes).
 5. PR `develop` → `main` exige **2 aprovações, uma da plataforma**. A pipeline roda `validate:prod`.
 6. O deploy de PROD é **time-gated**: antes de `prodSchedule` nada muda; depois segue o `rolloutPlan` (ex.: 5% → 25% → 50% → 100%). O estágio é calculado pelo horário, sem estado, então rodar a pipeline várias vezes é seguro.
-7. Rollback: PR com `enabled: false` (ou menor `rolloutPercent`); a pipeline republica.
+7. Rollback: PR voltando o toggle para `"false"` (ou menor `rolloutPercent`); a pipeline republica.
 
 Simular sem publicar: `node scripts/deploy.js prod --dry-run --now 2026-10-01T18:00:00Z`.
 

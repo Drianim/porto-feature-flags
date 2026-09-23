@@ -17,17 +17,17 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 
 ## Criar uma flag nova
 
-1. `node scripts/new-flag.js <key_snake_case> --owner <squad> --criticality <baixa|media|alta|critica> --description "..."`
-   (a key é snake_case e o arquivo se chama `<key>.json`)
-2. Ligue nos ambientes não produtivos editando `environments.dev.enabled` / `hml.enabled`.
-3. `npm run validate`
+1. `node scripts/new-flag.js <ft_ou_rc_chave> --owner <squad> --criticality <baixa|media|alta|critica> --description "..."`
+   (a key começa com `ft_` para toggle ou `rc_` para valor de configuração — este exige `--value`; use `--group "Nome"` para agrupar; o arquivo se chama `<key>.json`)
+2. Ligue nos ambientes não produtivos com override por plataforma, ex.: `"dev": {"default": "false", "ios": {"value": "true"}, "android": {"value": "true"}}` (ou `default: "true"` para todas). `rolloutPercent` opcional limita o percentual.
+3. `npm run catalog && npm run validate` (o catálogo `catalog/keys.json` é gerado e conferido na pipeline)
 4. Simule: `node scripts/deploy.js dev --dry-run`
 
 ## Levar para PROD
 
 1. Pergunte ao usuário a **data/hora de PROD** (ISO 8601 com fuso, ex. `2026-10-01T14:00:00-03:00`); nunca invente.
 2. `node scripts/new-rm.js --flags <a,b> --squad <squad> --schedule <ISO>` — o plano de rollout padrão vem da criticidade (baixa: 100%; media: 25→100; alta/critica: 5→25→50→100).
-3. Em `flags/<key>.json` ponha `environments.prod.enabled: true` (`rolloutPercent` opcional funciona como teto).
+3. Em `flags/<key>.json` configure `environments.prod` (override por plataforma; `rolloutPercent` é teto). Toggles que liberam algo e todas as `rc_*` exigem RM em PROD.
 4. **Aprovações**: `approvals.team` e `approvals.platform` devem ser preenchidas (nome + data) por **pessoas diferentes**. Nunca preencha em nome de alguém: peça ao usuário os nomes e datas reais.
 5. `npm run validate:prod` e `node scripts/deploy.js prod --dry-run --now <ISO>` para conferir o estágio em um horário específico.
 6. PR `develop` → `main` (2 aprovações, uma da plataforma).
@@ -36,6 +36,6 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 
 - Não use `git push` nem abra PR sem o usuário pedir.
 - Alta/crítica exigem `rolloutPlan` com mais de um estágio.
-- Rollback = `enabled: false` (ou reduzir `rolloutPercent`) via PR; a pipeline republica.
+- Rollback = voltar o `default` para `"false"` e remover os overrides (ou reduzir `rolloutPercent`) via PR; a pipeline republica.
 - Não grave credenciais no repo. Deploy usa `FIREBASE_PROJECT_<ENV>` e `FIREBASE_SA_KEY_<ENV>` (JSON do service account em base64) como variáveis de deployment do Bitbucket.
 - O rollout é liberado por tempo, não por saúde; monitore métricas entre os estágios e faça rollback se necessário.

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Gera catalog/keys.json: todas as chaves de Remote Config e o estado em cada ambiente.
+// Gera catalog/keys.json: todas as chaves de Remote Config e o estado em cada ambiente/plataforma.
 // Uso: node scripts/catalog.js [--check]   (--check falha se o arquivo estiver desatualizado)
 const fs = require('fs');
 const path = require('path');
 const { root, loadFlags, parseArgs } = require('./lib/common');
+const { kindOf } = require('./lib/flags');
 
 const flags = loadFlags().sort((a, b) => a.key.localeCompare(b.key));
 const catalog = {
@@ -11,13 +12,13 @@ const catalog = {
   total: flags.length,
   keys: flags.map((f) => ({
     key: f.key,
-    type: f.valueType,
+    kind: kindOf(f.key),
+    group: f.group || null,
+    valueType: f.valueType || 'STRING',
     criticality: f.criticality,
     owner: f.owner,
     description: f.description,
-    environments: Object.fromEntries(
-      Object.entries(f.environments).map(([env, c]) => [env, { enabled: c.enabled, rolloutPercent: c.rolloutPercent ?? (c.enabled ? 100 : 0) }]),
-    ),
+    environments: f.environments,
   })),
 };
 const out = JSON.stringify(catalog, null, 2) + '\n';
