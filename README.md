@@ -37,7 +37,7 @@ Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de test
 
 ## Garantia: main = Firebase NÃO PROD
 
-- Depois de cada deploy, o step **Verificar sincronia** compara `main` com o Remote Config real (valor padrão, condições iOS/Android, tipo, descrição, grupo e chaves ausentes).
+- Depois de cada deploy (no mesmo step de aprovação, pois o Bitbucket só aceita cada ambiente de deployment uma vez por pipeline), a verificação compara `main` com o Remote Config real (valor padrão, condições iOS/Android, tipo, descrição, grupo e chaves ausentes).
 - Se o deploy falhar, `main` e Firebase divergem. A pipeline separada **`sync-nonprod`** (agendada, ex.: a cada 30 min, e/ou manual, sempre em `main`) publica o que está em `main` quando houver divergência e confere de novo. Sem divergência não muda nada.
 - **`verify-nonprod`** é só leitura (`--strict`): falha se houver divergência ou chave no Firebase que não está no repo. Use como alarme agendado.
 - Local: `FIREBASE_SA_KEY_NONPROD=$(base64 -i chave.json) node scripts/verify-sync.js nonprod`.

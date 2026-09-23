@@ -1,0 +1,46 @@
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const yaml = require('js-yaml');
+
+const doc = yaml.load(fs.readFileSync(path.join(__dirname, '..', '..', 'bitbucket-pipelines.yml'), 'utf8'));
+
+// Nome de cada pipeline -> lista de steps (branches, custom, pull-requests)
+function pipelines() {
+  const out = [];
+  for (const [group, defs] of Object.entries(doc.pipelines)) {
+    for (const [name, steps] of Object.entries(defs)) out.push({ id: `${group}/${name}`, steps });
+  }
+  return out;
+}
+
+test('cada ambiente de deployment aparece no máximo uma vez por pipeline (regra do Bitbucket)', () => {
+  for (const { id, steps } of pipelines()) {
+    const envs = steps.map((s) => s.step && s.step.deployment).filter(Boolean);
+    const dup = envs.filter((e, i) => envs.indexOf(e) !== i);
+    assert.deepStrictEqual(dup, [], `pipeline ${id} repete deployment: ${dup.join(', ')}`);
+  }
+});
+
+test('o primeiro step de cada pipeline não é manual', () => {
+  for (const { id, steps } of pipelines()) {
+    assert.notStrictEqual(steps[0].step.trigger, 'manual', `pipeline ${id} começa com step manual`);
+  }
+});
+
+test('todo step tem nome e script', () => {
+  for (const { id, steps } of pipelines()) {
+    for (const { step } of steps) {
+      assert.ok(step.name, `step sem nome em ${id}`);
+      assert.ok(Array.isArray(step.script) && step.script.length, `step "${step.name}" sem script em ${id}`);
+    }
+  }
+});
+
+test('só ambientes de deployment conhecidos', () => {
+  const known = new Set(['test', 'staging', 'production']);
+  for (const { steps } of pipelines()) {
+    for (const { step } of steps) if (step.deployment) assert.ok(known.has(step.deployment), `deployment desconhecido: ${step.deployment}`);
+  }
+});
