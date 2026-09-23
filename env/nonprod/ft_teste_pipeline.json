@@ -1,0 +1,11 @@
+{
+  "nonprod": {
+    "default": "false",
+    "ios": {
+      "value": "true"
+    },
+    "android": {
+      "value": "true"
+    }
+  }
+}

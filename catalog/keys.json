@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 4,
+  "total": 5,
   "keys": [
     {
       "key": "ft_additional_card_address_info",
@@ -68,6 +68,29 @@
           "android": {
             "value": "true"
           }
+        }
+      }
+    },
+    {
+      "key": "ft_teste_pipeline",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "STRING",
+      "criticality": "baixa",
+      "owner": "squad-poc",
+      "description": "Flag de teste do fluxo de PR e deploy em NÃO PROD",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
         }
       }
     },

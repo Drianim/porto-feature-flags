@@ -1,0 +1,7 @@
+{
+  "key": "ft_teste_pipeline",
+  "description": "Flag de teste do fluxo de PR e deploy em NÃO PROD",
+  "owner": "squad-poc",
+  "criticality": "baixa",
+  "valueType": "STRING"
+}
