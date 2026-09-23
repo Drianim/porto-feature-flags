@@ -57,7 +57,7 @@ pipelines:
             - node scripts/check-scope.js "$BITBUCKET_BRANCH" origin/main
       # Nome de FF nunca se repete: feature/* só cria FF nova (consulta o Firebase NÃO PROD);
       # alterar FF existente exige branch update/*. Precisa de FIREBASE_SA_KEY_NONPROD como variável
-      # de REPOSITÓRIO (secured), pois PR pipelines não recebem variáveis de Deployment.
+      # de REPOSITÓRIO (secured), pois PR pipelines não recebem variáveis de Deployment (a mesma serve para os deploys).
       - step:
           name: FF nova x update (bloqueia nome duplicado)
           script:

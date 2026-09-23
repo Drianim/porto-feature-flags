@@ -33,7 +33,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 
 ## Escopo da PoC: só NÃO PROD
 
-Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de teste (`cursoapp-ac8e4`). O ID do projeto já está em `config/environments.json` (`projectId`); no Deployment `test` basta a variável secured `FIREBASE_SA_KEY_NONPROD` (JSON do service account em base64). `FIREBASE_PROJECT_NONPROD` é opcional e sobrescreve o padrão. **Nunca** versione a chave. Os steps de PROD (validação, gate de aprovação, deploy) ficam definidos mas só executam em merge de `release/*`, que não é usado na PoC. Variáveis de PROD, `BB_ACCESS_TOKEN` e `config/approvers.json` só serão necessários quando PROD entrar.
+Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de teste (`cursoapp-ac8e4`). O ID do projeto já está em `config/environments.json` (`projectId`); basta **uma** variável secured de **repositório**, `FIREBASE_SA_KEY_NONPROD` (JSON do service account em base64): ela vale para PR, `main` e pipelines agendadas. Não é preciso criar nada no Deployment `Test`. `FIREBASE_PROJECT_NONPROD` é opcional e sobrescreve o padrão. **Nunca** versione a chave. Os steps de PROD (validação, gate de aprovação, deploy) ficam definidos mas só executam em merge de `release/*`, que não é usado na PoC. Variáveis de PROD, `BB_ACCESS_TOKEN` e `config/approvers.json` só serão necessários quando PROD entrar.
 
 ## Garantia: main = Firebase NÃO PROD
 
@@ -73,7 +73,7 @@ O CI reprova o PR que violar isso: `scripts/check-scope.js` (pastas) e `scripts/
 - `feature/*` só pode **criar** FF nova. O nome não pode existir em `main` (ignorando maiúsculas) nem no **Remote Config NÃO PROD**: o PR consulta o Firebase de verdade.
 - Se a FF já existe (no repo ou no Firebase) e você precisa alterá-la, o PR de `feature/*` é bloqueado com a mensagem *"essa FF já existe… use uma branch update/*"*. Abra a mudança numa `update/*`.
 - O contrário também vale: `update/*` não pode criar FF nova (deve ser `feature/*`).
-- Para o PR consultar o Firebase, `FIREBASE_SA_KEY_NONPROD` precisa ser variável de **repositório** (secured), porque PR pipelines não recebem variáveis de Deployment. Sem credencial, o step falha (não libera o nome às cegas).
+- Para o PR consultar o Firebase, `FIREBASE_SA_KEY_NONPROD` precisa ser variável de **repositório** (secured), porque PR pipelines não recebem variáveis de Deployment (a mesma variável já serve para os deploys). Sem credencial, o step falha (não libera o nome às cegas).
 - Localmente: `node scripts/check-new-flags.js feature/minha-flag origin/main` (`--skip-remote` pula a consulta ao Firebase).
 
 ## Fluxo
@@ -100,9 +100,8 @@ Simular sem publicar: `node scripts/deploy.js prod --dry-run --now 2026-10-01T18
 ## Configuração no Bitbucket (uma vez)
 
 - **Branch restrictions**: `develop` (1 aprovação, sem push direto); `main` (2 aprovações, só via PR, plataforma como reviewer padrão).
-- **Variáveis por Deployment** (secured), para `test` (NÃO PROD) e `production`:
-  - `FIREBASE_PROJECT_NONPROD` / `FIREBASE_PROJECT_PROD`: ID do projeto Firebase
-  - `FIREBASE_SA_KEY_NONPROD` / `_PROD`: JSON do service account em base64 (`base64 -i key.json | pbcopy`), papel *Firebase Remote Config Admin*
+- **Variável de repositório** (*Repository settings → Pipelines → Repository variables*, marque **Secured**): `FIREBASE_SA_KEY_NONPROD` = JSON do service account em base64 (`base64 -i key.json | pbcopy`), papel *Firebase Remote Config Admin*. Uma só variável cobre PR, `main` e as pipelines custom. O ID do projeto NÃO PROD já vem do `config/environments.json`.
+- **Quando PROD entrar**: crie `FIREBASE_SA_KEY_PROD` e `FIREBASE_PROJECT_PROD` **no Deployment `Production`** (assim a credencial de PROD só existe nos steps de PROD). Uma variável de Deployment com o mesmo nome sobrescreve a de repositório.
 - **Repository variable** `BB_ACCESS_TOKEN` (secured): repository access token com escopo `pullrequest:read`, usado pelo gate de aprovação.
 - **`config/approvers.json`**: preencha `platform` com os `account_id` do time de plataforma.
 - **Deployment `production`**: restrinja quem pode fazer deploy (plataforma/admins).
