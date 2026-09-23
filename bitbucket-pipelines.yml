@@ -12,7 +12,7 @@ image: node:22
 # Merge sem origem identificável (fast-forward, push direto) não publica nada.
 #
 # Garantia "main = Firebase NÃO PROD":
-#  - depois de cada deploy, o step "Verificar sincronia" compara main com o Remote Config real;
+#  - depois de cada deploy (no mesmo step), verify-sync compara main com o Remote Config real;
 #  - se o deploy falhar, a pipeline custom `sync-nonprod` (agendada e/ou manual, sempre em main)
 #    publica o que está em main quando houver divergência e confere de novo;
 #  - `verify-nonprod` é a checagem só de leitura (--strict) para alarme.
@@ -87,7 +87,7 @@ pipelines:
       # feature/* e update/* -> main: NÃO PROD. Só aparece se o merge alterou flags/ ou env/nonprod/.
       # APROVAÇÃO: fica pausado até alguém clicar em "Run" no pipeline.
       - step:
-          name: Aprovar e publicar NÃO PROD (merge de feature/* ou update/*)
+          name: Aprovar, publicar e verificar NÃO PROD (merge de feature/* ou update/*)
           trigger: manual
           deployment: test
           condition:
@@ -98,18 +98,9 @@ pipelines:
           script:
             - npm install --no-audit --no-fund
             - sh scripts/ci/run-if-source.sh "feature/|update/" node scripts/deploy.js nonprod
-      # Confere se main e o Remote Config NÃO PROD ficaram idênticos. Se falhar, use a pipeline sync-nonprod.
-      - step:
-          name: Verificar sincronia NÃO PROD (main = Firebase)
-          deployment: test
-          condition:
-            changesets:
-              includePaths:
-                - "flags/**"
-                - "env/nonprod/**"
-          script:
-            - npm install --no-audit --no-fund
-            - node scripts/verify-sync.js nonprod
+            # Confere se main e o Remote Config NÃO PROD ficaram idênticos. Se falhar, use a pipeline sync-nonprod.
+            # (No mesmo step: o Bitbucket só aceita cada ambiente de deployment uma vez por pipeline.)
+            - sh scripts/ci/run-if-source.sh "feature/|update/" node scripts/verify-sync.js nonprod
       # release/* -> main: PROD, time-gated pelo RM (antes de prodSchedule nada muda).
       # Só aparece se o merge alterou env/prod/ ou rm/.
       - step:

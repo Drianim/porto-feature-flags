@@ -12,5 +12,8 @@
   },
   "dependencies": {
     "firebase-admin": "^13.0.0"
+  },
+  "devDependencies": {
+    "js-yaml": "^5.4.2"
   }
 }
