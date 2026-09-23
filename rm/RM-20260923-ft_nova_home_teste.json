@@ -1,0 +1,36 @@
+{
+  "id": "RM-20260923-ft_nova_home_teste",
+  "flags": [
+    "ft_nova_home_teste",
+    "rc_url_visaCatar_conditions"
+  ],
+  "targetEnvironments": [
+    "dev",
+    "hml",
+    "prod"
+  ],
+  "criticality": "media",
+  "squad": "squad-poc",
+  "rollback": "Voltar o toggle para false e publicar novamente",
+  "prodSchedule": "2026-09-23T14:27:00-03:00",
+  "rolloutPlan": [
+    {
+      "percent": 25,
+      "monitorMinutes": 60
+    },
+    {
+      "percent": 100,
+      "monitorMinutes": 0
+    }
+  ],
+  "approvals": {
+    "team": {
+      "name": "Teste Equipe (ficticio - PoC)",
+      "date": "2026-09-23"
+    },
+    "platform": {
+      "name": "Teste Plataforma (ficticio - PoC)",
+      "date": "2026-09-23"
+    }
+  }
+}

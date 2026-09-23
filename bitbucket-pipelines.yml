@@ -26,6 +26,14 @@ pipelines:
   pull-requests:
     '**':
       - step: *validate
+      # Prévia: mostra no log o que seria publicado no Remote Config (não publica nada).
+      # Em PR para main, também aplica as regras de PROD (RM + aprovações no arquivo).
+      - step:
+          name: Prévia do deploy (dry-run)
+          script:
+            - npm install --no-audit --no-fund
+            - node scripts/deploy.js dev --dry-run
+            - if [ "$BITBUCKET_PR_DESTINATION_BRANCH" = "main" ]; then npm run validate:prod && node scripts/deploy.js prod --dry-run; fi
 
   branches:
     # Não produtivo: sobe na hora, logo após o merge (que exige aprovação da equipe)
