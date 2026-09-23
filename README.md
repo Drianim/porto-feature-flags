@@ -17,6 +17,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 | `config/approvers.json` | `account_id` das pessoas da plataforma (preencher) |
 | `catalog/keys.json` | Catálogo gerado com todas as chaves do Remote Config e o estado por ambiente (`npm run catalog`; a pipeline falha se estiver desatualizado) |
 | `scripts/check-new-flags.js` | Bloqueia nome de FF duplicado: feature/* só cria FF nova (consulta o Firebase), update/* só altera existente |
+| `scripts/remove-flags.js` | Apaga FFs removidas do repositório no Remote Config NÃO PROD (`--base`, `--keys`, `--dry-run`) |
 | `scripts/verify-sync.js` | Compara `main` com o Remote Config real (`--fix` publica se houver divergência, `--strict` também reprova chaves fora do repo) |
 | `scripts/deploy.js` | Publica no Remote Config (`--dry-run`, `--now <ISO>` para simular) |
 | `scripts/lib/` | Código compartilhado e testes do rollout (`npm test`) |
@@ -64,9 +65,17 @@ Todo step que publica no Firebase é `trigger: manual`: a pipeline **pausa** e s
 |---|---|---|---|
 | `feature/*` | criar FF **nova** | `flags/`, `env/nonprod/`, scripts, config (**não** `env/prod/` nem `rm/`) | NÃO PROD |
 | `update/*` | alterar FF que **já existe** | `flags/`, `env/nonprod/` (**não** `env/prod/` nem `rm/`) | NÃO PROD |
+| `remove/*` | **apagar** FF (do repo e do Remote Config NÃO PROD) | só **apaga** arquivos em `flags/`, `env/nonprod/`, `env/prod/` e `rm/` | remove a FF do Firebase (depois do Run) |
 | `release/*` | levar para PROD | somente `env/prod/`, `rm/` e `catalog/` | PROD (time-gated pelo RM) |
 
 O CI reprova o PR que violar isso: `scripts/check-scope.js` (pastas) e `scripts/check-new-flags.js` (nome de FF). Outros prefixos (`chore/`...) não são restringidos e **não disparam deploy**.
+
+### Remover uma FF
+
+- Numa branch `remove/*`, apague `flags/<key>.json`, `env/nonprod/<key>.json` (e `env/prod/<key>.json`, `rm/` se houver), rode `npm run catalog` e abra o PR. O CI reprova qualquer criação/alteração numa `remove/*` e reprova apagar FF em `feature/*` ou `update/*`.
+- No merge, o step de deploy pausa; ao clicar em **Run**, `scripts/remove-flags.js nonprod --base HEAD^1` apaga do Remote Config (parâmetro, grupo que ficar vazio e condições `_ios/_android`) só as FFs cujo `flags/<key>.json` foi apagado naquele merge, e depois o `verify-sync` confere.
+- Segurança: o script recusa chave que ainda existe em `flags/`, nunca apaga chave "de fora" do repositório e ainda não suporta PROD.
+- Local: `FIREBASE_SA_KEY_NONPROD=$(base64 -i chave.json) node scripts/remove-flags.js nonprod --keys ft_x --dry-run` (a FF já não pode existir em `flags/`).
 
 ### Nome de FF nunca se repete
 

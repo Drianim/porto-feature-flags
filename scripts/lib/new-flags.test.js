@@ -6,15 +6,17 @@ const diff = (s) => classify(parseNameStatus(s));
 
 test('flags/ adicionado é FF nova; env/nonprod junto não conta como alteração', () => {
   const r = diff('A\tflags/ft_a.json\nA\tenv/nonprod/ft_a.json\nM\tcatalog/keys.json');
-  assert.deepStrictEqual(r, { newKeys: ['ft_a'], changedKeys: [] });
+  assert.deepStrictEqual(r, { newKeys: ['ft_a'], changedKeys: [], removedKeys: [] });
 });
 test('modificar flags/ ou env/nonprod de FF existente é alteração', () => {
   const r = diff('M\tflags/ft_b.json\nM\tenv/nonprod/ft_c.json');
   assert.deepStrictEqual(r.changedKeys.sort(), ['ft_b', 'ft_c']);
   assert.deepStrictEqual(r.newKeys, []);
 });
-test('remover FF conta como alteração', () => {
-  assert.deepStrictEqual(diff('D\tflags/ft_d.json').changedKeys, ['ft_d']);
+test('apagar só o env/nonprod de uma FF é alteração, não remoção', () => {
+  const r = diff('D\tenv/nonprod/ft_d.json');
+  assert.deepStrictEqual(r.changedKeys, ['ft_d']);
+  assert.deepStrictEqual(r.removedKeys, []);
 });
 
 const ok = { repoKeys: ['ft_x'], remoteKeys: ['ft_x', 'ft_so_no_firebase'] };
@@ -41,4 +43,23 @@ test('update: alterar FF existente passa; criar FF nova é bloqueado', () => {
   const r = evaluate({ mode: 'update', newKeys: ['ft_nova'], changedKeys: [], ...ok });
   assert.strictEqual(r.ok, false);
   assert.match(r.problems[0], /feature\/\*/);
+});
+
+test('flags/ apagado é FF removida', () => {
+  const r = diff('D\tflags/ft_x.json\nD\tenv/nonprod/ft_x.json\nM\tcatalog/keys.json');
+  assert.deepStrictEqual(r, { newKeys: [], changedKeys: [], removedKeys: ['ft_x'] });
+});
+test('remove: só remoção passa; criar ou alterar é bloqueado', () => {
+  assert.strictEqual(evaluate({ mode: 'remove', newKeys: [], changedKeys: [], removedKeys: ['ft_x'], repoKeys: ['ft_x'], remoteKeys: [] }).ok, true);
+  assert.strictEqual(evaluate({ mode: 'remove', newKeys: ['ft_n'], changedKeys: [], removedKeys: [], repoKeys: [], remoteKeys: [] }).ok, false);
+  const r = evaluate({ mode: 'remove', newKeys: [], changedKeys: ['ft_y'], removedKeys: [], repoKeys: ['ft_y'], remoteKeys: [] });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.problems[0], /update\/\*/);
+});
+test('feature e update não podem apagar FF: mandam usar remove/*', () => {
+  for (const mode of ['feature', 'update']) {
+    const r = evaluate({ mode, newKeys: [], changedKeys: [], removedKeys: ['ft_x'], repoKeys: ['ft_x'], remoteKeys: [] });
+    assert.strictEqual(r.ok, false);
+    assert.match(r.problems[0], /remove\/\*/);
+  }
 });

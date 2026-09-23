@@ -1,6 +1,7 @@
 // FF nova x alteração de FF existente:
 //   feature/* -> só cria FF NOVA (nome não pode existir no repo nem no Firebase NÃO PROD)
 //   update/*  -> só altera FF que JÁ existe
+//   remove/*  -> só APAGA FF (apagar o arquivo da definição)
 const keyOf = (file) => file.replace(/^(flags|env\/nonprod)\//, '').replace(/\.json$/, '');
 
 // "git diff --name-status" -> [{ status: 'A'|'M'|'D', file }]
@@ -12,25 +13,34 @@ function parseNameStatus(text) {
 }
 
 // Chave nova = flags/<key>.json foi ADICIONADO. Qualquer outra mudança em flags/ ou env/nonprod/ é alteração.
+// Chave removida = flags/<key>.json foi APAGADO.
 function classify(changes) {
   const newKeys = new Set();
+  const removed = new Set();
   const changed = new Set();
   for (const { status, file } of changes) {
     if (!/^(flags|env\/nonprod)\/.+\.json$/.test(file)) continue;
     const key = keyOf(file);
     if (file.startsWith('flags/') && status === 'A') newKeys.add(key);
+    else if (file.startsWith('flags/') && status === 'D') removed.add(key);
     else changed.add(key);
   }
-  for (const k of newKeys) changed.delete(k);
-  return { newKeys: [...newKeys], changedKeys: [...changed] };
+  for (const k of [...newKeys, ...removed]) changed.delete(k);
+  return { newKeys: [...newKeys], changedKeys: [...changed], removedKeys: [...removed] };
 }
 
-function evaluate({ mode, newKeys, changedKeys, repoKeys, remoteKeys }) {
+function evaluate({ mode, newKeys, changedKeys, removedKeys = [], repoKeys, remoteKeys }) {
   const lower = (list) => new Set(list.map((k) => k.toLowerCase()));
   const repo = lower(repoKeys);
   const remote = lower(remoteKeys);
   const problems = [];
-  if (mode === 'feature') {
+  if (mode !== 'remove') {
+    for (const k of removedKeys) problems.push(`${k}: remover FF deve ser feito numa branch remove/* (${mode}/* não apaga FF)`);
+  }
+  if (mode === 'remove') {
+    for (const k of newKeys) problems.push(`${k}: remove/* só apaga FF; criar FF nova exige feature/*`);
+    for (const k of changedKeys) problems.push(`${k}: remove/* só apaga FF; alterar FF existente exige update/*`);
+  } else if (mode === 'feature') {
     for (const k of changedKeys) {
       problems.push(`${k}: essa FF já existe. Alterar FF existente deve ser feito numa branch update/* (feature/* é só para FF nova)`);
     }

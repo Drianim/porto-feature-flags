@@ -7,7 +7,7 @@
 src=$(cat merge-source.txt 2>/dev/null)
 base=$(git rev-parse HEAD^1 2>/dev/null) || { echo "Sem commit anterior: nada a reconferir."; exit 0; }
 case "$src" in
-  feature/*|update/*) node scripts/check-scope.js "$src" "$base" && node scripts/check-new-flags.js "$src" "$base" --skip-remote ;;
+  feature/*|update/*|remove/*) node scripts/check-scope.js "$src" "$base" && node scripts/check-new-flags.js "$src" "$base" --skip-remote ;;
   release/*) node scripts/check-scope.js "$src" "$base" ;;
   *) echo "Origem '${src:-desconhecida}': nada a reconferir (esta origem não publica)." ;;
 esac

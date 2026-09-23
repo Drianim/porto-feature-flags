@@ -61,6 +61,24 @@ function apply(template, { items, conditions }) {
   return template;
 }
 
+// Remove chaves do template: parâmetros, entradas em grupos e condições próprias (<key>_ios/_android/_rollout).
+// Grupos que ficam vazios por causa da remoção também saem.
+function removeKeys(template, keys) {
+  const ks = new Set(keys);
+  const touched = new Set();
+  for (const k of ks) {
+    if (template.parameters) delete template.parameters[k];
+    for (const [g, v] of Object.entries(template.parameterGroups || {})) {
+      if (v.parameters && k in v.parameters) { delete v.parameters[k]; touched.add(g); }
+    }
+  }
+  for (const g of touched) {
+    if (!Object.keys(template.parameterGroups[g].parameters || {}).length) delete template.parameterGroups[g];
+  }
+  template.conditions = (template.conditions || []).filter((c) => !isOwnedCondition(c.name, ks));
+  return template;
+}
+
 function findRemote(template, key) {
   if ((template.parameters || {})[key]) return { param: template.parameters[key], group: null };
   for (const [g, v] of Object.entries(template.parameterGroups || {})) {
@@ -122,4 +140,4 @@ async function connect(cfgEnv) {
   return { rc: admin.remoteConfig(), projectId };
 }
 
-module.exports = { build, apply, diff, connect, findRemote };
+module.exports = { build, apply, diff, connect, findRemote, removeKeys };
