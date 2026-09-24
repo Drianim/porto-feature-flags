@@ -9,7 +9,7 @@ image: node:22
 #    (feature/* e update/* só alteram flags/ e env/nonprod/; nome de FF nunca se repete)
 #  - PR remove/*  -> main (mergeado)  -> REMOVE a FF do NÃO PROD (após aprovação manual); só apaga FF
 #  - PR release/* -> main (mergeado)  -> PROD (aprovação manual), time-gated pelo RM (release/* só altera env/prod/ e rm/)
-# PR de chore/* (ou de qualquer outro prefixo) não roda pipeline.
+# O merge na main só acontece pelo último passo (manual) da pipeline do PR, feito pela conta-bot (spec 0009).
 #  - Só a equipe dona da FF (config/teams.json) ou a plataforma altera a FF; transferir FF entre equipes é da plataforma.
 # A origem do merge vem da mensagem do commit ("Merged in <branch> (pull request #N)").
 # Merge sem origem identificável (fast-forward, push direto) não publica nada.
@@ -40,6 +40,13 @@ definitions:
         script:
           - npm install --no-audit --no-fund
           - npm run validate:prod
+    # Merge só pela pipeline (spec 0009): na main só a conta-bot tem permissão de merge. Este passo é o ÚLTIMO de
+    # cada pipeline de PR, então só aparece se todos os anteriores passaram; o clique em Run manda a conta-bot mesclar.
+    - step: &merge-pr
+        name: Mesclar o PR (depois de validar)
+        trigger: manual
+        script:
+          - node scripts/ci/merge-pr.js
     - step: &merge-source
         name: Identificar origem do merge
         script:
@@ -49,8 +56,8 @@ definitions:
           - merge-source.txt
 
 pipelines:
-  # Só PRs de feature/*, update/*, remove/* e release/* rodam pipeline. PR de chore/* (e qualquer outro prefixo)
-  # não dispara nada aqui.
+  # Toda branch que pode ir para a main tem pipeline de PR, e o último passo (manual) é o único jeito de mesclar:
+  # na main só a conta-bot tem permissão de merge (spec 0009). Outros prefixos não têm pipeline e não podem ser mesclados.
   pull-requests:
     'feature/**': &pr-steps
       - step: *validate
@@ -97,10 +104,24 @@ pipelines:
           script:
             - npm install --no-audit --no-fund
             - node scripts/deploy.js nonprod --validate
+      - step: *merge-pr
 
     'update/**': *pr-steps
     'remove/**': *pr-steps
     'release/**': *pr-steps
+    # chore/* (script, pipeline, docs) e revert/* (desfaz um merge da main): testes e validação, e só admin clica em
+    # "Mesclar o PR" (o passo confere quem clicou pelo BITBUCKET_STEP_TRIGGERER_UUID).
+    'chore/**':
+      - step: *validate
+      - step: *merge-pr
+    'revert/**':
+      - step:
+          name: Só reverts de merge da main
+          script:
+            - git fetch origin main:refs/remotes/origin/main
+            - node scripts/ci/check-revert.js origin/main
+      - step: *validate
+      - step: *merge-pr
 
   branches:
     # develop NÃO publica no Firebase: o que está em main é a única fonte do NÃO PROD.

@@ -45,21 +45,24 @@ test('só ambientes de deployment conhecidos', () => {
   }
 });
 
-test('só feature/update/remove/release rodam pipeline de PR (chore/* não roda)', () => {
-  assert.deepStrictEqual(Object.keys(doc.pipelines['pull-requests']).sort(), ['feature/**', 'release/**', 'remove/**', 'update/**']);
+test('pipeline de PR para as seis branches que podem ir para a main; as quatro de FF com os mesmos passos (spec 0009)', () => {
+  assert.deepStrictEqual(Object.keys(doc.pipelines['pull-requests']).sort(), ['chore/**', 'feature/**', 'release/**', 'remove/**', 'revert/**', 'update/**']);
   const feature = doc.pipelines['pull-requests']['feature/**'];
   for (const k of ['update/**', 'remove/**', 'release/**']) assert.deepStrictEqual(doc.pipelines['pull-requests'][k], feature);
 });
 
+const FF_KEYS = ['feature/**', 'update/**', 'remove/**', 'release/**'];
+const ffPipelines = () => FF_KEYS.map((k) => [k, doc.pipelines['pull-requests'][k]]);
+
 test('a pipeline de PR confere a permissão por equipe, em todos os tipos de branch de FF', () => {
-  for (const [key, steps] of Object.entries(doc.pipelines['pull-requests'])) {
+  for (const [key, steps] of ffPipelines()) {
     const cmds = steps.flatMap((s) => s.step.script).join('\n');
     assert.match(cmds, /node scripts\/check-ownership\.js "\$BITBUCKET_BRANCH" origin\/main/, key);
   }
 });
 
 test('a pipeline de PR valida o template no Firebase (sem publicar), depois da prévia, em todos os tipos de branch de FF', () => {
-  for (const [key, steps] of Object.entries(doc.pipelines['pull-requests'])) {
+  for (const [key, steps] of ffPipelines()) {
     const names = steps.map((s) => s.step.name);
     const i = names.findIndex((n) => /Validar o template no Firebase \(sem publicar\)/.test(n));
     assert.ok(i >= 0, `${key}: sem o passo de validação no Firebase`);
@@ -68,4 +71,25 @@ test('a pipeline de PR valida o template no Firebase (sem publicar), depois da p
     assert.match(script, /node scripts\/deploy\.js nonprod --validate/, key);
     assert.doesNotMatch(script, /--dry-run|publishTemplate/, `${key}: o passo não pode publicar`);
   }
+});
+
+test('o último passo de toda pipeline de PR é o merge manual pela conta-bot, depois das validações (spec 0009)', () => {
+  for (const [key, steps] of Object.entries(doc.pipelines['pull-requests'])) {
+    const last = steps[steps.length - 1].step;
+    assert.match(last.name, /Mesclar o PR \(depois de validar\)/, key);
+    assert.strictEqual(last.trigger, 'manual', `${key}: o merge precisa de um clique`);
+    assert.match(last.script.join('\n'), /node scripts\/ci\/merge-pr\.js/, key);
+    assert.ok(steps.length >= 2, `${key}: precisa de validação antes do merge`);
+    for (const { step } of steps.slice(0, -1)) assert.notStrictEqual(step.trigger, 'manual', `${key}: só o merge é manual`);
+  }
+});
+
+test('chore/** e revert/** rodam testes e validação antes do merge; revert/** confere que é só revert', () => {
+  for (const key of ['chore/**', 'revert/**']) {
+    const scripts = doc.pipelines['pull-requests'][key].flatMap((s) => s.step.script).join('\n');
+    assert.match(scripts, /npm test/, key);
+    assert.match(scripts, /npm run validate/, key);
+  }
+  const revert = doc.pipelines['pull-requests']['revert/**'].flatMap((s) => s.step.script).join('\n');
+  assert.match(revert, /node scripts\/ci\/check-revert\.js/);
 });

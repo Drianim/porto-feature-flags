@@ -14,6 +14,8 @@ atualizado: 2026-09-24
 
 Como **mantenedor do repositório**, quero **que branches `chore/*` (ajuste de script, pipeline e documentação) não rodem a pipeline de PR e só possam ser mescladas por admin**, para que **as checagens de FF não atrapalhem ajustes que não são de FF e ninguém mude o motor de deploy sem passar pelo admin**.
 
+> **Atualização (spec 0009):** `chore/*` passou a ter pipeline de PR (testes e validação) e o merge na `main` passou a ser só pela pipeline, com uma conta-bot. A regra de "só admin" continua: no passo "Mesclar o PR" (por UUID de quem clicou) e na reconferência da `main` (admins e a conta-bot).
+
 ## Contexto
 
 O `pull-requests: '**'` de `bitbucket-pipelines.yml` rodava a pipeline de PR (escopo, nome de FF, dry-run) em qualquer branch, inclusive `chore/*`, que não mexe em FF. O Bitbucket também não restringe o merge pela branch de origem: qualquer pessoa com permissão de merge na `main` poderia mesclar uma `chore/*` que altera o motor de deploy.

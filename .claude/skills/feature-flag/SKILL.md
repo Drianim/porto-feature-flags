@@ -14,7 +14,7 @@ Outras skills: `ff-status` só **consulta** o status; `sdd-scripts` **evolui** s
 - **Não faça `git push` nem abra PR** sem o usuário pedir. Não mescle nada.
 - **Nunca invente** dado de negócio: chave, descrição, equipe, plataformas, versão mínima, criticidade, data de PROD, aprovadores. Pergunte.
 - **Não procure credenciais.** O NÃO PROD usa a variável de **repositório** (secured) `FIREBASE_SA_KEY_NONPROD`; o projeto vem de `config/environments.json`. Sem ela, peça ao usuário para exportá-la.
-- **PR vermelho: nunca mesclar.** O plano do Bitbucket **não bloqueia** o botão de merge; a barreira é a reconferência na `main`. Se um PR vermelho for mesclado, veja *Quando algo falha*.
+- **PR vermelho: nunca mesclar.** O merge é **só pela pipeline** (spec 0009): na `main` só a conta-bot mescla, pelo último passo manual do PR, **"Mesclar o PR (depois de validar)"**, que só aparece quando todos os passos passaram. Espere a pipeline terminar e clique em Run nesse passo; não tente mesclar de outro jeito. Se algo entrar na `main` sem validação, veja *Quando algo falha*.
 
 ## Antes de criar uma FF, pergunte
 
@@ -28,7 +28,8 @@ Chave (`ft_*` toggle ou `rc_*` valor), descrição, **equipe** (de `config/teams
 | alterar FF que **já existe** | `update/*` | `flags/`, `env/nonprod/`, `catalog/` | NÃO PROD, depois do Run |
 | **apagar** FF | `remove/*` | só apaga `flags/`, `env/*`, `rm/` | remove do Firebase, depois do Run |
 | levar para **PROD** | `release/*` | `env/prod/`, `rm/`, `catalog/` | PROD por horário do RM |
-| script, pipeline, docs | `chore/*` | livre; **sem pipeline de PR**, não publica; **só admin** mescla | nada |
+| script, pipeline, docs | `chore/*` | livre; testes e validação no PR; **só admin** clica em Mesclar | nada |
+| desfazer um merge | `revert/*` | só `git revert -m 1 <merge>` | nada (a `main` volta ao estado anterior) |
 
 Nome de FF nunca se repete: `feature/*` só cria (consulta o Firebase); `update/*` só altera existente. Criar a branch pela interface do Bitbucket (**Create branch**, *From branch* = `main`): tipo Feature gera `feature/`, Release gera `release/`; para `update/`, `remove/` e `chore/` escolha **Other** e digite o prefixo. Bugfix e Hotfix não fazem parte do processo.
 
@@ -95,4 +96,4 @@ Templates em `docs/templates/codigo-app/` (`android.md` em Kotlin, `ios.md` em S
 
 ## `chore/*`, SDD e consulta
 
-Mudança em script, pipeline, hooks ou documentação **não é FF**: use a skill `sdd-scripts` (spec aprovada em `docs/specs/` antes do código, branch `chore/*`; **só admin** mescla, sem pipeline de PR). Para só **ver** o estado das FFs, use a skill `ff-status`.
+Mudança em script, pipeline, hooks ou documentação **não é FF**: use a skill `sdd-scripts` (spec aprovada em `docs/specs/` antes do código, branch `chore/*`; testes no PR e **só admin** clica em Mesclar). Para só **ver** o estado das FFs, use a skill `ff-status`.

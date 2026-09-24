@@ -1,7 +1,7 @@
 ---
 spec: 0009
 titulo: Merge só pela pipeline — o botão de merge não existe antes de a validação passar
-status: rascunho
+status: aprovada
 criado: 2026-09-24
 atualizado: 2026-09-24
 ---
@@ -26,16 +26,16 @@ O Bitbucket permite, em **todos os planos**, restringir quem pode mesclar numa b
 
 ## Critérios de aceite
 
-- [ ] CA-1: toda chave de `pull-requests` (`feature/**`, `update/**`, `remove/**`, `release/**`, `chore/**`, `revert/**`) termina com o passo manual "Mesclar o PR (depois de validar)", e esse passo só aparece se todos os anteriores passaram (é o último e o Bitbucket para no primeiro que falha).
-- [ ] CA-2: `chore/**` e `revert/**` passam a ter pipeline de PR: testes, `validate` e formato das specs (e, em `revert/**`, que a mudança é um revert de um merge da `main`); `feature/`, `update/`, `remove/` e `release/` mantêm todos os passos atuais.
-- [ ] CA-3: o passo de merge recusa se: o destino não é `main`; o PR não está aberto; o commit mais recente do PR não é o commit que a pipeline validou (`BITBUCKET_COMMIT`); o número de aprovações de outras pessoas é menor que o mínimo configurado; em `chore/**` e `revert/**`, quem clicou em Run não é admin.
-- [ ] CA-4: o merge é feito pela API com estratégia `merge_commit` (commit de merge com dois pais) e **sem mensagem própria**, para manter `Merged in <branch> (pull request #N)`, que a reconferência da `main` e a reversão usam.
-- [ ] CA-5: quem clicou em Run é identificado pela pipeline (`BITBUCKET_STEP_TRIGGERER_UUID`), comparado com a lista de admins por UUID em `config/approvers.json`.
-- [ ] CA-6: `config/approvers.json` ganha `mergeBot` (e-mail do commit de merge da conta-bot), `adminUuids` e `minApprovals` (PoC: `0`, porque hoje só há uma pessoa); o `validate` reprova formato inválido.
-- [ ] CA-7: a reconferência da `main` aceita como autor do merge a conta-bot (e os admins), e continua reprovando merge de `chore/*` feito por qualquer outra pessoa.
-- [ ] CA-8: o token da conta-bot só entra por variável secured (`BB_MERGE_BOT_TOKEN`, com `BB_MERGE_BOT_USER`) e nunca aparece no log, nem em erro; sem ele, o passo falha dizendo como configurar.
-- [ ] CA-9: a lógica de decisão e a chamada à API são testadas com um cliente HTTP falso (cada motivo de recusa do CA-3, merge feito com a estratégia e sem mensagem, erro da API, token ausente e oculto, PR já mesclado).
-- [ ] CA-10: README, `CLAUDE.md` (mapa dos processos), a skill `feature-flag`, o template de PR e `scripts/processos.test.js` descrevem o novo fluxo e a configuração (conta-bot, token, permissão de merge da `main`); a spec 0002 recebe a nota de que `chore/*` passou a ter pipeline de PR.
+- [x] CA-1: toda chave de `pull-requests` (`feature/**`, `update/**`, `remove/**`, `release/**`, `chore/**`, `revert/**`) termina com o passo manual "Mesclar o PR (depois de validar)", e esse passo só aparece se todos os anteriores passaram (é o último e o Bitbucket para no primeiro que falha).
+- [x] CA-2: `chore/**` e `revert/**` passam a ter pipeline de PR: testes, `validate` e formato das specs (e, em `revert/**`, que a mudança é um revert de um merge da `main`); `feature/`, `update/`, `remove/` e `release/` mantêm todos os passos atuais.
+- [x] CA-3: o passo de merge recusa se: o destino não é `main`; o PR não está aberto; o commit mais recente do PR não é o commit que a pipeline validou (`BITBUCKET_COMMIT`); o número de aprovações de outras pessoas é menor que o mínimo configurado; em `chore/**` e `revert/**`, quem clicou em Run não é admin.
+- [x] CA-4: o merge é feito pela API com estratégia `merge_commit` (commit de merge com dois pais) e **sem mensagem própria**, para manter `Merged in <branch> (pull request #N)`, que a reconferência da `main` e a reversão usam.
+- [x] CA-5: quem clicou em Run é identificado pela pipeline (`BITBUCKET_STEP_TRIGGERER_UUID`), comparado com a lista de admins por UUID em `config/approvers.json`.
+- [x] CA-6: `config/approvers.json` ganha `mergeBot` (e-mail do commit de merge da conta-bot), `adminUuids` e `minApprovals` (PoC: `0`, porque hoje só há uma pessoa); o `validate` reprova formato inválido.
+- [x] CA-7: a reconferência da `main` aceita como autor do merge a conta-bot (e os admins), e continua reprovando merge de `chore/*` feito por qualquer outra pessoa.
+- [x] CA-8: o token da conta-bot só entra por variável secured (`BB_MERGE_BOT_TOKEN`, com `BB_MERGE_BOT_USER`) e nunca aparece no log, nem em erro; sem ele, o passo falha dizendo como configurar.
+- [x] CA-9: a lógica de decisão e a chamada à API são testadas com um cliente HTTP falso (cada motivo de recusa do CA-3, merge feito com a estratégia e sem mensagem, erro da API, token ausente e oculto, PR já mesclado).
+- [x] CA-10: README, `CLAUDE.md` (mapa dos processos), a skill `feature-flag`, o template de PR e `scripts/processos.test.js` descrevem o novo fluxo e a configuração (conta-bot, token, permissão de merge da `main`); a spec 0002 recebe a nota de que `chore/*` passou a ter pipeline de PR.
 - [ ] CA-11: verificação real: com a restrição configurada, o botão Merge fica indisponível no PR para as pessoas; um PR vermelho não mostra o passo "Mesclar"; um PR verde mostra o passo e, ao clicar em Run, é mesclado com a mensagem padrão e a reconferência da `main` passa.
 
 ## Desenho

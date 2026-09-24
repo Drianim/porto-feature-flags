@@ -37,7 +37,7 @@ Onde cada processo está e como acioná-lo (`README.md` traz o detalhe; a skill 
 | Sincronia main = Firebase | README, *Pipelines* | `sync-nonprod`; `verify-sync`; `npm run status -- sync` |
 | Teste real de plataforma | README, *Proteções* | `node scripts/test-platforms.js nonprod` |
 | Validar template no Firebase (sem publicar) | README, *Pipelines* | `node scripts/deploy.js nonprod --validate` |
-| chore/* (sem pipeline, só admin) | README, *Processo* | branch `chore/*`; só admin mescla |
+| chore/* (só admin mescla) | README, *Processo* | branch `chore/*`; testes no PR; só admin clica em Mesclar |
 | SDD nos scripts | `docs/sdd/README.md` | spec em `docs/specs/`; skill `sdd-scripts` |
 | Consultar o status | README, *Scripts* | `npm run status`; skill `ff-status` |
 | Código do app (templates) | `docs/templates/codigo-app/` | `android.md` (Kotlin); `ios.md` (Swift) |
@@ -46,7 +46,8 @@ Onde cada processo está e como acioná-lo (`README.md` traz o detalhe; a skill 
 | Rollback | README, *PROD, RM e criticidade* | voltar a FF para desligada em `update/*` |
 | Criticidade e rollout por estágio | README, *PROD, RM e criticidade* | `rolloutPlan` do RM |
 | Campanha de teste do processo | `docs/testes-do-processo.md` | PRs positivos e negativos, em fases |
-| PR vermelho (nunca mesclar) | README, *Decisões, limites e armadilhas* | o plano do Bitbucket não bloqueia; reverter com `revert/*` |
+| Merge só pela pipeline | README, *Merge só pela pipeline* | último passo manual "Mesclar o PR"; conta-bot; `scripts/ci/merge-pr.js` |
+| PR vermelho (nunca mesclar) | README, *Decisões, limites e armadilhas* | sem o passo "Mesclar"; se entrar, reverter com `revert/*` |
 
 ## Comandos
 
@@ -69,7 +70,7 @@ npm run status -- list                     # status das FFs (somente leitura; sk
   Pergunte.
 - Nada é editado no console do Firebase: o repositório é a fonte única e a `main` deve ser idêntica ao Remote Config
   NÃO PROD (`verify-sync`).
-- Só **admin** (`config/approvers.json`) mescla `chore/*`; `chore/*` não roda pipeline de PR nem publica.
+- **Merge só pela pipeline:** na `main` só a conta-bot mescla, pelo último passo (manual) do PR, que só aparece com tudo verde. Não mescle nada à mão. Só **admin** (`adminUuids`) clica em Mesclar em `chore/*` e `revert/*`; `chore/*` não publica.
 - Toda FF tem `team` (uma equipe de `config/teams.json`), `platforms` (`android|ios|ambas`) e `minVersion` (`x.y.z`), sem exceção.
 - **Uma equipe só mexe nas FFs dela**; só a equipe de **plataforma** altera FF de outra equipe e transfere FF entre equipes (`scripts/check-ownership.js`, pelos e-mails dos commits). Equipes e membros mudam só por `chore/*`.
 
@@ -92,7 +93,7 @@ npm run status -- list                     # status das FFs (somente leitura; sk
 
 - Um `deployment` por ambiente **por pipeline** (por isso deploy e verify ficam no mesmo step; `pipeline.test.js` trava).
 - Pipeline de PR não recebe variável de Deployment: `FIREBASE_SA_KEY_NONPROD` é variável de **repositório** (secured).
-- O merge check do plano atual **não bloqueia** o botão de merge; a barreira real é a reconferência na `main`.
+- O merge check do plano atual **não bloqueia** o botão de merge (é Premium): por isso o merge é só pela pipeline, com conta-bot.
 - *Access keys* do repositório são **somente leitura**: o push da reversão automática exige chave SSH da conta ou do
   workspace (ou token de repositório por HTTPS).
 - `catalog/keys.json` desatualizado quebra a pipeline: rode `npm run catalog`.
