@@ -72,3 +72,6 @@ Para ver o que está ligado, em qual plataforma/versão/porcentagem ou se o Fire
 - Toda FF tem `team` (equipe dona, de `config/teams.json`): **pergunte a equipe** ao criar; nunca invente. Ela vai como prefixo da descrição no Firebase (`[equipe] texto`).
 - **Uma equipe só altera as FFs dela.** Só a equipe de **plataforma** mexe em FF de outra equipe e transfere FF entre equipes (mudar `team`). O `check-ownership` confere pelos e-mails dos commits; se um PR for reprovado por isso, peça à equipe dona ou à plataforma.
 - Equipes e membros mudam só em `config/teams.json`, por uma `chore/*` (só admin mescla).
+
+## Código do app que usa a FF
+Para escrever o código do app (Android em Kotlin, iOS em Swift) que lê a FF, use os templates em `docs/templates/codigo-app/` (`android.md` e `ios.md`, com a mesma linha do tempo em seis situações). Regras: padrão do app = comportamento antigo (toggle `false`); uma leitura, uma decisão; o app não compara versão nem plataforma; na remoção o app vem primeiro e a `remove/*` depois. A FF só deve ser ligada depois que o app com o código estiver publicado.

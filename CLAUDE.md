@@ -9,6 +9,7 @@ resume o que um Claude Code precisa saber antes de mexer.
 | Mudança | Como fazer |
 |---|---|
 | **FF** (`flags/`, `env/`, `rm/`): criar, alterar, remover, PROD | branch `feature/*`, `update/*`, `remove/*` ou `release/*`; skill `feature-flag`; **sem SDD** |
+| **Código do app** (Android/iOS) que usa a FF | templates em `docs/templates/codigo-app/` (Kotlin e Swift, uma seção por situação da FF) |
 | **Consultar o status** das FFs (ligada, plataforma, versão mínima, %, sincronia) | skill `ff-status` / `npm run status`; somente leitura |
 | **Scripts, pipeline, hooks, docs, regras em `config/`** | **SDD**: spec aprovada em `docs/specs/` antes do código; branch `chore/*`; skill `sdd-scripts` |
 

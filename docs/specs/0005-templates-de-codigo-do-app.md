@@ -1,7 +1,7 @@
 ---
 spec: 0005
 titulo: Templates de código do app (Android e iOS) para usar a FF em cada situação
-status: rascunho
+status: implementada
 criado: 2026-09-24
 atualizado: 2026-09-24
 ---
@@ -26,22 +26,22 @@ Este repositório governa a FF no Firebase (chave, plataformas, versão mínima,
 
 ## Critérios de aceite
 
-- [ ] CA-1: `android.md` e `ios.md` trazem as seis situações, na mesma ordem e com os mesmos títulos, cada uma com código completo do template.
-- [ ] CA-2: as duas plataformas definem o contrato de FF (`FeatureFlags`: leitura de toggle Boolean e de configuração String) e as chaves como constantes tipadas, com o nome exato `ft_`/`rc_` do repositório.
-- [ ] CA-3: toggle usa a API Boolean e tem padrão `false` embutido no app (o comportamento antigo); `rc_*` usa a API String com padrão explícito no app; nenhum exemplo lê valor sem padrão.
-- [ ] CA-4: o template de nova FF mantém o caminho antigo e o novo lado a lado, lê a FF uma vez por tela ou ação (não em loop) e não deixa a decisão espalhada por vários pontos.
-- [ ] CA-5: o template de plataforma e versão mínima diz que o corte por versão e plataforma é do Remote Config (condições publicadas a partir do repositório) e que o app **não** compara versão; traz o checklist "a versão do app que contém o código = `minVersion` da FF; publicar o app antes de ligar".
-- [ ] CA-6: o template de remoção mostra o código antes e depois e a ordem correta (primeiro o app sem ler a chave, depois a `remove/*`), com o aviso de que apps antigos que ainda leem a chave passam a usar o padrão do app.
-- [ ] CA-7: o template de teste cobre a FF ligada e desligada com um duplo do contrato (MockK no Android, stub com XCTest no iOS), sem Firebase.
-- [ ] CA-8: o README dos templates traz a linha do tempo por situação ligando o que sobe no app ao que acontece neste repositório (`feature/*`, `update/*`, `remove/*`, `release/*`), incluindo o rollback.
-- [ ] CA-9: um teste (`scripts/code-templates.test.js`) confere: as seis situações nas duas plataformas, na mesma ordem; toda chave `ft_`/`rc_` dentro de blocos de código segue o padrão de chave e a API do tipo (`ft_` com Boolean, `rc_` com String); e nenhum marcador de pendência.
-- [ ] CA-10: o README do repositório, o `CLAUDE.md`, a skill `feature-flag` e o template de PR apontam para os templates de código, e o template de PR de `feature/*` pede o link do PR do app.
-- [ ] CA-11: o README documenta como criar a branch pela interface do Bitbucket: o tipo Feature gera `feature/`, o tipo Release gera `release/` e o tipo Other permite digitar `update/`, `remove/` ou `chore/`; Bugfix e Hotfix não fazem parte do processo.
+- [x] CA-1: `android.md` e `ios.md` trazem as seis situações, na mesma ordem e com os mesmos títulos, cada uma com código completo do template.
+- [x] CA-2: as duas plataformas definem o contrato de FF (`FeatureFlags`: leitura de toggle Boolean e de configuração String) e as chaves como constantes tipadas, com o nome exato `ft_`/`rc_` do repositório.
+- [x] CA-3: toggle usa a API Boolean e tem padrão `false` embutido no app (o comportamento antigo); `rc_*` usa a API String com padrão explícito no app; nenhum exemplo lê valor sem padrão.
+- [x] CA-4: o template de nova FF mantém o caminho antigo e o novo lado a lado, lê a FF uma vez por tela ou ação (não em loop) e não deixa a decisão espalhada por vários pontos.
+- [x] CA-5: o template de plataforma e versão mínima diz que o corte por versão e plataforma é do Remote Config (condições publicadas a partir do repositório) e que o app **não** compara versão; traz o checklist "a versão do app que contém o código = `minVersion` da FF; publicar o app antes de ligar".
+- [x] CA-6: o template de remoção mostra o código antes e depois e a ordem correta (primeiro o app sem ler a chave, depois a `remove/*`), com o aviso de que apps antigos que ainda leem a chave passam a usar o padrão do app.
+- [x] CA-7: o template de teste cobre a FF ligada e desligada com um duplo do contrato (MockK no Android, stub com XCTest no iOS), sem Firebase.
+- [x] CA-8: o README dos templates traz a linha do tempo por situação ligando o que sobe no app ao que acontece neste repositório (`feature/*`, `update/*`, `remove/*`, `release/*`), incluindo o rollback.
+- [x] CA-9: um teste (`scripts/code-templates.test.js`) confere: as seis situações nas duas plataformas, na mesma ordem; toda chave `ft_`/`rc_` dentro de blocos de código segue o padrão de chave e a API do tipo (`ft_` com Boolean, `rc_` com String); e nenhum marcador de pendência.
+- [x] CA-10: o README do repositório, o `CLAUDE.md`, a skill `feature-flag` e o template de PR apontam para os templates de código, e o template de PR de `feature/*` pede o link do PR do app.
+- [x] CA-11: o README documenta como criar a branch pela interface do Bitbucket: o tipo Feature gera `feature/`, o tipo Release gera `release/` e o tipo Other permite digitar `update/`, `remove/` ou `chore/`; Bugfix e Hotfix não fazem parte do processo.
 
 ## Desenho
 
 - **Estrutura:** `docs/templates/codigo-app/README.md`, `android.md`, `ios.md`. Os exemplos usam chaves `ft_exemplo_*` e `rc_exemplo_*` e as mesmas nas duas plataformas.
-- **Contrato:** Android: `enum class Toggle(val key: String)`, `enum class Config(val key: String, val default: String)` e `interface FeatureFlags { fun isEnabled(toggle: Toggle): Boolean; fun value(config: Config): String }`, com `RemoteFeatureFlags(FirebaseRemoteConfig)` e um módulo Koin. iOS: `enum Toggle: String`, `enum Config: String` com `defaultValue`, `protocol FeatureFlags` e `RemoteFeatureFlags(RemoteConfig)`, com injeção por inicializador. Os padrões (`false` para toggles e o padrão de cada `rc_*`) entram em `setDefaults` na inicialização; a busca e a ativação ficam na abertura do app.
+- **Contrato:** Android: `enum class FeatureToggle(val key: String)`, `enum class FeatureConfig(val key: String)` e `interface FeatureFlags { fun isEnabled(toggle: FeatureToggle): Boolean; fun value(config: FeatureConfig): String }`, com `RemoteFeatureFlags(FirebaseRemoteConfig)` e um módulo Koin. iOS: `enum FeatureToggle: String`, `enum FeatureConfig: String`, `protocol FeatureFlags` e `RemoteFeatureFlags(RemoteConfig)`, com injeção por inicializador. Os tipos se chamam `FeatureToggle` e `FeatureConfig` (e não `Toggle`) para não colidir com o `Toggle` do SwiftUI. Os padrões (`false` para toggles e o valor de cada `rc_*`) ficam numa lista única (`PADROES_DO_APP` / `padroesDoApp`) e entram no SDK na inicialização; a busca e a ativação ficam na abertura do app.
 - **Uma leitura, uma decisão:** o template lê o toggle no início do fluxo (ViewModel, caso de uso ou apresentador) e escolhe o caminho; o código antigo e o novo ficam atrás da mesma função, o que torna a limpeza um `diff` pequeno.
 - **Situações 2 e 4:** são de contrato com este repositório (nada de código novo no app, ou só o checklist), mas ganham seção própria para o desenvolvedor não procurar código onde não há.
 - **Teste do template:** `scripts/code-templates.test.js` lê os três Markdown e confere estrutura e consistência; não compila Kotlin nem Swift (limite declarado abaixo).
@@ -69,7 +69,7 @@ Este repositório governa a FF no Firebase (chave, plataformas, versão mínima,
 
 **Files:** `docs/templates/codigo-app/android.md`
 
-**Interfaces:** produz `Toggle`, `Config`, `FeatureFlags`, `RemoteFeatureFlags`, o módulo Koin e as seis situações com código completo (Kotlin, MockK).
+**Interfaces:** produz `FeatureToggle`, `FeatureConfig`, `FeatureFlags`, `RemoteFeatureFlags`, `PADROES_DO_APP`, o módulo Koin e as seis situações com código completo (Kotlin, MockK).
 
 1. Escrever a seção do contrato e da inicialização e as seis situações.
 2. Comando: `node --test scripts/code-templates.test.js` (esperado: a parte de Android passa).
@@ -78,7 +78,7 @@ Este repositório governa a FF no Firebase (chave, plataformas, versão mínima,
 
 **Files:** `docs/templates/codigo-app/ios.md`
 
-**Interfaces:** produz `Toggle`, `Config`, `FeatureFlags`, `RemoteFeatureFlags` e as seis situações com código completo (Swift, XCTest), com os mesmos títulos do Android.
+**Interfaces:** produz `FeatureToggle`, `FeatureConfig`, `FeatureFlags`, `RemoteFeatureFlags`, `padroesDoApp` e as seis situações com código completo (Swift, XCTest), com os mesmos títulos do Android.
 
 1. Escrever a seção do contrato e da inicialização e as seis situações.
 2. Comando: `node --test scripts/code-templates.test.js` (esperado: passa por inteiro).
