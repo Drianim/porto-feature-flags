@@ -59,6 +59,7 @@ A mesma validação da pipeline do PR roda no seu computador, antes de o PR exis
 
 - `npm run preflight`: confere formato das FFs, catálogo, escopo da branch, nome único (FF nova x update x remove) e, em `release/*`, as regras de PROD.
 - `npm run pr`: roda o preflight e, se passar, empurra a branch e imprime o **link de um clique** para abrir o PR.
+- **Template do PR:** `.bitbucket/pull_request_template.md` preenche a descrição ao abrir o PR, com uma seção para cada tipo (feature, update, remove, release). Apague as seções que não são do seu tipo. O Bitbucket lê o template da main, então ele só aparece depois do merge desta mudança.
 - `npm run hooks` (uma vez): ativa o hook de `pre-push`, que roda o preflight ao empurrar `feature/`, `update/`, `remove/` ou `release/` e bloqueia o push se falhar (`git push --no-verify` ignora, por sua conta).
 - A consulta ao Firebase (nome que já existe lá) usa `FIREBASE_SA_KEY_NONPROD`; sem ela é pulada e a pipeline do PR confere.
 
