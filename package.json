@@ -8,7 +8,10 @@
     "new:flag": "node scripts/new-flag.js",
     "new:rm": "node scripts/new-rm.js",
     "plan": "node scripts/deploy.js",
-    "catalog": "node scripts/catalog.js"
+    "catalog": "node scripts/catalog.js",
+    "preflight": "node scripts/preflight.js",
+    "pr": "node scripts/preflight.js --push",
+    "hooks": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0"
