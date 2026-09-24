@@ -18,6 +18,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 | `catalog/keys.json` | Catálogo gerado com todas as chaves do Remote Config e o estado por ambiente (`npm run catalog`; a pipeline falha se estiver desatualizado) |
 | `scripts/check-new-flags.js` | Bloqueia nome de FF duplicado: feature/* só cria FF nova (consulta o Firebase), update/* só altera existente |
 | `scripts/remove-flags.js` | Apaga FFs removidas do repositório no Remote Config NÃO PROD (`--base`, `--keys`, `--dry-run`) |
+| `scripts/test-platforms.js` | Teste real do filtro Android/iOS: registra 2 apps temporários, pede ao Firebase para avaliar o Remote Config como cada plataforma e compara com o repositório (`--keys`, `--samples`) |
 | `scripts/verify-sync.js` | Compara `main` com o Remote Config real (`--fix` publica se houver divergência, `--strict` também reprova chaves fora do repo) |
 | `scripts/deploy.js` | Publica no Remote Config (`--dry-run`, `--now <ISO>` para simular) |
 | `scripts/lib/` | Código compartilhado e testes do rollout (`npm test`) |
@@ -58,6 +59,12 @@ Todo step que publica no Firebase é `trigger: manual`: a pipeline **pausa** e s
 - Para restringir **quem** pode clicar: *Repository settings → Deployments →* ambiente *→ Deployment permissions* (pode exigir plano pago).
 - A aprovação do PR (antes do merge) continua sendo configurada em *Branch restrictions* (mín. de aprovações).
 - O `prod-scheduler` (avanço do rollout por horário) é automático de propósito: depende do RM já aprovado.
+
+## Testar o filtro por plataforma (Android x iOS)
+
+`FIREBASE_SA_KEY_NONPROD=$(base64 -i chave.json) node scripts/test-platforms.js nonprod --keys ft_x --samples 30`
+
+O script registra um app Android e um iOS temporários (pacote `com.poc.rcteste`) no projeto, pede ao **próprio Firebase** o Remote Config como cada plataforma (endpoint de fetch dos apps) e compara com o que o repositório manda: chave só no iOS não pode chegar no Android e vice-versa; em FF com porcentagem, mede a fração de instâncias que recebe o valor. No fim remove os apps (mesmo se der erro). A FF precisa já estar publicada no Firebase. Sofre limite de requisições (429): o script espera e tenta de novo.
 
 ## Regra por tipo de branch
 

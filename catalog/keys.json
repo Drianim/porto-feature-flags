@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 1,
+  "total": 5,
   "keys": [
     {
       "key": "ft_exemplo_checkout",
@@ -19,6 +19,90 @@
           },
           "android": {
             "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_plat_ambos",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "owner": "squad-poc",
+      "description": "Teste de plataforma: ligada em iOS e Android",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_plat_android",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "owner": "squad-poc",
+      "description": "Teste de plataforma: ligada só no Android",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "android": {
+            "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_plat_ios",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "owner": "squad-poc",
+      "description": "Teste de plataforma: ligada só no iOS",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_plat_ios_50",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "owner": "squad-poc",
+      "description": "Teste de plataforma: iOS em 50% dos usuários, Android desligado",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true",
+            "rolloutPercent": 50
           }
         },
         "prod": {
