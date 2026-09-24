@@ -67,7 +67,7 @@ Os rótulos estruturais (`Task`, `Files`, `Interfaces`) ficam em inglês porque 
 ## Exemplos
 
 - [0001 — Plataforma e versão mínima obrigatórias](../specs/0001-plataforma-e-versao-minima.md)
-- [0002 — chore/* sem pipeline de PR e só admin mescla](../specs/0002-chore-sem-pipeline-e-merge-por-admin.md)
+- [0002 — chore/* sem pipeline de PR e só admin mescla](../specs/0002-chore-sem-pipeline-e-merge-por-admin.md) (a parte "sem pipeline" foi substituída pela 0009)
 
 São retroativas (escritas depois do código) e servem de modelo de preenchimento. A partir da 0003, a spec vem antes.
 

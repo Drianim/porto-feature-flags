@@ -1,5 +1,10 @@
 {
-  "_comment": "admins: e-mails de quem pode mesclar chore/*. platform: account_id (Bitbucket) das pessoas do time de plataforma; preencha antes de usar PROD.",
-  "admins": ["drianim.oliveira@gmail.com"],
+  "_comment": "admins: e-mails de quem pode mesclar chore/* (reconferência da main). adminUuids: UUIDs do Bitbucket (com chaves) de quem pode clicar em \"Mesclar o PR\" em chore/* e revert/*. mergeBot: e-mail dos commits de merge da conta-bot (a única com permissão de merge na main). minApprovals: aprovações de outras pessoas exigidas no passo de merge (PoC: 0). platform: account_id do time de plataforma; preencha antes de usar PROD.",
+  "admins": [
+    "drianim.oliveira@gmail.com"
+  ],
+  "adminUuids": [],
+  "mergeBot": "",
+  "minApprovals": 0,
   "platform": []
 }

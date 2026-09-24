@@ -141,7 +141,8 @@ Quatro camadas, cada uma com uma responsabilidade:
 | `update/*` | alterar FF que **já existe** | `flags/`, `env/nonprod/`, `catalog/` (não PROD) | NÃO PROD, depois do Run |
 | `remove/*` | **apagar** FF | só **apaga** arquivos de `flags/`, `env/*`, `rm/` (catálogo regenerado) | remove do Firebase, depois do Run |
 | `release/*` | levar para PROD | somente `env/prod/`, `rm/`, `catalog/` | PROD por horário do RM, depois do Run |
-| `chore/*` e outros | script, pipeline, docs | não restrito | **não publica**; sem pipeline de PR; só admin mescla |
+| `chore/*` | script, pipeline, docs | não restrito | **não publica**; testes e validação no PR; só admin clica em Mesclar |
+| `revert/*` | desfazer um merge da `main` | só reverts de merge (`git revert -m 1`) | não publica; só admin clica em Mesclar |
 
 O CI só **proíbe PROD** em `feature/*` e `update/*`; por convenção elas mexem só em FF, e qualquer mudança de script vai em `chore/*` com spec (SDD).
 
@@ -224,6 +225,17 @@ Quem pode mexer em qual FF é decidido por `config/teams.json`: `platform` (e-ma
 | **`prod-scheduler`** (custom, agendada) | a cada ~15 min | avança os estágios do rollout de PROD pelo horário |
 | **`plan-prod`** (custom) | manual | dry-run de PROD |
 
+### Merge só pela pipeline
+
+Na `main` **ninguém tem o botão de Merge**: só a conta-bot tem permissão de merge, e quem a usa é a pipeline do PR (spec 0009).
+
+1. **Ao abrir o PR**, a pipeline roda todas as validações (testes, escopo, equipe, nome único, prévia, validação no Firebase; em `chore/*` e `revert/*`, testes e validação).
+2. **Só se tudo passar** aparece o último passo, manual: **"Mesclar o PR (depois de validar)"**. Um PR vermelho nunca chega a ter esse passo.
+3. **Clicar em Run** nesse passo faz `scripts/ci/merge-pr.js` conferir o PR na API e mesclar com a conta-bot. Ele recusa se o PR não vai para a `main`, não está aberto, recebeu um push depois da validação (o commit mesclado tem de ser o validado), não tem as aprovações mínimas (`minApprovals`) ou, em `chore/*` e `revert/*`, se quem clicou não é admin (`adminUuids`, pelo `BITBUCKET_STEP_TRIGGERER_UUID`).
+4. O merge usa `merge_commit` e a mensagem padrão `Merged in <branch> (pull request #N)`, que a reconferência da `main` e a reversão leem. Depois, a pipeline da `main` segue como antes (reconferência e, se for FF, o Run de publicar).
+
+Outros prefixos (`hotfix/`, `bugfix/`...) não têm pipeline de PR, então não podem ser mesclados.
+
 ### Aprovação dentro da pipeline
 
 Todo passo que publica é `trigger: manual`: a pipeline **pausa** até alguém clicar em **Run**. Sem o clique, nada é
@@ -242,8 +254,9 @@ existe no Firebase.
 ## Proteções
 
 1. **Preflight** local (e hook de push) e **CI do PR**: testes, escopo de pastas, nome único.
-2. **Merge check do Bitbucket**: configurado na `main`, mas **no plano atual não impede o botão de merge** (a opção
-   *Prevent a merge with unresolved merge checks* não está disponível). O PR fica vermelho, ainda mesclável.
+2. **Merge só pela pipeline** (spec 0009): na `main` só a conta-bot mescla, pelo último passo manual do PR, que só existe
+   depois de tudo passar. O merge check nativo do plano atual não bloquearia (*Prevent a merge with unresolved merge checks*
+   é Premium): foi assim que os PRs #37, #39 e #47 foram mesclados sem validação.
 3. **Reconferência na `main`** (`scripts/ci/recheck-merge.sh`): no início da pipeline reaplica escopo e nome único ao
    commit de merge (permissão por equipe e, para `chore/*`, exige admin). Se falhar, o passo de deploy nem é oferecido. **É a barreira real.**
 4. **Reversão automática** (`scripts/ci/revert-merge.sh`, `after-script` da reconferência): cria a branch
@@ -283,6 +296,13 @@ O avanço entre estágios é por **tempo**, não consulta métricas de saúde: m
 
 ## Configuração no Bitbucket (uma vez)
 
+- **Merge só pela pipeline (spec 0009)**, nesta ordem, **depois** de a mudança que traz o passo "Mesclar o PR" estar na `main`:
+  1. Crie a **conta-bot** no Bitbucket e dê a ela acesso de escrita ao repositório.
+  2. Na conta-bot, crie um **API token** (Atlassian) com escopos de leitura e escrita de pull request. Guarde como variáveis de repositório: `BB_MERGE_BOT_USER` (e-mail da conta Atlassian da conta-bot) e `BB_MERGE_BOT_TOKEN` (o token, **Secured**).
+  3. Em `config/approvers.json` (por `chore/*`): `mergeBot` = e-mail que aparece nos commits de merge da conta-bot; `adminUuids` = UUIDs do Bitbucket de quem pode mesclar `chore/*` e `revert/*`; `minApprovals` (PoC: `0`).
+  4. *Repository settings → Branch restrictions → main*: **Write access** para ninguém e **Merge access via pull requests → Only specific people or groups** = só a conta-bot.
+  5. Confira num PR: as pessoas não têm botão de Merge; o passo "Mesclar o PR" aparece só com tudo verde. **A confirmar:** se administradores do repositório também ficam sem o botão.
+  - Se algo travar, desligar a restrição de merge devolve o botão na hora.
 - **Variável de repositório** (*Repository settings → Pipelines → Repository variables*, **Secured**):
   `FIREBASE_SA_KEY_NONPROD` = JSON do service account em base64 (`base64 -i key.json | pbcopy`), papel *Firebase Remote
   Config Admin*. Uma só cobre PR, `main` e as pipelines custom. O projeto NÃO PROD já vem de `config/environments.json`.
@@ -343,9 +363,11 @@ pedir (está no `CLAUDE.md`); para FF use a skill `feature-flag` e os comandos `
 - **Um `deployment` por ambiente por pipeline** (limite do Bitbucket): por isso deploy, remoção e verify ficam no mesmo
   passo manual; `scripts/lib/pipeline.test.js` trava.
 - **PR pipelines não recebem variáveis de Deployment**: a credencial NÃO PROD é variável de repositório (secured).
-- **O merge check do plano atual não bloqueia** o merge: a barreira é a reconferência na `main` + reversão em um clique.
-- **`chore/*` sem pipeline de PR** e só admin mescla: barreira depois do merge, pelo e-mail do commit. Os testes rodam na
-  `main` (rode `npm test` antes do PR). Se um dia o plano exigir "build verde" obrigatório, PR sem pipeline não mescla.
+- **O merge check do plano atual não bloqueia** o botão de merge (bloquear é Premium). Por isso o merge é **só pela pipeline**,
+  com uma conta-bot (spec 0009). Antes disso, os PRs #37 e #39 (vermelhos) e o #47 (mesclado em 13 s, com 0 builds) entraram
+  na `main` sem validação; a reconferência e a reversão seguraram o Firebase.
+- **`chore/*` e `revert/*` têm pipeline de PR** (testes e validação) e só admin clica em Mesclar. A reconferência da `main` aceita
+  como autor do merge a conta-bot (`mergeBot`) e os admins.
 - **`catalog/keys.json` desatualizado** quebra a pipeline; rode `npm run catalog`.
 - **Mudança de plataforma/versão mínima em FF existente** altera as condições publicadas: depois do merge da `chore/*` que
   migra os dados, rode `sync-nonprod` (a `main` diverge do Firebase até lá).

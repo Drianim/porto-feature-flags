@@ -67,3 +67,18 @@ test('config/teams.json inválido (plataforma vazia, e-mail ruim, equipe fora do
   assert.match(validate(f, undefined, cfg({ teams: { 'Squad POC': { members: [] } } })).out, /fora do formato/);
   assert.match(validate(f, undefined, cfg({ teams: { 'squad-poc': { members: ['x'] } } })).out, /e-mail inválido/);
 });
+
+test('config/approvers.json inválido é reprovado pelo validate', () => {
+  const f = { platforms: 'ambas', minVersion: '2.61.0' };
+  const dir = require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'apr-'));
+  const fs = require('node:fs'); const path = require('node:path');
+  fs.cpSync(path.join(repoRoot, 'scripts'), path.join(dir, 'scripts'), { recursive: true });
+  fs.cpSync(path.join(repoRoot, 'config'), path.join(dir, 'config'), { recursive: true });
+  for (const d of ['flags', 'env/nonprod', 'env/prod', 'rm']) fs.mkdirSync(path.join(dir, d), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'config/approvers.json'), JSON.stringify({ admins: ['a@x.com'], adminUuids: ['errado'], mergeBot: '', minApprovals: 0, platform: [] }));
+  const r = spawnSync('node', ['scripts/validate.js'], { cwd: dir, encoding: 'utf8' });
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.strictEqual(r.status, 1);
+  assert.match(r.stdout + r.stderr, /adminUuids/);
+  assert.ok(f);
+});

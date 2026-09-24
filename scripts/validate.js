@@ -43,6 +43,7 @@ for (const [dir, allowed] of Object.entries(ENV_DIRS)) {
   }
 }
 const rms = readJson('rm', (f) => /^RM-.*\.json$/.test(f));
+try { require('./lib/merger').approversErrors(JSON.parse(fs.readFileSync(path.join(root, 'config', 'approvers.json'), 'utf8'))).forEach((m) => errors.push(m)); } catch (e) { err('config/approvers.json', `JSON inválido (${e.message})`); }
 let teams = [];
 try { const cfg = loadTeamsConfig(); teams = Object.keys((cfg && cfg.teams) || {}); teamsErrors(cfg).forEach((m) => errors.push(m)); } catch (e) { err('config/teams.json', `JSON inválido (${e.message})`); }
 const seen = new Set();

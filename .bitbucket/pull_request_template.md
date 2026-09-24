@@ -63,11 +63,11 @@ Antes de abrir: npm run preflight (ou npm run pr).
 ## chore/* — script, pipeline ou documentação
 - **Spec:** `docs/specs/NNNN-...md` (aprovada antes do código; SDD)
 - **O que muda no comportamento:**
-- [ ] `npm test`, `npm run validate` e `npm run specs` passam (chore/* não roda pipeline de PR)
+- [ ] `npm test`, `npm run validate` e `npm run specs` passam (a pipeline do PR confere de novo)
 - [ ] Critérios de aceite da spec marcados e spec `implementada`
 - [ ] README, CLAUDE.md e skills atualizados, se o comportamento mudou
 - [ ] Se mexe em dados de FF: depois do merge, rodar a pipeline `sync-nonprod`
-- Só **admin** mescla `chore/*`; o merge não publica nada.
+- Só **admin** clica em "Mesclar o PR" em `chore/*`; o merge não publica nada.
 
 ---
 
