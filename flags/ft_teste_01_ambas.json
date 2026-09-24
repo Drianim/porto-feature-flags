@@ -1,0 +1,8 @@
+{
+  "key": "ft_teste_01_ambas",
+  "description": "Teste 01: toggle ligado em iOS e Android",
+  "team": "squad-poc",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": "2.61.0"
+}
