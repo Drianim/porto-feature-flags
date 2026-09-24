@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 1,
+  "total": 2,
   "keys": [
     {
       "key": "ft_teste_01_ambas",
@@ -20,6 +20,29 @@
           },
           "android": {
             "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_teste_02_ios_50",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ios",
+      "minVersion": "2.61.0",
+      "team": "squad-poc",
+      "description": "Teste 02: toggle só no iOS em 50%",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true",
+            "rolloutPercent": 50
           }
         },
         "prod": {
