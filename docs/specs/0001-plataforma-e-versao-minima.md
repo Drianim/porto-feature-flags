@@ -40,6 +40,8 @@ Até aqui a FF valia para qualquer versão do app. Uma FF ligada em produção c
 - `scripts/lib/flags.js` concentra as regras: `platformsOf`, `minVersionFor`, `targetingErrors`, `compareVersions`, `justBelow` e `expectedAt` (o que o Remote Config deve servir para plataforma + versão). `rules()` só considera overrides das plataformas da FF.
 - `scripts/lib/remote-config.js` (`build`) recusa FF sem os campos e monta as condições. Toggle: padrão `false` explícito. Config: padrão `useInAppDefault` e uma condição `_base` por plataforma, avaliada depois do override. `diff` compara o padrão de qualquer um dos dois formatos; `isOwnedCondition` reconhece os sufixos `_ios`, `_android`, `_ios_base`, `_android_base`.
 - Sintaxe do Firebase: `app.version >= '2.61.0'` (só `x.y.z` numérico; sem sufixo como `-beta`).
+
+> **Correção (spec 0008):** o Firebase recusou essa forma no `validateTemplate` (`Was expecting: '.'`). A condição de versão passou a usar `app.version.>=(['2.61.0'])`, num único ponto do código (`versionCondition`), e o template passou a ser validado no próprio Firebase no PR.
 - Migração: as 5 FFs existentes ganharam `platforms` e `minVersion: "2.61.0"`. Isso muda as condições delas; depois do merge a `main` diverge do Firebase até rodar `sync-nonprod`.
 
 ## Arquivos afetados

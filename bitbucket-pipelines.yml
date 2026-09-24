@@ -90,6 +90,13 @@ pipelines:
                   *) echo "Origem $BITBUCKET_BRANCH: regras de PROD só se aplicam a release/*" ;;
                 esac
               fi
+      # Validação REAL no Firebase, sem publicar (validateTemplate): pega no PR o erro de sintaxe que antes só aparecia no
+      # Run, depois do merge. Precisa de FIREBASE_SA_KEY_NONPROD como variável de REPOSITÓRIO (secured), como o passo de nome único.
+      - step:
+          name: Validar o template no Firebase (sem publicar)
+          script:
+            - npm install --no-audit --no-fund
+            - node scripts/deploy.js nonprod --validate
 
     'update/**': *pr-steps
     'remove/**': *pr-steps

@@ -57,3 +57,15 @@ test('a pipeline de PR confere a permissão por equipe, em todos os tipos de bra
     assert.match(cmds, /node scripts\/check-ownership\.js "\$BITBUCKET_BRANCH" origin\/main/, key);
   }
 });
+
+test('a pipeline de PR valida o template no Firebase (sem publicar), depois da prévia, em todos os tipos de branch de FF', () => {
+  for (const [key, steps] of Object.entries(doc.pipelines['pull-requests'])) {
+    const names = steps.map((s) => s.step.name);
+    const i = names.findIndex((n) => /Validar o template no Firebase \(sem publicar\)/.test(n));
+    assert.ok(i >= 0, `${key}: sem o passo de validação no Firebase`);
+    assert.ok(i > names.findIndex((n) => /Prévia do deploy/.test(n)), `${key}: a validação deve vir depois da prévia`);
+    const script = steps[i].step.script.join('\n');
+    assert.match(script, /node scripts\/deploy\.js nonprod --validate/, key);
+    assert.doesNotMatch(script, /--dry-run|publishTemplate/, `${key}: o passo não pode publicar`);
+  }
+});

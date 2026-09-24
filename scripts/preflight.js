@@ -3,7 +3,7 @@
 // FF nova x update x remove (nome único), permissão por equipe e, em release/*, as regras de PROD.
 // Uso: node scripts/preflight.js [--push] [--branch <nome>]
 //   --push  se tudo passar, empurra a branch e imprime o link de um clique para abrir o PR (npm run pr)
-// A consulta ao Firebase (nome duplicado) usa FIREBASE_SA_KEY_NONPROD; sem ela é pulada e a pipeline do PR confere.
+// A consulta ao Firebase (nome duplicado) e a validação do template no Firebase usam FIREBASE_SA_KEY_NONPROD; sem ela são puladas e a pipeline do PR confere.
 const { spawnSync } = require('child_process');
 const { parseArgs, root } = require('./lib/common');
 const { branchKind, prLink } = require('./lib/preflight');
@@ -26,6 +26,7 @@ const checks = [
   ['Permissão por equipe (só a equipe dona ou a plataforma altera a FF)', ['scripts/check-ownership.js', branch, base]],
   ['FF nova x update x remove (nome único)', ['scripts/check-new-flags.js', branch, base, ...(hasKey ? [] : ['--skip-remote'])]],
 ];
+if (hasKey) checks.push(['Template aceito pelo Firebase (sem publicar)', ['scripts/deploy.js', 'nonprod', '--validate']]);
 if (kind === 'release') checks.push(['Regras de PROD (RM e dupla aprovação)', ['scripts/validate.js', '--prod']]);
 
 console.log(`Preflight de ${branch} (${kind}/*) contra ${base}\n`);
@@ -35,7 +36,7 @@ for (const [name, a] of checks) {
   if (r.status === 0) console.log(`  ✓ ${name}`);
   else { failed++; console.log(`  ✗ ${name}`); (r.stderr || r.stdout).split('\n').filter(Boolean).forEach((l) => console.log(`      ${l}`)); }
 }
-if (!hasKey) console.log('\n  ! sem FIREBASE_SA_KEY_NONPROD: a consulta ao Firebase (nome já existente lá) foi pulada; a pipeline do PR faz essa checagem.');
+if (!hasKey) console.log('\n  ! sem FIREBASE_SA_KEY_NONPROD: a consulta ao Firebase (nome já existente lá) e a validação do template no Firebase foram puladas; a pipeline do PR faz essas checagens.');
 
 if (failed) { console.log(`\n✗ ${failed} checagem(ns) falharam: corrija antes de abrir o PR.`); process.exit(1); }
 console.log('\n✓ Tudo certo para abrir o PR.');
