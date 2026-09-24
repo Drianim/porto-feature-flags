@@ -9,6 +9,7 @@ image: node:22
 #    (feature/* e update/* só alteram flags/ e env/nonprod/; nome de FF nunca se repete)
 #  - PR remove/*  -> main (mergeado)  -> REMOVE a FF do NÃO PROD (após aprovação manual); só apaga FF
 #  - PR release/* -> main (mergeado)  -> PROD (aprovação manual), time-gated pelo RM (release/* só altera env/prod/ e rm/)
+# PR de chore/* (ou de qualquer outro prefixo) não roda pipeline.
 # A origem do merge vem da mensagem do commit ("Merged in <branch> (pull request #N)").
 # Merge sem origem identificável (fast-forward, push direto) não publica nada.
 #
@@ -47,8 +48,10 @@ definitions:
           - merge-source.txt
 
 pipelines:
+  # Só PRs de feature/*, update/*, remove/* e release/* rodam pipeline. PR de chore/* (e qualquer outro prefixo)
+  # não dispara nada aqui.
   pull-requests:
-    '**':
+    'feature/**': &pr-steps
       - step: *validate
       # feature/* e update/* não podem tocar em PROD; release/* só pode tocar em PROD.
       - step:
@@ -79,6 +82,10 @@ pipelines:
                   *) echo "Origem $BITBUCKET_BRANCH: regras de PROD só se aplicam a release/*" ;;
                 esac
               fi
+
+    'update/**': *pr-steps
+    'remove/**': *pr-steps
+    'release/**': *pr-steps
 
   branches:
     # develop NÃO publica no Firebase: o que está em main é a única fonte do NÃO PROD.

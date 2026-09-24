@@ -53,3 +53,6 @@ Rode `npm run preflight` (mesmas checagens da pipeline do PR) e, se passar, `npm
 - Rollback = voltar o `default` para `"false"` e remover os overrides (ou reduzir `rolloutPercent`) via PR; a pipeline republica.
 - Não grave credenciais no repo. Deploy usa `FIREBASE_PROJECT_<ENV>` e `FIREBASE_SA_KEY_<ENV>` (JSON do service account em base64) como variáveis de deployment do Bitbucket.
 - O rollout é liberado por tempo, não por saúde; monitore métricas entre os estágios e faça rollback se necessário.
+
+## chore/*
+Branch `chore/*` é para ajuste em script, pipeline ou documentação (não em FF). O PR de `chore/*` **não roda pipeline** e o merge não publica nada no Firebase. Para FF, use sempre feature/, update/, remove/ ou release/.

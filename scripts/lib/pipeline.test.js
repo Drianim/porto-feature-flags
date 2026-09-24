@@ -44,3 +44,9 @@ test('só ambientes de deployment conhecidos', () => {
     for (const { step } of steps) if (step.deployment) assert.ok(known.has(step.deployment), `deployment desconhecido: ${step.deployment}`);
   }
 });
+
+test('só feature/update/remove/release rodam pipeline de PR (chore/* não roda)', () => {
+  assert.deepStrictEqual(Object.keys(doc.pipelines['pull-requests']).sort(), ['feature/**', 'release/**', 'remove/**', 'update/**']);
+  const feature = doc.pipelines['pull-requests']['feature/**'];
+  for (const k of ['update/**', 'remove/**', 'release/**']) assert.deepStrictEqual(doc.pipelines['pull-requests'][k], feature);
+});

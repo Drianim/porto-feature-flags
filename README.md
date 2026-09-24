@@ -99,7 +99,7 @@ O script registra um app Android e um iOS temporários (pacote `com.poc.rcteste`
 | `remove/*` | **apagar** FF (do repo e do Remote Config NÃO PROD) | só **apaga** arquivos em `flags/`, `env/nonprod/`, `env/prod/` e `rm/` | remove a FF do Firebase (depois do Run) |
 | `release/*` | levar para PROD | somente `env/prod/`, `rm/` e `catalog/` | PROD (time-gated pelo RM) |
 
-O CI reprova o PR que violar isso: `scripts/check-scope.js` (pastas) e `scripts/check-new-flags.js` (nome de FF). Outros prefixos (`chore/`...) não são restringidos e **não disparam deploy**.
+O CI reprova o PR que violar isso: `scripts/check-scope.js` (pastas) e `scripts/check-new-flags.js` (nome de FF). Outros prefixos (`chore/`...) não são restringidos, **não rodam a pipeline do PR** e **não disparam deploy**: servem para ajustes em script, pipeline e documentação, que não são ajuste de FF. Após o merge, a pipeline da main ainda roda os testes e a validação, mas não publica nada.
 
 ### Remover uma FF
 
