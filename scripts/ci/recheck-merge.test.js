@@ -6,11 +6,13 @@ const os = require('node:os');
 const path = require('node:path');
 
 const repoRoot = path.join(__dirname, '..', '..');
-const meta = (key) => JSON.stringify({ key, description: 'd', owner: 'o', criticality: 'baixa', valueType: 'STRING' });
+const meta = (key) => JSON.stringify({ key, description: 'd', team: 'squad-poc', criticality: 'baixa', valueType: 'STRING' });
 const np = (v) => JSON.stringify({ nonprod: { default: v } });
 
 // Monta um repo com main, aplica `change` numa branch e faz o merge --no-ff como o Bitbucket ("Merged in <branch> (pull request #N)").
-function mergeAndRecheck(branch, change) {
+// authorEmail: quem commita a mudança (padrão: e-mail da equipe de plataforma da config real, que pode mexer em qualquer FF).
+const PLATFORM = require('../../config/teams.json').platform[0];
+function mergeAndRecheck(branch, change, mergerEmail = 't@t', authorEmail = PLATFORM) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rm-'));
   const sh = (c) => execSync(c, { cwd: dir, stdio: 'pipe' });
   const git = (c) => sh(`git -c user.name=t -c user.email=t@t ${c}`);
@@ -29,9 +31,9 @@ function mergeAndRecheck(branch, change) {
     (rel, content) => { fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true }); fs.writeFileSync(path.join(dir, rel), content); },
     (rel) => fs.rmSync(path.join(dir, rel)),
   );
-  git('add -A'); git('commit -q -m change');
+  git('add -A'); sh(`git -c user.name=t -c user.email=${authorEmail} commit -q -m change`);
   git('checkout -q main');
-  git(`merge -q --no-ff ${branch} -m "Merged in ${branch} (pull request #9)"`);
+  sh(`git -c user.name=t -c user.email=${mergerEmail} merge -q --no-ff ${branch} -m "Merged in ${branch} (pull request #9)"`);
   sh('sh scripts/ci/merge-source.sh > merge-source.txt');
   const r = spawnSync('sh', ['scripts/ci/recheck-merge.sh'], { cwd: dir, encoding: 'utf8' });
   fs.rmSync(dir, { recursive: true, force: true });
@@ -65,10 +67,20 @@ test('release mexendo fora de PROD é reprovada pelo escopo', () => {
   assert.strictEqual(r.ok, false);
   assert.match(r.out, /release\/\* só pode alterar/);
 });
-test('origem sem publicação (chore) não é reconferida', () => {
-  const r = mergeAndRecheck('chore/x', (w) => w('env/prod/ft_a.json', JSON.stringify({ prod: { default: 'false' } })));
+test('origem sem publicação (hotfix) não é reconferida', () => {
+  const r = mergeAndRecheck('hotfix/x', (w) => w('env/prod/ft_a.json', JSON.stringify({ prod: { default: 'false' } })));
   assert.strictEqual(r.ok, true, r.out);
   assert.match(r.out, /nada a reconferir/);
+});
+test('chore/* mesclado por admin passa', () => {
+  const r = mergeAndRecheck('chore/x', (w) => w('README.md', 'ajuste\n'), 'drianim.oliveira@gmail.com');
+  assert.strictEqual(r.ok, true, r.out);
+  assert.match(r.out, /feito por admin/);
+});
+test('chore/* mesclado por quem não é admin é reprovado', () => {
+  const r = mergeAndRecheck('chore/x', (w) => w('README.md', 'ajuste\n'), 'outra.pessoa@x.com');
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /só admin pode mesclar chore/);
 });
 
 test('remove apagando FF passa', () => {
@@ -84,4 +96,20 @@ test('feature apagando FF é reprovada e manda usar remove/*', () => {
   const r = mergeAndRecheck('feature/x', (w, rm) => { rm('flags/ft_a.json'); rm('env/nonprod/ft_a.json'); });
   assert.strictEqual(r.ok, false);
   assert.match(r.out, /remove\/\*/);
+});
+
+test('autor sem vínculo com a equipe dona da FF: merge reprovado por permissão de equipe', () => {
+  const r = mergeAndRecheck('update/x', (w) => w('env/nonprod/ft_a.json', np('true')), 't@t', 'outra.pessoa@x.com');
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /permissão por equipe/);
+  assert.match(r.out, /ft_a: FF da equipe "squad-poc"; outra\.pessoa@x\.com/);
+});
+test('a plataforma altera FF de qualquer equipe e o merge passa', () => {
+  const r = mergeAndRecheck('update/x', (w) => w('env/nonprod/ft_a.json', np('true')), 't@t', PLATFORM);
+  assert.strictEqual(r.ok, true, r.out);
+});
+test('release de autor sem vínculo com a equipe é reprovada', () => {
+  const r = mergeAndRecheck('release/x', (w) => w('env/prod/ft_a.json', JSON.stringify({ prod: { default: 'false' } })), 't@t', 'outra.pessoa@x.com');
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /permissão por equipe/);
 });

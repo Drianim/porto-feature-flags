@@ -46,12 +46,19 @@ test('reconferência passou (exit 0): não faz nada', () => {
   assert.deepStrictEqual(s.remoteBranches(), []);
   s.cleanup();
 });
-test('origem que não publica (chore/*): não reverte', () => {
-  const s = scenario('chore/x');
+test('origem que não publica (hotfix/*): não reverte', () => {
+  const s = scenario('hotfix/x');
   const r = s.run('1');
   assert.strictEqual(r.code, 0);
   assert.deepStrictEqual(s.remoteBranches(), []);
   assert.match(r.out, /nada a reverter/);
+  s.cleanup();
+});
+test('chore/* mesclado por quem não é admin: prepara a reversão', () => {
+  const s = scenario('chore/x');
+  const r = s.run('1');
+  assert.strictEqual(r.code, 0, r.out);
+  assert.deepStrictEqual(s.remoteBranches(), ['revert/pr-9-chore-x']);
   s.cleanup();
 });
 test('reexecução: não duplica a branch de reversão', () => {

@@ -27,6 +27,10 @@ function mergeFlag(meta) {
 const loadFlags = () => listJson('flags').map((x) => mergeFlag(x.data));
 const loadRms = () => listJson('rm', (f) => /^RM-.*\.json$/.test(f)).map((x) => x.data);
 const environments = () => readJson('config', 'environments.json');
+// config/teams.json: { platform: [e-mails], teams: { <equipe>: { members: [e-mails] } } }
+const loadTeamsConfig = () => (exists('config', 'teams.json') ? readJson('config', 'teams.json') : { platform: [], teams: {} });
+// Equipes válidas para o campo team das FFs.
+const loadTeams = () => Object.keys(loadTeamsConfig().teams || {});
 
 const parseArgs = (argv) => {
   const out = { _: [] };
@@ -41,4 +45,4 @@ const parseArgs = (argv) => {
   return out;
 };
 
-module.exports = { root, readJson, exists, listJson, loadFlags, mergeFlag, loadRms, environments, parseArgs };
+module.exports = { root, readJson, exists, listJson, loadFlags, mergeFlag, loadRms, environments, loadTeamsConfig, loadTeams, parseArgs };

@@ -44,3 +44,16 @@ test('só ambientes de deployment conhecidos', () => {
     for (const { step } of steps) if (step.deployment) assert.ok(known.has(step.deployment), `deployment desconhecido: ${step.deployment}`);
   }
 });
+
+test('só feature/update/remove/release rodam pipeline de PR (chore/* não roda)', () => {
+  assert.deepStrictEqual(Object.keys(doc.pipelines['pull-requests']).sort(), ['feature/**', 'release/**', 'remove/**', 'update/**']);
+  const feature = doc.pipelines['pull-requests']['feature/**'];
+  for (const k of ['update/**', 'remove/**', 'release/**']) assert.deepStrictEqual(doc.pipelines['pull-requests'][k], feature);
+});
+
+test('a pipeline de PR confere a permissão por equipe, em todos os tipos de branch de FF', () => {
+  for (const [key, steps] of Object.entries(doc.pipelines['pull-requests'])) {
+    const cmds = steps.flatMap((s) => s.step.script).join('\n');
+    assert.match(cmds, /node scripts\/check-ownership\.js "\$BITBUCKET_BRANCH" origin\/main/, key);
+  }
+});

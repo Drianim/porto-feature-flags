@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Valida localmente, ANTES de abrir o PR, o que a pipeline do PR validaria: formato/RM/catálogo, escopo da branch,
-// FF nova x update x remove (nome único) e, em release/*, as regras de PROD.
+// FF nova x update x remove (nome único), permissão por equipe e, em release/*, as regras de PROD.
 // Uso: node scripts/preflight.js [--push] [--branch <nome>]
 //   --push  se tudo passar, empurra a branch e imprime o link de um clique para abrir o PR (npm run pr)
 // A consulta ao Firebase (nome duplicado) usa FIREBASE_SA_KEY_NONPROD; sem ela é pulada e a pipeline do PR confere.
@@ -23,6 +23,7 @@ const checks = [
   ['Formato das FFs, RM e catálogo', ['scripts/validate.js']],
   ['Catálogo em dia', ['scripts/catalog.js', '--check']],
   ['Escopo da branch', ['scripts/check-scope.js', branch, base]],
+  ['Permissão por equipe (só a equipe dona ou a plataforma altera a FF)', ['scripts/check-ownership.js', branch, base]],
   ['FF nova x update x remove (nome único)', ['scripts/check-new-flags.js', branch, base, ...(hasKey ? [] : ['--skip-remote'])]],
 ];
 if (kind === 'release') checks.push(['Regras de PROD (RM e dupla aprovação)', ['scripts/validate.js', '--prod']]);

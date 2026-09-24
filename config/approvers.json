@@ -1,4 +1,5 @@
 {
-  "_comment": "account_id (Bitbucket) das pessoas do time de plataforma. Preencha antes de usar PROD.",
+  "_comment": "admins: e-mails de quem pode mesclar chore/*. platform: account_id (Bitbucket) das pessoas do time de plataforma; preencha antes de usar PROD.",
+  "admins": ["drianim.oliveira@gmail.com"],
   "platform": []
 }
