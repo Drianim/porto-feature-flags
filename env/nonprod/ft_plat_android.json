@@ -1,8 +1,0 @@
-{
-  "nonprod": {
-    "default": "false",
-    "android": {
-      "value": "true"
-    }
-  }
-}
