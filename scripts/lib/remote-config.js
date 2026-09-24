@@ -3,6 +3,12 @@
 const { currentStage } = require('./rollout');
 const { kindOf, rules, isActive, valueTypeOf, platformsOf, minVersionFor, targetingErrors } = require('./flags');
 
+// Condição de versão mínima. O Firebase RECUSA a forma app.version >= '2.61.0' no validateTemplate
+// ("Was expecting: '.'", visto nos Runs dos PRs #43 e #44). A forma adotada é o método app.version.>=(['x.y.z']); ela é
+// confirmada pelo validateTemplate real (sonda, `deploy --validate` e o passo de validação do PR), não por leitura de documentação.
+// Toda expressão de versão do repositório passa por aqui: é o único lugar a mudar se a sintaxe mudar.
+const versionCondition = (min) => `app.version.>=(['${min}'])`;
+
 // flags + RMs -> { items, conditions, skipped } (o "estado desejado" do ambiente)
 function build(flags, rms, env, cfgEnv, now = new Date()) {
   const items = [];
@@ -34,7 +40,7 @@ function build(flags, rms, env, cfgEnv, now = new Date()) {
     for (const platform of platformsOf(flag)) {
       const o = overrides[platform];
       // Toda condição da FF exige plataforma E versão mínima: abaixo dela o código não existe e a FF não liga.
-      const target = `device.os == '${platform}' && app.version >= '${minVersionFor(flag, platform)}'`;
+      const target = `device.os == '${platform}' && ${versionCondition(minVersionFor(flag, platform))}`;
       let coversAll = false;
       if (o) {
         let pct = o.rolloutPercent ?? 100;
@@ -164,4 +170,4 @@ async function connect(cfgEnv) {
   return { rc: admin.remoteConfig(), projectId };
 }
 
-module.exports = { build, apply, diff, connect, findRemote, removeKeys };
+module.exports = { build, apply, diff, connect, findRemote, removeKeys, versionCondition };

@@ -1,7 +1,7 @@
 ---
 spec: 0008
 titulo: Sintaxe de versão aceita pelo Firebase e validação do template no Firebase antes do merge
-status: rascunho
+status: aprovada
 criado: 2026-09-24
 atualizado: 2026-09-24
 ---
@@ -27,20 +27,20 @@ Por que ninguém viu antes do merge: (1) a "Prévia do deploy" da pipeline de PR
 ## Critérios de aceite
 
 - [ ] CA-1: uma sonda contra o Firebase real (`validateTemplate`, sem publicar) confirma qual forma da expressão de versão é aceita, e a forma escolhida é a que ela aceita.
-- [ ] CA-2: `build` gera as condições de versão na sintaxe escolhida, com o mesmo significado (plataforma e versão maior ou igual à mínima, com o percentual quando houver).
-- [ ] CA-3: `deploy.js <env> --validate` conecta ao Firebase, monta o template, chama `validateTemplate` e não publica; sai com 0 se o Firebase aceita e com 1 se recusa, mostrando a mensagem do Firebase.
-- [ ] CA-4: quando o Firebase aponta linha e coluna, a saída mostra a condição cuja expressão contém aquela posição, com o nome e o texto dela.
-- [ ] CA-5: a pipeline de PR ganha o passo "Validar o template no Firebase (sem publicar)", depois da prévia; sem `FIREBASE_SA_KEY_NONPROD` o passo falha em vez de passar às cegas.
-- [ ] CA-6: o `preflight` roda a validação no Firebase quando `FIREBASE_SA_KEY_NONPROD` está definida e avisa que a pulou quando não está.
-- [ ] CA-7: um teste trava a gramática das expressões geradas: cada condição do plano casa com uma das formas conhecidas (`device.os`, versão, `percent`) ligadas por `&&`, para uma mudança de sintaxe não passar sem o teste acusar.
-- [ ] CA-8: README, os templates de código, as skills e o deck citam a sintaxe nova; a spec 0001 recebe uma nota sobre a correção.
+- [x] CA-2: `build` gera as condições de versão na sintaxe escolhida, com o mesmo significado (plataforma e versão maior ou igual à mínima, com o percentual quando houver).
+- [x] CA-3: `deploy.js <env> --validate` conecta ao Firebase, monta o template, chama `validateTemplate` e não publica; sai com 0 se o Firebase aceita e com 1 se recusa, mostrando a mensagem do Firebase.
+- [x] CA-4: quando o Firebase recusa o template, a saída mostra a condição culpada (a que, validada isolada, devolve erro com linha e coluna), com o nome, a expressão e a mensagem.
+- [x] CA-5: a pipeline de PR ganha o passo "Validar o template no Firebase (sem publicar)", depois da prévia; sem `FIREBASE_SA_KEY_NONPROD` o passo falha em vez de passar às cegas.
+- [x] CA-6: o `preflight` roda a validação no Firebase quando `FIREBASE_SA_KEY_NONPROD` está definida e avisa que a pulou quando não está.
+- [x] CA-7: um teste trava a gramática das expressões geradas: cada condição do plano casa com uma das formas conhecidas (`device.os`, versão, `percent`) ligadas por `&&`, para uma mudança de sintaxe não passar sem o teste acusar.
+- [x] CA-8: README, os templates de código, as skills e o deck citam a sintaxe nova; a spec 0001 recebe uma nota sobre a correção.
 - [ ] CA-9: depois do merge, o `verify-sync` fecha em ✓ com a sintaxe nova (o Firebase pode normalizar a expressão; a comparação tem de aceitar o que ele devolve).
 
 ## Desenho
 
 - **Sonda primeiro (CA-1):** um script descartável valida no Firebase várias formas da condição de versão (a atual, o método `app.version.>=(['x'])`, operadores `>` e `exactlyMatches`, combinadas com plataforma e percentual) e diz quais são aceitas. A sintaxe adotada é a aceita pela sonda; a candidata mais provável é `app.version.>=(['x.y.z'])`.
 - **Uma função para a versão:** `scripts/lib/remote-config.js` ganha `versionCondition(min)`, usada por `build`, o que deixa a sintaxe num só lugar. `diff` compara expressões como texto; se o Firebase normalizar, a comparação normaliza os dois lados.
-- **Validação sem publicar:** `scripts/lib/validate-remote.js` (`validateRemote(rc, plan) -> { ok, message, culprit }`) monta o template com `apply`, chama `rc.validateTemplate` e, em erro, procura a condição cuja expressão contém a coluna informada pelo Firebase. `deploy.js --validate` só a chama; o `deploy` normal continua validando antes de publicar.
+- **Validação sem publicar:** `scripts/lib/validate-remote.js` (`validateRemote(rc, plan) -> { ok, message, culprits: [{ name, expression, message }] }`) monta o template com `apply`, chama `rc.validateTemplate` e, em erro, valida cada condição do plano isoladamente para dizer qual o Firebase recusa (só conta como culpada a que devolve erro com posição, `line N, column M`). `deploy.js --validate` só a chama; o `deploy` normal continua validando antes de publicar.
 - **Pipeline e preflight:** um passo novo na pipeline de PR chama `node scripts/deploy.js nonprod --validate` (precisa de `npm install`); o `preflight` roda o mesmo quando há chave.
 - **Teste de gramática:** `scripts/lib/remote-config.test.js` passa a exigir que toda expressão do plano case com a gramática conhecida e o avaliador de teste entende a sintaxe nova.
 
@@ -76,7 +76,7 @@ Por que ninguém viu antes do merge: (1) a "Prévia do deploy" da pipeline de PR
 
 **Files:** `scripts/lib/validate-remote.js`, `scripts/lib/validate-remote.test.js`, `scripts/deploy.js`
 
-**Interfaces:** consome `apply` de `remote-config.js`; produz `validateRemote(rc, plan) -> { ok, message, culprit }` e a opção `--validate` do `deploy.js`.
+**Interfaces:** consome `apply` de `remote-config.js`; produz `validateRemote(rc, plan) -> { ok, message, culprits }` e a opção `--validate` do `deploy.js` (que agora exporta `run(argv, deps)`).
 
 1. Teste: cliente falso que aceita, que recusa com "line 1, column 35" e que recusa sem posição; o culpado é a condição certa; nenhuma chamada de escrita.
 2. Implementação: a função e a opção.

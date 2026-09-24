@@ -94,7 +94,7 @@ Quatro camadas, cada uma com uma responsabilidade:
 | `check-specs.js` | Formato das specs de `docs/specs/` |
 | `ff-status.js` | **Status das FFs, somente leitura:** lista, detalhe, rollout, resumo, sincronia, histórico e obsoletas (`npm run status -- list`); usa o Firebase se houver credencial |
 | `preflight.js` | As checagens do PR, no seu computador (`npm run preflight`, `npm run pr`) |
-| `deploy.js` | Publica no Remote Config (`--dry-run`, `--now <ISO>`) |
+| `deploy.js` | Publica no Remote Config (`--dry-run` só monta o plano; `--validate` valida o template no Firebase **sem publicar**; `--now <ISO>`) |
 | `remove-flags.js` | Apaga do Remote Config as FFs removidas do repositório (só NÃO PROD) |
 | `verify-sync.js` | Confere `main` = Firebase (`--fix` publica, `--strict` reprova chave extra) |
 | `test-platforms.js` | Teste real Android x iOS e versão mínima, consultando o próprio Firebase |
@@ -119,7 +119,7 @@ Quatro camadas, cada uma com uma responsabilidade:
 - **Equipe obrigatória:** `"team": "squad-poc"` em `flags/<key>.json`, sempre uma das equipes de `config/teams.json` (o campo antigo `owner` foi renomeado e dá erro). No Firebase a equipe vai como prefixo da descrição (`[squad-poc] texto...`), porque o Remote Config não tem rótulo por parâmetro: assim ela aparece no console, e o `verify-sync` acusa se divergir. `npm run status -- summary` conta as FFs por equipe.
 - **Permissão por equipe:** uma equipe só cria, altera, remove ou leva a PROD as FFs **dela**. A **equipe de plataforma** (`platform` em `config/teams.json`) mexe em qualquer FF e é a única que **transfere** uma FF de uma equipe para outra (mudar o `team`). Detalhes em *Permissão por equipe*, abaixo.
 - **Grupo** opcional agrupa parâmetros no console (`"group": "Vitrine Hub"`).
-- **No Firebase** viram condições `device.os == 'ios' && app.version >= '<minVersion>'` (idem `'android'`), com
+- **No Firebase** viram condições `device.os == 'ios' && app.version.>=(['<minVersion>'])` (idem `'android'`; o Firebase recusa a forma `app.version >= '...'`), com
   `&& percent('<chave>') <= N` durante o rollout. A semente com o nome da FF faz cada FF sortear seu próprio grupo, e
   quem entra em 5% continua dentro quando sobe para 25%. Nas `rc_*` o padrão do parâmetro é "usar o valor do app" e o
   valor padrão vira a condição `<chave>_<plataforma>_base`.
@@ -204,7 +204,7 @@ Quem pode mexer em qual FF é decidido por `config/teams.json`: `platform` (e-ma
 
 ### Preflight e template de PR
 
-- `npm run preflight`: formato, catálogo em dia, escopo da branch, permissão por equipe, nome único e, em `release/*`, regras de PROD.
+- `npm run preflight`: formato, catálogo em dia, escopo da branch, permissão por equipe, nome único, template aceito pelo Firebase (com `FIREBASE_SA_KEY_NONPROD`) e, em `release/*`, regras de PROD.
 - `npm run pr`: preflight e, se passar, empurra a branch e imprime o **link de um clique** do PR.
 - `npm run hooks` (uma vez): o `pre-push` roda o preflight ao empurrar branches de FF (`git push --no-verify` ignora).
 - `.bitbucket/pull_request_template.md` (lido da `main`) traz uma seção por tipo; apague as que não são do seu PR.
@@ -216,7 +216,7 @@ Quem pode mexer em qual FF é decidido por `config/teams.json`: `platform` (e-ma
 
 | Pipeline | Quando | O que faz |
 |---|---|---|
-| **PR** (`feature/**`, `update/**`, `remove/**`, `release/**`) | ao abrir/atualizar PR | testes e `validate`, escopo, permissão por equipe, nome único, dry-run (e regras de PROD em `release/*`) |
+| **PR** (`feature/**`, `update/**`, `remove/**`, `release/**`) | ao abrir/atualizar PR | testes e `validate`, escopo, permissão por equipe, nome único, dry-run, **validação do template no próprio Firebase (sem publicar)** (e regras de PROD em `release/*`) |
 | **`main`** | a cada merge | valida; **reconfere o merge**; passo manual de deploy NÃO PROD (`deployment: test`); passos de PROD (só se o merge mexeu em `env/prod/**` ou `rm/**`) |
 | **`develop`** | push | só valida (não publica) |
 | **`sync-nonprod`** (custom, manual/agendada, em `main`) | divergência main ≠ Firebase | publica o que está em `main` e confere de novo |

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { build, apply, diff, removeKeys, findRemote } = require('./remote-config');
+const { build, apply, diff, removeKeys, findRemote, versionCondition } = require('./remote-config');
 const { expectedAt, justBelow } = require('./flags');
 
 const flags = [
@@ -91,17 +91,17 @@ test('diff acusa toggle publicado como STRING (tipo esperado BOOLEAN)', () => {
 test('rollout em % usa semente com o nome da FF', () => {
   const f = [{ key: 'ft_z', description: 'd', team: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 25 }, android: { value: 'true' } } } }];
   const p = build(f, [], 'nonprod', cfg);
-  assert.strictEqual(p.conditions.find((c) => c.name === 'ft_z_ios').expression, "device.os == 'ios' && app.version >= '2.61.0' && percent('ft_z') <= 25");
-  assert.strictEqual(p.conditions.find((c) => c.name === 'ft_z_android').expression, "device.os == 'android' && app.version >= '2.61.0'");
+  assert.strictEqual(p.conditions.find((c) => c.name === 'ft_z_ios').expression, "device.os == 'ios' && app.version.>=(['2.61.0']) && percent('ft_z') <= 25");
+  assert.strictEqual(p.conditions.find((c) => c.name === 'ft_z_android').expression, "device.os == 'android' && app.version.>=(['2.61.0'])");
 });
 
 // ---- plataformas e versão mínima ----
-// Avaliador mínimo das expressões que o build gera: device.os == 'x', app.version >= 'v' e percent('k') <= N, ligados por " && ".
+// Avaliador mínimo das expressões que o build gera: device.os == 'x', app.version.>=(['v']) e percent('k') <= N, ligados por " && ".
 const cmp = (a, b) => { const [x, y] = [a, b].map((v) => v.split('.').map(Number)); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
 const matches = (expr, ctx) => expr.split(' && ').every((term) => {
   let m;
   if ((m = /^device\.os == '(\w+)'$/.exec(term))) return ctx.os === m[1];
-  if ((m = /^app\.version >= '([\d.]+)'$/.exec(term))) return cmp(ctx.version, m[1]) >= 0;
+  if ((m = /^app\.version\.>=\(\['([\d.]+)'\]\)$/.exec(term))) return cmp(ctx.version, m[1]) >= 0;
   if ((m = /^percent\('\w+'\) <= (\d+)$/.exec(term))) return (ctx.percentile ?? 0) <= Number(m[1]);
   throw new Error(`expressão fora do que o teste entende: ${term}`);
 });
@@ -217,4 +217,32 @@ test('descrição sem a equipe, ou com outra equipe, é divergência', () => {
   assert.match(diff(t, plan()).problems.join('|'), /ft_a: descrição diferente/);
   t.parameterGroups.Grupo.parameters.ft_a.description = '[squad-b] A';
   assert.match(diff(t, plan()).problems.join('|'), /ft_a: descrição diferente/);
+});
+
+// ---- gramática das expressões (guarda contra mudança silenciosa de sintaxe) ----
+// Spec 0008: o validateTemplate REAL do Firebase recusou app.version >= '...' ("Was expecting: '.'"). A forma adotada é o método
+// app.version.>=(['x.y.z']); quem confirma que o Firebase a aceita é o `deploy --validate` (PR) e a sonda, não este teste local.
+const TERM = /^(device\.os == '(?:ios|android)'|app\.version\.>=\(\['\d+\.\d+\.\d+'\]\)|percent\('[A-Za-z0-9_]+'\) <= \d{1,3})$/;
+test('a condição de versão usa a sintaxe de método aceita pelo Firebase', () => {
+  assert.strictEqual(versionCondition('2.61.0'), "app.version.>=(['2.61.0'])");
+  assert.doesNotMatch(versionCondition('2.61.0'), /app\.version >=/);
+});
+test('toda condição gerada casa com a gramática conhecida e sempre traz plataforma e versão', () => {
+  const variants = [
+    F({ environments: on }),
+    F({ platforms: 'ios', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 25 } } } }),
+    F({ minVersion: { ios: '2.61.0', android: '2.58.3' }, environments: on }),
+    F({ key: 'rc_url', environments: { nonprod: { default: 'https://x', ios: { value: 'https://novo', rolloutPercent: 20 } } } }),
+    F({ environments: { nonprod: { default: 'true' } } }),
+  ];
+  let n = 0;
+  for (const f of variants) {
+    for (const c of build([f], [], 'nonprod', cfg).conditions) {
+      const terms = c.expression.split(' && ');
+      for (const t of terms) assert.match(t, TERM, `${c.name}: termo fora da gramática: ${t}`);
+      assert.ok(terms.some((t) => t.startsWith('device.os')) && terms.some((t) => t.startsWith('app.version')), `${c.name}: sem plataforma ou versão`);
+      n++;
+    }
+  }
+  assert.ok(n >= 8, `condições conferidas: ${n}`);
 });
