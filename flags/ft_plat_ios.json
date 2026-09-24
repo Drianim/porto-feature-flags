@@ -1,6 +1,6 @@
 {
   "key": "ft_plat_ios",
-  "description": "Teste de plataforma: ligada só no iOS",
+  "description": "Teste de plataforma: ligada só no iOS (v2)",
   "owner": "squad-poc",
   "criticality": "baixa"
 }
