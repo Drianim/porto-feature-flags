@@ -1,7 +1,7 @@
 ---
 spec: 0010
 titulo: Migrar o repositório para o GitHub (público), com merge bloqueado nativamente até a validação passar
-status: rascunho
+status: aprovada
 criado: 2026-09-24
 atualizado: 2026-09-24
 ---
@@ -24,28 +24,28 @@ No Bitbucket do plano atual o botão de Merge não é bloqueado: os PRs #37, #39
 
 ## Critérios de aceite
 
-- [ ] CA-1: a pipeline de PR (GitHub Actions, evento `pull_request` para `main`) roda os mesmos passos de hoje por tipo de branch: FF (`feature/`, `update/`, `remove/`, `release/`) com testes, validação, escopo, equipe, nome único, prévia e validação no Firebase; `chore/` e `revert/` com testes, validação e, em `revert/`, só reverts; branch fora do processo reprova.
-- [ ] CA-2: a proteção da `main` exige PR, exige todas as checagens da pipeline de PR verdes e a branch atualizada, proíbe push direto e força, e **não tem exceção para admins**; o merge é só por *merge commit* (squash e rebase desligados), porque a reconferência e a reversão usam o commit de merge.
-- [ ] CA-3: `chore/*` e `revert/*` só passam se o autor do PR for admin (checagem obrigatória no PR, por login do GitHub em `config/approvers.json`), além da reconferência na `main`.
-- [ ] CA-4: a pipeline da `main` (evento `push`) identifica a origem pela mensagem `Merge pull request #N from <dono>/<branch>`, reconfere o merge e, se falhar, prepara a branch `revert/pr-<N>-<origem>` com `GITHUB_TOKEN` (sem chave SSH) e imprime o link de comparação para abrir o PR.
-- [ ] CA-5: o deploy NÃO PROD (publicar, remover e `verify-sync`) roda num job ligado ao ambiente `nonprod`, que exige aprovação manual (*required reviewers*): é o equivalente ao Run.
-- [ ] CA-6: `sync-nonprod`, `verify-nonprod`, `plan-prod` e `prod-scheduler` viram workflows manuais (`workflow_dispatch`) e, onde fizer sentido, agendados.
-- [ ] CA-7: `FIREBASE_SA_KEY_NONPROD` vira secret do repositório no GitHub; workflows de PRs de fork não recebem secrets e não publicam nada; a execução de workflows de colaboradores de fora exige aprovação.
-- [ ] CA-8: o gate de aprovação de PROD (`check-approvals`) passa a ler as revisões do PR pela API do GitHub; a identificação de quem é admin e de quem mesclou passa a usar o login do GitHub.
-- [ ] CA-9: o merge só pela pipeline com conta-bot (spec 0009: `merge-gate`, `merge-pr`, `mergeBot`) sai do repositório, porque o GitHub bloqueia de forma nativa; a spec 0009 recebe a nota de que foi substituída.
-- [ ] CA-10: o template de PR vai para `.github/pull_request_template.md`; o link de PR do `preflight` e da reversão passa a ser do GitHub.
-- [ ] CA-11: README, `CLAUDE.md` (mapa e armadilhas), as três skills, os templates e `scripts/processos.test.js` descrevem o GitHub; um teste valida os workflows (YAML válido, jobs obrigatórios, ambiente do deploy, permissões mínimas) no lugar do teste do `bitbucket-pipelines.yml`, que sai.
+- [x] CA-1: a pipeline de PR (GitHub Actions, evento `pull_request` para `main`) roda os mesmos passos de hoje por tipo de branch: FF (`feature/`, `update/`, `remove/`, `release/`) com testes, validação, escopo, equipe, nome único, prévia e validação no Firebase; `chore/` e `revert/` com testes, validação e, em `revert/`, só reverts; branch fora do processo reprova.
+- [x] CA-2: a proteção da `main` exige PR, exige todas as checagens da pipeline de PR verdes e a branch atualizada, proíbe push direto e força, e **não tem exceção para admins**; o merge é só por *merge commit* (squash e rebase desligados), porque a reconferência e a reversão usam o commit de merge.
+- [x] CA-3: `chore/*` e `revert/*` só passam se o autor do PR for admin (checagem obrigatória no PR, por login do GitHub em `config/approvers.json`), além da reconferência na `main`.
+- [x] CA-4: a pipeline da `main` (evento `push`) identifica a origem pela mensagem `Merge pull request #N from <dono>/<branch>`, reconfere o merge e, se falhar, prepara a branch `revert/pr-<N>-<origem>` com `GITHUB_TOKEN` (sem chave SSH) e imprime o link de comparação para abrir o PR.
+- [x] CA-5: o deploy NÃO PROD (publicar, remover e `verify-sync`) roda num job ligado ao ambiente `nonprod`, que exige aprovação manual (*required reviewers*): é o equivalente ao Run.
+- [x] CA-6: `sync-nonprod`, `verify-nonprod`, `plan-prod` e `prod-scheduler` viram workflows manuais (`workflow_dispatch`) e, onde fizer sentido, agendados.
+- [x] CA-7: `FIREBASE_SA_KEY_NONPROD` vira secret do repositório no GitHub; workflows de PRs de fork não recebem secrets e não publicam nada; a execução de workflows de colaboradores de fora exige aprovação.
+- [x] CA-8: o gate de aprovação de PROD (`check-approvals`) passa a ler as revisões do PR pela API do GitHub; a identificação de quem é admin e de quem mesclou passa a usar o login do GitHub.
+- [x] CA-9: o merge só pela pipeline com conta-bot (spec 0009: `merge-gate`, `merge-pr`, `mergeBot`) sai do repositório, porque o GitHub bloqueia de forma nativa; a spec 0009 recebe a nota de que foi substituída.
+- [x] CA-10: o template de PR vai para `.github/pull_request_template.md`; o link de PR do `preflight` e da reversão passa a ser do GitHub.
+- [x] CA-11: README, `CLAUDE.md` (mapa e armadilhas), as três skills, os templates e `scripts/processos.test.js` descrevem o GitHub; um teste valida os workflows (YAML válido, jobs obrigatórios, ambiente do deploy, permissões mínimas) no lugar do teste do `bitbucket-pipelines.yml`, que sai.
 - [ ] CA-12: verificação real: o repositório público no GitHub com o histórico; um PR vermelho não pode ser mesclado (nem por admin); um PR verde pode; o deploy pede aprovação; o Bitbucket fica arquivado ou só leitura.
 
 ## Desenho
 
 - **Workflows:** `.github/workflows/pr.yml` (checagens do PR, um job por checagem, com nomes estáveis, porque a proteção da branch referencia os nomes), `main.yml` (origem, validação, reconferência, reversão e deploy NÃO PROD no ambiente `nonprod`), `sync-nonprod.yml`, `verify-nonprod.yml`, `plan-prod.yml`, `prod-scheduler.yml`. Checkout com histórico completo (`fetch-depth: 0`), porque escopo, equipe e nome único comparam com a `main`. `permissions` mínimas por job (`contents: read`; `contents: write` só no job de reversão).
-- **Checagens por tipo de branch num único workflow:** um job inicial calcula o tipo da branch; os demais rodam por condição e, quando não se aplicam, terminam verdes ("não se aplica"), para a proteção da branch poder exigir sempre os mesmos nomes.
+- **Checagens por tipo de branch num único workflow:** o job "Tipo da branch" (`scripts/ci/pr-kind.js`, admins lidos da `main`) calcula o tipo; os demais rodam por condição e, quando não se aplicam, ficam "skipped". O job final **"Tudo verde"** (`scripts/ci/all-green.js`) depende de todos e é a **única** checagem que a proteção da `main` exige, o que dispensa manter a lista de nomes na proteção.
 - **Origem do merge:** `scripts/ci/merge-source.sh` passa a entender `Merge pull request #N from <dono>/<branch>` (e mantém os formatos do Bitbucket, para o histórico antigo).
-- **Admin e quem mesclou:** `config/approvers.json` troca e-mails e UUIDs por `adminLogins` (logins do GitHub); o PR usa `github.event.pull_request.user.login`; a reconferência da `main` usa a API do GitHub (`merged_by` do PR `#N`) com `GITHUB_TOKEN`.
+- **Admin e quem mesclou:** `config/approvers.json` troca e-mails e UUIDs por `adminLogins` e `platformLogins` (logins do GitHub); o PR usa o autor (`github.event.pull_request.user.login`, por env); a reconferência da `main` usa a API do GitHub (`merged_by` do PR `#N`) com `GITHUB_TOKEN`, e `MERGED_BY` substitui a API fora do Actions (testes).
 - **Reversão:** o job de reversão empurra com o `GITHUB_TOKEN` (`contents: write`) e imprime `https://github.com/<dono>/<repo>/compare/main...<branch>?expand=1`.
 - **Proteção da `main`:** configurada à mão no GitHub (ou por *ruleset*), documentada no README com a lista exata de checagens obrigatórias.
-- **Segurança de repositório público:** usar `pull_request` (nunca `pull_request_target` com checkout do código do PR); secrets só em branches do próprio repositório; aprovação para rodar workflows de colaboradores de fora.
+- **Segurança de repositório público:** usar `pull_request` (nunca `pull_request_target` com checkout do código do PR); secrets só em branches do próprio repositório; aprovação para rodar workflows de colaboradores de fora; nome da branch e autor só por env. **Limite conhecido:** o `pull_request` roda os workflows e scripts do próprio PR, então um PR que altera `.github/` ou `scripts/` pode mudar as checagens; por isso isso é `chore/*` (só admin), com a reconferência da `main` como segunda barreira. Endurecer (checagens a partir da `main` sem executar o código do PR) fica para uma próxima spec.
 - **Transição:** empurrar todo o histórico para o GitHub; o Bitbucket fica arquivado (ou só leitura) com um aviso no README apontando o GitHub.
 
 ## Arquivos afetados

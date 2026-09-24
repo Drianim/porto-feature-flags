@@ -1,11 +1,15 @@
 # porto-feature-flags
 
 Repositório que governa as **Feature Flags (FFs) do app** no **Firebase Remote Config**. Toda mudança de FF passa por
-PR, validação automática, aprovação humana e deploy por pipeline (Bitbucket Pipelines). Ninguém edita o console do
-Firebase à mão: o repositório é a fonte única de verdade.
+PR, validação automática, aprovação humana e deploy por pipeline (GitHub Actions). Ninguém edita o console do Firebase
+à mão: o repositório é a fonte única de verdade.
 
 > **Estado: PoC.** Só o ambiente **NÃO PROD** está ativo (projeto Firebase de teste `cursoapp-ac8e4`). PROD está
 > implementado e coberto por testes, mas só entra depois de existir o projeto de PROD.
+>
+> **Repositório público** no GitHub (`drianimadriano/porto-feature-flags`). Segredos ficam só em secrets do GitHub; o
+> histórico foi auditado antes da migração (spec 0010). O histórico anterior veio do Bitbucket (`Drianim/porto-feature-flags`,
+> arquivado).
 
 **Para quem é este README:** quem vai usar o repositório (subir uma FF) e quem vai **evoluir os scripts** (inclusive
 trabalhando com um Claude Code). Comece por *Em uma tela* e vá ao que precisar.
@@ -16,10 +20,10 @@ trabalhando com um Claude Code). Comece por *Em uma tela* e vá ao que precisar.
 2. Arquitetura
 3. Modelo de uma FF
 4. Processo: como uma FF chega ao Firebase
-5. Pipelines
+5. Pipelines (GitHub Actions)
 6. Proteções
 7. PROD, RM e criticidade
-8. Configuração no Bitbucket (uma vez)
+8. Configuração no GitHub (uma vez)
 9. Trabalhando com o Claude Code e o SDD
 10. Testes e convenções
 11. Decisões, limites e armadilhas
@@ -29,16 +33,17 @@ trabalhando com um Claude Code). Comece por *Em uma tela* e vá ao que precisar.
 ## Em uma tela
 
 ```
-  dev ──► branch ──► preflight ──► PR ──► CI do PR ──► aprovação ──► merge na main
-         (tipo define                    (escopo, nome    (pessoas)        │
-          o que pode mudar)               único, dry-run)                  ▼
-                                                              reconferência do merge ──(falhou)──► revert/* + link de 1 clique
-                                                                           │
-                                                                           ▼
-                                                             pausa: alguém clica em "Run"
-                                                                           │
-                                                                           ▼
-                                                        deploy no Remote Config + verify-sync (main = Firebase)
+  dev ──► branch ──► preflight ──► PR ──► checagens do PR ──► "Tudo verde" ──► botão de merge liberado ──► merge na main
+         (prefixo define                 (escopo, equipe, nome     (só então)
+          o que pode mudar)               único, validação no Firebase)                                        │
+                                                                                                               ▼
+                                                                     reconferência do merge ──(falhou)──► revert/* + link
+                                                                                │
+                                                                                ▼
+                                                                  aprovação no ambiente `nonprod`
+                                                                                │
+                                                                                ▼
+                                                          deploy no Remote Config + verify-sync (main = Firebase)
 ```
 
 | Quero… | Branch | Ambiente | Detalhe |
@@ -47,7 +52,8 @@ trabalhando com um Claude Code). Comece por *Em uma tela* e vá ao que precisar.
 | alterar uma FF **existente** | `update/*` | NÃO PROD | idem |
 | **apagar** uma FF | `remove/*` | NÃO PROD | idem |
 | levar para **PROD** | `release/*` | PROD (por horário, em estágios) | PROD |
-| mudar **script, pipeline, docs** | `chore/*` (com **spec**) | nenhum (não publica) | SDD |
+| mudar **script, pipeline, docs** | `chore/*` (com **spec**; só admin) | nenhum (não publica) | SDD |
+| desfazer um merge | `revert/*` (só admin) | nenhum (a `main` volta) | Proteções |
 
 ## Arquitetura
 
@@ -57,8 +63,8 @@ Quatro camadas, cada uma com uma responsabilidade:
 |---|---|---|
 | **Dados** | `flags/`, `env/nonprod/`, `env/prod/`, `rm/`, `catalog/` | O que as FFs são e valem em cada ambiente |
 | **Lógica** | `scripts/lib/` | Regras puras e testadas: modelo da FF, montagem do Remote Config, escopo, nome único, aprovação, rollout |
-| **CLIs** | `scripts/*.js`, `scripts/ci/*.sh` | Comandos finos que leem argumentos, chamam a lógica, imprimem e saem com código |
-| **Orquestração** | `bitbucket-pipelines.yml`, `.githooks/` | Só encadeia os comandos; nenhuma regra mora aqui |
+| **CLIs** | `scripts/*.js`, `scripts/ci/*` | Comandos finos que leem argumentos, chamam a lógica, imprimem e saem com código |
+| **Orquestração** | `.github/workflows/`, `.githooks/` | Só encadeia os comandos; nenhuma regra mora aqui |
 
 ### Mapa de pastas e arquivos
 
@@ -71,10 +77,11 @@ Quatro camadas, cada uma com uma responsabilidade:
 | `catalog/keys.json` | Catálogo gerado de todas as chaves (`npm run catalog`); a pipeline falha se estiver desatualizado |
 | `config/environments.json` | Projeto e variável de credencial por ambiente; PROD é *time-gated* |
 | `config/teams.json` | Equipes válidas (`teams`), os e-mails dos **membros** de cada uma e a **equipe de plataforma** (`platform`) |
-| `config/approvers.json` | `admins` (e-mails que podem mesclar `chore/*`) e `platform` (aprovadores de PROD, a preencher) |
+| `config/approvers.json` | `adminLogins` (logins do GitHub que abrem e mesclam `chore/*` e `revert/*`) e `platformLogins` (aprovadores de PROD) |
+| `.github/workflows/` | Pipelines: `pr.yml`, `main.yml`, `sync-nonprod.yml`, `verify-nonprod.yml`, `plan-prod.yml`, `prod-scheduler.yml` |
+| `.github/pull_request_template.md` | Descrição padrão do PR, com uma seção por tipo de branch |
 | `docs/sdd/`, `docs/specs/` | Processo SDD dos scripts, template e as specs |
 | `docs/templates/codigo-app/` | **Templates do código do app** (Kotlin e Swift) que lê a FF, por situação da FF |
-| `.bitbucket/pull_request_template.md` | Descrição padrão do PR, com uma seção por tipo de branch |
 | `.claude/skills/` | Skills do Claude Code: `feature-flag` (operar FFs), `ff-status` (consultar o status) e `sdd-scripts` (evoluir scripts) |
 | `CLAUDE.md` | Resumo das regras e armadilhas para um Claude Code que abrir o repositório |
 | `.githooks/pre-push` | Roda o preflight ao empurrar `feature/`, `update/`, `remove/`, `release/` (`npm run hooks` ativa) |
@@ -84,13 +91,13 @@ Quatro camadas, cada uma com uma responsabilidade:
 | Script | O que faz |
 |---|---|
 | `new-flag.js`, `new-rm.js` | Geram a definição/valores de uma FF e o RM de PROD |
-| `validate.js` | Valida FFs e RMs (`--prod` aplica as regras de PROD) |
+| `validate.js` | Valida FFs, RMs e a configuração (`--prod` aplica as regras de PROD) |
 | `catalog.js` | Gera/confere `catalog/keys.json` (`--check`) |
 | `check-scope.js` | Cada tipo de branch só mexe nas suas pastas |
 | `check-new-flags.js` | Nome único: `feature` cria, `update` altera, `remove` apaga; consulta o Firebase |
-| `check-approvals.js` | Gate de PROD: 1 aprovação de plataforma + 1 de equipe, nenhuma do autor (precisa `BB_ACCESS_TOKEN`) |
 | `check-ownership.js` | **Permissão por equipe:** só a equipe dona da FF (ou a plataforma) a altera; transferir FF entre equipes é da plataforma |
-| `check-merger.js` | Só admin mescla `chore/*` |
+| `check-approvals.js` | Gate de PROD: 1 aprovação de plataforma + 1 de equipe, nenhuma do autor (revisões do PR pela API do GitHub) |
+| `check-merger.js` | Na `main`: só admin mescla `chore/*` e `revert/*` (quem mesclou vem da API do GitHub) |
 | `check-specs.js` | Formato das specs de `docs/specs/` |
 | `ff-status.js` | **Status das FFs, somente leitura:** lista, detalhe, rollout, resumo, sincronia, histórico e obsoletas (`npm run status -- list`); usa o Firebase se houver credencial |
 | `preflight.js` | As checagens do PR, no seu computador (`npm run preflight`, `npm run pr`) |
@@ -98,9 +105,12 @@ Quatro camadas, cada uma com uma responsabilidade:
 | `remove-flags.js` | Apaga do Remote Config as FFs removidas do repositório (só NÃO PROD) |
 | `verify-sync.js` | Confere `main` = Firebase (`--fix` publica, `--strict` reprova chave extra) |
 | `test-platforms.js` | Teste real Android x iOS e versão mínima, consultando o próprio Firebase |
+| `ci/pr-kind.js` | PR: tipo da branch; em `chore/*` e `revert/*`, exige que o autor seja admin (admins lidos da `main`) |
+| `ci/all-green.js` | PR: o job **"Tudo verde"**, que só passa quando todas as checagens passaram |
+| `ci/check-revert.js` | PR de `revert/*`: só reverts de merge da `main` |
 | `ci/merge-source.sh` | Descobre a branch de origem do merge pela mensagem do commit |
 | `ci/recheck-merge.sh` | Reconfere as regras no commit de merge da `main` |
-| `ci/revert-merge.sh` | Prepara a branch `revert/*` e o link de um clique |
+| `ci/revert-merge.sh` | Prepara a branch `revert/*` e o link para abrir o PR |
 | `ci/run-if-source.sh` | Roda um comando só se a origem do merge for do tipo esperado |
 
 ## Modelo de uma FF
@@ -116,7 +126,7 @@ Quatro camadas, cada uma com uma responsabilidade:
     `"minVersion": { "android": "2.58.3", "ios": "2.61.0" }` (exatamente as plataformas da FF).
   - Abaixo da versão mínima, ou fora das plataformas, a FF **nunca ativa**: toggle recebe `false`; `rc_*` não é enviada (o app usa o padrão dele).
   - Mudar plataforma ou versão mínima de FF existente é `update/*`.
-- **Equipe obrigatória:** `"team": "squad-poc"` em `flags/<key>.json`, sempre uma das equipes de `config/teams.json` (o campo antigo `owner` foi renomeado e dá erro). No Firebase a equipe vai como prefixo da descrição (`[squad-poc] texto...`), porque o Remote Config não tem rótulo por parâmetro: assim ela aparece no console, e o `verify-sync` acusa se divergir. `npm run status -- summary` conta as FFs por equipe.
+- **Equipe obrigatória:** `"team": "squad-poc"` em `flags/<key>.json`, sempre uma das equipes de `config/teams.json`. No Firebase a equipe vai como prefixo da descrição (`[squad-poc] texto...`), porque o Remote Config não tem rótulo por parâmetro: assim ela aparece no console, e o `verify-sync` acusa se divergir. `npm run status -- summary` conta as FFs por equipe.
 - **Permissão por equipe:** uma equipe só cria, altera, remove ou leva a PROD as FFs **dela**. A **equipe de plataforma** (`platform` em `config/teams.json`) mexe em qualquer FF e é a única que **transfere** uma FF de uma equipe para outra (mudar o `team`). Detalhes em *Permissão por equipe*, abaixo.
 - **Grupo** opcional agrupa parâmetros no console (`"group": "Vitrine Hub"`).
 - **No Firebase** viram condições `device.os == 'ios' && app.version.>=(['<minVersion>'])` (idem `'android'`; o Firebase recusa a forma `app.version >= '...'`), com
@@ -137,30 +147,24 @@ Quatro camadas, cada uma com uma responsabilidade:
 
 | Branch | Para quê | Pode alterar | Ao mergear em `main` |
 |---|---|---|---|
-| `feature/*` | criar FF **nova** | `flags/`, `env/nonprod/`, `catalog/` (não PROD) | NÃO PROD, depois do Run |
-| `update/*` | alterar FF que **já existe** | `flags/`, `env/nonprod/`, `catalog/` (não PROD) | NÃO PROD, depois do Run |
-| `remove/*` | **apagar** FF | só **apaga** arquivos de `flags/`, `env/*`, `rm/` (catálogo regenerado) | remove do Firebase, depois do Run |
-| `release/*` | levar para PROD | somente `env/prod/`, `rm/`, `catalog/` | PROD por horário do RM, depois do Run |
-| `chore/*` | script, pipeline, docs | não restrito | **não publica**; testes e validação no PR; só admin clica em Mesclar |
-| `revert/*` | desfazer um merge da `main` | só reverts de merge (`git revert -m 1`) | não publica; só admin clica em Mesclar |
+| `feature/*` | criar FF **nova** | `flags/`, `env/nonprod/`, `catalog/` (não PROD) | NÃO PROD, depois da aprovação no ambiente |
+| `update/*` | alterar FF que **já existe** | `flags/`, `env/nonprod/`, `catalog/` (não PROD) | NÃO PROD, depois da aprovação no ambiente |
+| `remove/*` | **apagar** FF | só **apaga** arquivos de `flags/`, `env/*`, `rm/` (catálogo regenerado) | remove do Firebase, depois da aprovação |
+| `release/*` | levar para PROD | somente `env/prod/`, `rm/`, `catalog/` | PROD por horário do RM, depois da aprovação |
+| `chore/*` | script, pipeline, docs | não restrito | **não publica**; só admin abre e mescla |
+| `revert/*` | desfazer um merge da `main` | só reverts de merge (`git revert -m 1`) | não publica; só admin abre e mescla |
 
 O CI só **proíbe PROD** em `feature/*` e `update/*`; por convenção elas mexem só em FF, e qualquer mudança de script vai em `chore/*` com spec (SDD).
 
 O CI reprova PR fora dessas regras (`check-scope`, `check-new-flags`). A origem do merge vem da mensagem do commit
-(`Merged in <branch> (pull request #N)`); merge sem origem identificável não publica nada.
+(`Merge pull request #N from <dono>/<branch>`); merge sem origem identificável não publica nada. Branch com outro
+prefixo (`hotfix/`, `bugfix/`, …) **reprova no PR** e não pode ser mesclada.
 
-### Criar a branch pela interface do Bitbucket
+### Criar a branch
 
-Na tela **Create branch** do Bitbucket, **From branch** é sempre `main` e o **Type** decide o prefixo:
-
-| Type na tela | Prefixo | Use para |
-|---|---|---|
-| Feature | `feature/` | FF nova |
-| Release | `release/` | levar para PROD |
-| Other | (você digita o nome completo) | `update/...`, `remove/...` e `chore/...` |
-| Bugfix, Hotfix | `bugfix/`, `hotfix/` | **não fazem parte do processo**: não têm regra de escopo e não publicam nada |
-
-`update/`, `remove/` e `chore/` não existem como tipo na tela: escolha **Other** e digite o prefixo junto com o nome (ex.: `update/ft-checkout-50`).
+No GitHub (botão de branches, *View all branches → New branch*, ou `git checkout -b` no seu computador), a branch sai da
+`main` e o nome é **o nome completo com o prefixo**: `feature/ft-checkout-novo`, `update/ft-checkout-50`,
+`remove/ft-checkout`, `release/2026-10-checkout`, `chore/ajuste-deploy`. O prefixo decide o que a pipeline confere.
 
 ### Criar uma FF (`feature/*`)
 
@@ -169,7 +173,8 @@ Na tela **Create branch** do Bitbucket, **From branch** é sempre `main` e o **T
 2. Edite `env/nonprod/ft_minha_flag.json` com os valores por plataforma e o `rolloutPercent`, se houver.
 3. `npm run catalog && npm run validate`; simule com `node scripts/deploy.js nonprod --dry-run`.
 4. `npm run preflight` (ou `npm run pr`, que empurra a branch e imprime o link para abrir o PR). Preencha o template do PR.
-5. Aprovação do PR e merge → a pipeline da `main` reconfere e **pausa** → alguém clica em **Run** → deploy + `verify-sync`.
+5. Espere o job **"Tudo verde"** do PR; só então o botão de merge é liberado. Mescle → a pipeline da `main` reconfere →
+   o deploy **espera aprovação no ambiente `nonprod`** → aprovado, publica e roda o `verify-sync`.
 
 ### Alterar uma FF (`update/*`)
 
@@ -178,10 +183,10 @@ Edite `flags/` ou `env/nonprod/` da FF que já existe, `npm run catalog`, prefli
 
 ### Remover uma FF (`remove/*`)
 
-Apague `flags/<key>.json`, `env/nonprod/<key>.json` (e `env/prod/`, `rm/` se houver), `npm run catalog`, PR. No **Run**,
-`scripts/remove-flags.js nonprod --base HEAD^1` apaga do Remote Config (parâmetro, grupo que ficar vazio, condições
-próprias) só as FFs cujo `flags/<key>.json` foi apagado naquele merge. O script recusa chave que ainda existe em
-`flags/` e nunca apaga chave "de fora" do repositório. Ainda não suporta PROD.
+Apague `flags/<key>.json`, `env/nonprod/<key>.json` (e `env/prod/`, `rm/` se houver), `npm run catalog`, PR. Depois do
+merge e da aprovação, `scripts/remove-flags.js nonprod --base HEAD^1` apaga do Remote Config (parâmetro, grupo que ficar
+vazio, condições próprias) só as FFs cujo `flags/<key>.json` foi apagado naquele merge. O script recusa chave que ainda
+existe em `flags/` e nunca apaga chave "de fora" do repositório. Ainda não suporta PROD.
 
 ### Nome de FF nunca se repete
 
@@ -197,75 +202,70 @@ Quem pode mexer em qual FF é decidido por `config/teams.json`: `platform` (e-ma
 | criar, alterar, apagar ou levar a PROD uma FF (`flags/`, `env/`, `rm/`) | membros da **equipe dona** da FF (o `team` dela) ou a **plataforma** |
 | criar FF nova | membros da equipe declarada no `team` da FF nova ou a plataforma |
 | **transferir** a FF para outra equipe (mudar `team`) | só a **plataforma** |
-| alterar `config/teams.json` (equipes e membros) | só numa `chore/*`, mesclada por admin |
+| alterar `config/teams.json` (equipes e membros) | só numa `chore/*`, que só admin abre e mescla |
 
-- **Como é conferido:** `scripts/check-ownership.js` compara a equipe de cada FF tocada (no ponto de partida do PR e no fim) com os **e-mails dos commits do PR**. Roda no `preflight`, na pipeline de PR (`feature/*`, `update/*`, `remove/*`, `release/*`) e na **reconferência da `main`** (a barreira real, que aciona a reversão automática). Um RM vale para as FFs listadas nele.
-- **Um PR não se autoriza:** a lista de membros é lida do ponto de partida (`main`), nunca do próprio PR, e mudar `config/teams.json` numa branch de FF é reprovado.
+- **Como é conferido:** `scripts/check-ownership.js` compara a equipe de cada FF tocada (no ponto de partida do PR e no fim) com os **e-mails dos commits do PR**. Roda no `preflight`, no PR e na **reconferência da `main`**. Um RM vale para as FFs listadas nele.
+- **Um PR não se autoriza:** equipes, membros e admins são lidos da `main`, nunca do próprio PR, e mudar `config/teams.json` numa branch de FF é reprovado.
 - **Limite:** o e-mail do commit é configurado por quem commita: isto barra o erro e o descuido (a equipe errada mexendo na FF errada), não a má-fé. Quem tem mais de um e-mail lista todos. Equipe sem membros cadastrados só é alterada pela plataforma.
 
 ### Preflight e template de PR
 
 - `npm run preflight`: formato, catálogo em dia, escopo da branch, permissão por equipe, nome único, template aceito pelo Firebase (com `FIREBASE_SA_KEY_NONPROD`) e, em `release/*`, regras de PROD.
-- `npm run pr`: preflight e, se passar, empurra a branch e imprime o **link de um clique** do PR.
+- `npm run pr`: preflight e, se passar, empurra a branch e imprime o link que abre o PR no GitHub.
 - `npm run hooks` (uma vez): o `pre-push` roda o preflight ao empurrar branches de FF (`git push --no-verify` ignora).
-- `.bitbucket/pull_request_template.md` (lido da `main`) traz uma seção por tipo; apague as que não são do seu PR.
+- `.github/pull_request_template.md` traz uma seção por tipo; apague as que não são do seu PR.
 - Sem `FIREBASE_SA_KEY_NONPROD` a consulta de nome ao Firebase é pulada; a pipeline do PR faz essa checagem.
 
-## Pipelines
+## Pipelines (GitHub Actions)
 
-`bitbucket-pipelines.yml` (só orquestra):
+`.github/workflows/` (só orquestra):
 
-| Pipeline | Quando | O que faz |
+| Workflow | Quando | O que faz |
 |---|---|---|
-| **PR** (`feature/**`, `update/**`, `remove/**`, `release/**`) | ao abrir/atualizar PR | testes e `validate`, escopo, permissão por equipe, nome único, dry-run, **validação do template no próprio Firebase (sem publicar)** (e regras de PROD em `release/*`) |
-| **`main`** | a cada merge | valida; **reconfere o merge**; passo manual de deploy NÃO PROD (`deployment: test`); passos de PROD (só se o merge mexeu em `env/prod/**` ou `rm/**`) |
-| **`develop`** | push | só valida (não publica) |
-| **`sync-nonprod`** (custom, manual/agendada, em `main`) | divergência main ≠ Firebase | publica o que está em `main` e confere de novo |
-| **`verify-nonprod`** (custom) | alarme | só leitura, `--strict` |
-| **`prod-scheduler`** (custom, agendada) | a cada ~15 min | avança os estágios do rollout de PROD pelo horário |
-| **`plan-prod`** (custom) | manual | dry-run de PROD |
+| **`pr.yml`** | PR para a `main` | tipo da branch (e admin em `chore/*`/`revert/*`), testes e `validate`; em FF: escopo, permissão por equipe, nome único, prévia e **validação do template no próprio Firebase (sem publicar)**; em `revert/*`: só reverts. Tudo consolidado no job **"Tudo verde"** |
+| **`main.yml`** | a cada merge na `main` | testes, `validate` e **reconferência do merge**; se falhar, prepara `revert/*`. Depois, deploy NÃO PROD (se o merge mexeu em `flags/` ou `env/nonprod/`) e os jobs de PROD (se mexeu em `env/prod/` ou `rm/`), cada um com **aprovação no ambiente** |
+| **`sync-nonprod.yml`** | manual, na `main` | publica o que está na `main` se o Firebase divergir e confere de novo (aprovação no ambiente `nonprod`) |
+| **`verify-nonprod.yml`** | manual e diário | só leitura, `--strict`: alarme de divergência |
+| **`plan-prod.yml`** | manual | dry-run de PROD |
+| **`prod-scheduler.yml`** | manual (agendado quando PROD existir) | avança os estágios do rollout de PROD pelo horário |
 
-### Merge só pela pipeline
+### Merge bloqueado até tudo verde
 
-Na `main` **ninguém tem o botão de Merge**: só a conta-bot tem permissão de merge, e quem a usa é a pipeline do PR (spec 0009).
+A proteção da `main` exige o job **"Tudo verde"** do `pr.yml`. Ele depende de todas as checagens e só passa se nenhuma
+falhou (as que não se aplicam ao tipo da branch ficam "skipped" e contam como ok). Enquanto ele não passar, o botão de
+merge fica bloqueado, **inclusive para admins** (a proteção não tem exceção). Isso substitui a conta-bot da spec 0009,
+que existia porque o plano do Bitbucket não bloqueava o botão.
 
-1. **Ao abrir o PR**, a pipeline roda todas as validações (testes, escopo, equipe, nome único, prévia, validação no Firebase; em `chore/*` e `revert/*`, testes e validação).
-2. **Só se tudo passar** aparece o último passo, manual: **"Mesclar o PR (depois de validar)"**. Um PR vermelho nunca chega a ter esse passo.
-3. **Clicar em Run** nesse passo faz `scripts/ci/merge-pr.js` conferir o PR na API e mesclar com a conta-bot. Ele recusa se o PR não vai para a `main`, não está aberto, recebeu um push depois da validação (o commit mesclado tem de ser o validado), não tem as aprovações mínimas (`minApprovals`) ou, em `chore/*` e `revert/*`, se quem clicou não é admin (`adminUuids`, pelo `BITBUCKET_STEP_TRIGGERER_UUID`).
-4. O merge usa `merge_commit` e a mensagem padrão `Merged in <branch> (pull request #N)`, que a reconferência da `main` e a reversão leem. Depois, a pipeline da `main` segue como antes (reconferência e, se for FF, o Run de publicar).
+- O PR roda o código **do próprio PR**, sem acesso a segredos quando vem de um fork.
+- `chore/*` e `revert/*`: o job "Tipo da branch" reprova se o autor do PR não está em `adminLogins` (lido da `main`).
+- Merge só por **merge commit** (squash e rebase desligados): a reconferência e a reversão usam o commit de merge.
 
-Outros prefixos (`hotfix/`, `bugfix/`...) não têm pipeline de PR, então não podem ser mesclados.
+### Aprovação do deploy (ambiente `nonprod`)
 
-### Aprovação dentro da pipeline
-
-Todo passo que publica é `trigger: manual`: a pipeline **pausa** até alguém clicar em **Run**. Sem o clique, nada é
-publicado. Cada passo só aparece quando o merge alterou a pasta certa (`condition: changesets`): `flags/` e
-`env/nonprod/` mostram o de NÃO PROD; `env/prod/` e `rm/`, os de PROD (passo "skipped" = "Changesets condition not
-satisfied", de propósito). Para restringir **quem** clica: *Repository settings → Deployments → Deployment permissions*.
+O job que publica no Firebase fica ligado ao ambiente `nonprod` (e os de PROD ao `production`). O GitHub **pausa** o
+job até um revisor do ambiente aprovar, em *Actions → execução → Review deployments*. Sem a aprovação, nada é
+publicado. Cada job só aparece quando o merge alterou a pasta certa: `flags/` e `env/nonprod/` para NÃO PROD;
+`env/prod/` e `rm/` para PROD.
 
 ### Garantia: `main` = Firebase NÃO PROD
 
-Depois do deploy, no mesmo passo, o `verify-sync` compara `main` com o Remote Config real (valor padrão, condições,
-tipo, descrição, grupo e chaves ausentes). Se o deploy falhar, a pipeline **`sync-nonprod`** publica o que está em
+Depois do deploy, no mesmo job, o `verify-sync` compara `main` com o Remote Config real (valor padrão, condições,
+tipo, descrição, grupo e chaves ausentes). Se o deploy falhar, o workflow **`sync-nonprod`** publica o que está em
 `main` e confere de novo. `verify-nonprod` (`--strict`) também falha por chave que só existe no Firebase. Local:
 `FIREBASE_SA_KEY_NONPROD=$(base64 -i chave.json) node scripts/verify-sync.js nonprod`. O verificador não apaga o que só
 existe no Firebase.
 
 ## Proteções
 
-1. **Preflight** local (e hook de push) e **CI do PR**: testes, escopo de pastas, nome único.
-2. **Merge só pela pipeline** (spec 0009): na `main` só a conta-bot mescla, pelo último passo manual do PR, que só existe
-   depois de tudo passar. O merge check nativo do plano atual não bloquearia (*Prevent a merge with unresolved merge checks*
-   é Premium): foi assim que os PRs #37, #39 e #47 foram mesclados sem validação.
-3. **Reconferência na `main`** (`scripts/ci/recheck-merge.sh`): no início da pipeline reaplica escopo e nome único ao
-   commit de merge (permissão por equipe e, para `chore/*`, exige admin). Se falhar, o passo de deploy nem é oferecido. **É a barreira real.**
-4. **Reversão automática** (`scripts/ci/revert-merge.sh`, `after-script` da reconferência): cria a branch
-   `revert/pr-<n>-<origem>` com `git revert -m 1`, empurra por SSH e imprime o **link de um clique** do PR de reversão.
-   Nunca mescla sozinho, nunca falha o passo, não duplica em reexecução. Sem a chave, imprime os comandos manuais.
-   Chave SSH: *Repository settings → Pipelines → SSH keys* gera a chave do pipeline; a pública precisa estar numa
-   **chave SSH da conta ou do workspace** (as *Access keys* do repositório são só leitura e dão `Permission denied`) ou use
-   um *repository access token* por HTTPS (`REVERT_REMOTE_URL`). O clone do Pipelines é raso (serve para merge recente).
-5. **Run** (aprovação humana) e **verify-sync** depois de publicar.
+1. **Preflight** local (e hook de push) e **checagens do PR**: testes, escopo de pastas, equipe, nome único, validação no Firebase.
+2. **Merge bloqueado até "Tudo verde"**: proteção da `main` sem exceção para admins. Antes, no Bitbucket, os PRs #37,
+   #39 (vermelhos) e #47 (mesclado em 13 s, com 0 builds) entraram na `main` sem validação; é isso que a proteção impede.
+3. **Reconferência na `main`** (`scripts/ci/recheck-merge.sh`): reaplica escopo, nome único e equipe ao commit de merge
+   (e, para `chore/*` e `revert/*`, exige que quem mesclou seja admin). Se falhar, o deploy nem é oferecido.
+4. **Reversão automática** (`scripts/ci/revert-merge.sh`, passo seguinte à reconferência quando ela falha): cria a branch
+   `revert/pr-<n>-<origem>` com `git revert -m 1`, empurra com o `GITHUB_TOKEN` (o job tem `contents: write`) e imprime o
+   link que abre o PR. Nunca mescla sozinho, nunca falha o passo, não duplica em reexecução.
+5. **Aprovação no ambiente** e **verify-sync** depois de publicar.
 6. **Teste real de plataforma/versão** (`test-platforms.js`): registra 2 apps temporários (`com.poc.rcteste`), pede ao
    próprio Firebase o Remote Config como Android/iOS em versão mínima, logo abaixo e alta, compara com o repositório e
    remove os apps (mesmo com erro). A FF precisa estar publicada; sofre limite de requisições (429) e espera/tenta de novo.
@@ -282,8 +282,9 @@ seguro. Toggles que liberam algo e todas as `rc_*` exigem RM em PROD; desligar u
 3. Crie `env/prod/ft_minha_flag.json` (`{"prod": {"default": "false", "ios": {"value": "true"}, ...}}`).
 4. Preencha `approvals.team` e `approvals.platform` (pessoas diferentes; nunca em nome de outra pessoa).
 5. `npm run validate:prod` e `node scripts/deploy.js prod --dry-run --now <ISO>` para simular um horário.
-6. PR `release/*` → `main`: o gate `check-approvals.js` confere no Bitbucket 1 aprovação da plataforma e 1 da equipe
-   (nenhuma do autor); o Run publica no horário do RM. Rollback: PR com `default: "false"` ou menor `rolloutPercent`.
+6. PR `release/*` → `main`: o gate `check-approvals.js` confere nas revisões do PR 1 aprovação da plataforma
+   (`platformLogins`) e 1 da equipe (nenhuma do autor); a aprovação no ambiente `production` publica no horário do RM.
+   Rollback: PR com `default: "false"` ou menor `rolloutPercent`.
 
 | Criticidade | Exigência |
 |---|---|
@@ -294,27 +295,25 @@ seguro. Toggles que liberam algo e todas as `rc_*` exigem RM em PROD; desligar u
 
 O avanço entre estágios é por **tempo**, não consulta métricas de saúde: monitore e faça rollback se preciso.
 
-## Configuração no Bitbucket (uma vez)
+## Configuração no GitHub (uma vez)
 
-- **Merge só pela pipeline (spec 0009)**, nesta ordem, **depois** de a mudança que traz o passo "Mesclar o PR" estar na `main`:
-  1. Crie a **conta-bot** no Bitbucket e dê a ela acesso de escrita ao repositório.
-  2. Na conta-bot, crie um **API token** (Atlassian) com escopos de leitura e escrita de pull request. Guarde como variáveis de repositório: `BB_MERGE_BOT_USER` (e-mail da conta Atlassian da conta-bot) e `BB_MERGE_BOT_TOKEN` (o token, **Secured**).
-  3. Em `config/approvers.json` (por `chore/*`): `mergeBot` = e-mail que aparece nos commits de merge da conta-bot; `adminUuids` = UUIDs do Bitbucket de quem pode mesclar `chore/*` e `revert/*`; `minApprovals` (PoC: `0`).
-  4. *Repository settings → Branch restrictions → main*: **Write access** para ninguém e **Merge access via pull requests → Only specific people or groups** = só a conta-bot.
-  5. Confira num PR: as pessoas não têm botão de Merge; o passo "Mesclar o PR" aparece só com tudo verde. **A confirmar:** se administradores do repositório também ficam sem o botão.
-  - Se algo travar, desligar a restrição de merge devolve o botão na hora.
-- **Variável de repositório** (*Repository settings → Pipelines → Repository variables*, **Secured**):
+- **Secret do repositório** (*Settings → Secrets and variables → Actions → New repository secret*):
   `FIREBASE_SA_KEY_NONPROD` = JSON do service account em base64 (`base64 -i key.json | pbcopy`), papel *Firebase Remote
-  Config Admin*. Uma só cobre PR, `main` e as pipelines custom. O projeto NÃO PROD já vem de `config/environments.json`.
-- **Branch restrictions** na `main`: só via PR (mín. de aprovações conforme o plano). Merge check "build com sucesso" já
-  configurado (ver limite em *Proteções*).
-- **Chave SSH** da reversão automática (ver *Proteções*, item 4).
-- **`config/teams.json`**: `platform` (e-mails da equipe de plataforma), `teams` (equipes válidas) e os `members` de cada uma, sempre os e-mails que aparecem nos commits. Equipe nova ou mudança de membro entra por uma `chore/*` (só admin mescla).
-- **`config/approvers.json`**: `admins` (e-mails que fazem merge de `chore/*`; é o e-mail do commit de merge) e, quando
-  PROD entrar, `platform` com os `account_id` do time de plataforma.
-- **Quando PROD entrar:** `FIREBASE_SA_KEY_PROD` e `FIREBASE_PROJECT_PROD` **no Deployment `Production`**;
-  `BB_ACCESS_TOKEN` (token de repositório, escopo `pullrequest:read`) para o gate de aprovação; restrinja quem faz deploy.
-- **Schedules:** `sync-nonprod` em `main` (ex.: a cada 30 min) e `prod-scheduler` em `main` (ex.: a cada 15 min).
+  Config Admin*. Cobre o PR (nome único e validação no Firebase), a `main` e os workflows manuais. O projeto NÃO PROD já
+  vem de `config/environments.json`. PRs de fork não recebem secrets.
+- **Ambientes** (*Settings → Environments*): `nonprod` e `production`, cada um com **Required reviewers** (quem aprova o
+  deploy) e *Deployment branches* = só `main`.
+- **Proteção da `main`** (*Settings → Branches → Add rule*, ou *Rules → Rulesets*):
+  - *Require a pull request before merging* (aprovações: 0 na PoC, com uma pessoa só);
+  - *Require status checks to pass* = **`Tudo verde`**, e *Require branches to be up to date*;
+  - *Do not allow bypassing the above settings* (vale para admins), sem force push e sem exclusão da branch.
+- **Botão de merge** (*Settings → General → Pull Requests*): só *Allow merge commits*; desligue squash e rebase.
+- **Actions** (*Settings → Actions → General*): *Require approval for all outside collaborators* nos workflows de forks;
+  *Workflow permissions* = somente leitura (os jobs pedem o que precisam).
+- **`config/teams.json`**: `platform` (e-mails da equipe de plataforma), `teams` (equipes válidas) e os `members` de cada uma, sempre os e-mails que aparecem nos commits. Mudança entra por `chore/*` (só admin).
+- **`config/approvers.json`**: `adminLogins` (logins do GitHub) e, quando PROD entrar, `platformLogins`.
+- **Quando PROD entrar:** secret `FIREBASE_SA_KEY_PROD` e variável `FIREBASE_PROJECT_PROD` (no ambiente `production`)
+  e o `schedule` do `prod-scheduler.yml`.
 - **Credenciais nunca entram no repositório** (`.gitignore` bloqueia `service-account*.json`, `*.json.key`, `.env`).
 
 ## Trabalhando com o Claude Code e o SDD
@@ -326,7 +325,7 @@ comandos, armadilhas) e encontra três skills em `.claude/skills/`:
 |---|---|---|
 | `feature-flag` | criar, alterar, remover, levar FF para PROD, preparar RM | fluxo de PR por tipo de branch; **sem spec** |
 | `ff-status` | **consultar** o status das FFs (o que está ligado, plataforma, versão mínima, %, sincronia, histórico) | somente leitura, via `node scripts/ff-status.js` |
-| `sdd-scripts` | mudar `scripts/`, pipeline, hooks, regras de `config/`, docs e skills | **SDD**: spec → aprovação → TDD → verificação → `chore/*` |
+| `sdd-scripts` | mudar `scripts/`, workflows, hooks, regras de `config/`, docs e skills | **SDD**: spec → aprovação → TDD → verificação → `chore/*` |
 
 **SDD (Spec-Driven Development) vale só para os scripts e a automação, não para as FFs.** Uma mudança de FF é dado
 (`flags/`, `env/`, `rm/`) e segue o PR do seu tipo. Uma mudança de comportamento do motor (validação, deploy, pipeline)
@@ -337,7 +336,7 @@ começa por uma **spec aprovada** em `docs/specs/NNNN-slug.md`, e o código só 
 2. Peça a aprovação explícita; só então `status: aprovada`. Sem spec aprovada não há código de produção.
 3. Implemente por tarefa em TDD, verifique (`npm test`, `npm run validate`, `npm run specs`), marque os CAs, atualize a
    documentação e a spec vira `implementada`.
-4. PR de `chore/*` citando a spec; só admin mescla.
+4. PR de `chore/*` citando a spec; só admin abre e mescla.
 
 Detalhes, checklist de revisão e convenções: [`docs/sdd/README.md`](docs/sdd/README.md). Modelos: specs
 [0001](docs/specs/0001-plataforma-e-versao-minima.md) e [0002](docs/specs/0002-chore-sem-pipeline-e-merge-por-admin.md)
@@ -352,25 +351,24 @@ pedir (está no `CLAUDE.md`); para FF use a skill `feature-flag` e os comandos `
 ## Testes e convenções
 
 - A **campanha de teste do processo** (PRs positivos e negativos, em fases, com o resultado esperado de cada um) está em `docs/testes-do-processo.md`.
-- `npm test` roda todos os testes (`node --test`, ~200 casos): regras de FF, montagem de condições (com um avaliador
-  mínimo das expressões), escopo, nome único, rollout, aprovações, merger, pipeline (lint do YAML), specs e os scripts
-  de CI em repositórios Git temporários. Sem Firebase real: o que precisa dele é o `test-platforms.js`.
+- `npm test` roda todos os testes (`node --test`, ~260 casos): regras de FF, montagem de condições (com um avaliador
+  mínimo das expressões), escopo, nome único, rollout, aprovações, merger, os workflows (formato e segurança), specs e os
+  scripts de CI em repositórios Git temporários. Sem Firebase real: o que precisa dele é o `test-platforms.js`.
 - Node 22, CommonJS, sem dependência nova (`firebase-admin`; `js-yaml` só em teste). Lógica em `scripts/lib/`, CLI fina,
   testes ao lado; mensagens em português e acionáveis; `--dry-run` em quem publica; commits `tipo: resumo`.
 
 ## Decisões, limites e armadilhas
 
-- **Um `deployment` por ambiente por pipeline** (limite do Bitbucket): por isso deploy, remoção e verify ficam no mesmo
-  passo manual; `scripts/lib/pipeline.test.js` trava.
-- **PR pipelines não recebem variáveis de Deployment**: a credencial NÃO PROD é variável de repositório (secured).
-- **O merge check do plano atual não bloqueia** o botão de merge (bloquear é Premium). Por isso o merge é **só pela pipeline**,
-  com uma conta-bot (spec 0009). Antes disso, os PRs #37 e #39 (vermelhos) e o #47 (mesclado em 13 s, com 0 builds) entraram
-  na `main` sem validação; a reconferência e a reversão seguraram o Firebase.
-- **`chore/*` e `revert/*` têm pipeline de PR** (testes e validação) e só admin clica em Mesclar. A reconferência da `main` aceita
-  como autor do merge a conta-bot (`mergeBot`) e os admins.
+- **Repositório público:** a proteção de branch com checagens obrigatórias e os revisores de ambiente são gratuitos em
+  repositório público (em privado, exigem plano pago). Ficam públicos o código, as FFs, as regras e os e-mails dos commits.
+- **PR vermelho: o botão de merge não libera.** O único jeito de a `main` receber código não validado seria desligar a
+  proteção. Se algo entrar errado mesmo assim, a reconferência não oferece o deploy e a reversão fica pronta.
+- **O PR roda os workflows e scripts do próprio PR:** um PR que altera `.github/` ou `scripts/` pode mudar as checagens.
+  Por isso essas mudanças vão em `chore/*` (só admin abre) e passam por revisão; a reconferência na `main` é a segunda barreira.
+- **Nome do check na proteção:** a proteção exige **`Tudo verde`**; renomear esse job sem atualizar a proteção trava os merges.
+- **PR de fork não recebe secrets:** as checagens que consultam o Firebase falham; só PRs de branches do próprio repositório passam.
 - **`catalog/keys.json` desatualizado** quebra a pipeline; rode `npm run catalog`.
-- **Mudança de plataforma/versão mínima em FF existente** altera as condições publicadas: depois do merge da `chore/*` que
-  migra os dados, rode `sync-nonprod` (a `main` diverge do Firebase até lá).
-- A aprovação real dos dois aprovadores de PROD é a do PR no Bitbucket; o RM só registra presença e pessoas distintas.
+- **Mudança de plataforma/versão mínima em FF existente** altera as condições publicadas: depois do merge, rode `sync-nonprod`.
+- A aprovação real dos dois aprovadores de PROD é a do PR no GitHub; o RM só registra presença e pessoas distintas.
 - Fora do escopo por ora: PROD ativo, versão máxima de FF, métricas de saúde no rollout, iOS em aparelho real (o teste
   usa o endpoint de fetch dos apps do Firebase como iOS).

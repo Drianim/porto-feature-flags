@@ -45,5 +45,5 @@ if (args.push) {
   const push = spawnSync('git', ['push', '-u', 'origin', branch], { cwd: root, stdio: 'inherit' });
   if (push.status !== 0) { console.log('✗ o push falhou.'); process.exit(1); }
   const link = prLink(sh('git', ['remote', 'get-url', 'origin']).stdout.trim(), branch);
-  console.log(link ? `\nAbra o PR com um clique: ${link}` : '\nBranch enviada. Abra o PR no Bitbucket.');
+  console.log(link ? `\nAbra o PR com um clique: ${link}` : '\nBranch enviada. Abra o PR no GitHub.');
 }

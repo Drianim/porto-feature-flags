@@ -75,10 +75,10 @@ test('config/approvers.json inválido é reprovado pelo validate', () => {
   fs.cpSync(path.join(repoRoot, 'scripts'), path.join(dir, 'scripts'), { recursive: true });
   fs.cpSync(path.join(repoRoot, 'config'), path.join(dir, 'config'), { recursive: true });
   for (const d of ['flags', 'env/nonprod', 'env/prod', 'rm']) fs.mkdirSync(path.join(dir, d), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'config/approvers.json'), JSON.stringify({ admins: ['a@x.com'], adminUuids: ['errado'], mergeBot: '', minApprovals: 0, platform: [] }));
+  fs.writeFileSync(path.join(dir, 'config/approvers.json'), JSON.stringify({ adminLogins: ['a@x.com'], platformLogins: [] }));
   const r = spawnSync('node', ['scripts/validate.js'], { cwd: dir, encoding: 'utf8' });
   fs.rmSync(dir, { recursive: true, force: true });
   assert.strictEqual(r.status, 1);
-  assert.match(r.stdout + r.stderr, /adminUuids/);
+  assert.match(r.stdout + r.stderr, /adminLogins/);
   assert.ok(f);
 });

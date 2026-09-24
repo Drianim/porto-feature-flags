@@ -12,7 +12,9 @@ const np = (v) => JSON.stringify({ nonprod: { default: v } });
 // Monta um repo com main, aplica `change` numa branch e faz o merge --no-ff como o Bitbucket ("Merged in <branch> (pull request #N)").
 // authorEmail: quem commita a mudança (padrão: e-mail da equipe de plataforma da config real, que pode mexer em qualquer FF).
 const PLATFORM = require('../../config/teams.json').platform[0];
-function mergeAndRecheck(branch, change, mergerEmail = 't@t', authorEmail = PLATFORM) {
+// mergedBy: login de quem mesclou, que no GitHub Actions viria da API (merged_by); aqui entra por MERGED_BY.
+// message: formato do commit de merge (padrão: o do GitHub).
+function mergeAndRecheck(branch, change, mergedBy = 'adrianoo-del', authorEmail = PLATFORM, message = `Merge pull request #9 from drianimadriano/${branch}`) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rm-'));
   const sh = (c) => execSync(c, { cwd: dir, stdio: 'pipe' });
   const git = (c) => sh(`git -c user.name=t -c user.email=t@t ${c}`);
@@ -33,9 +35,9 @@ function mergeAndRecheck(branch, change, mergerEmail = 't@t', authorEmail = PLAT
   );
   git('add -A'); sh(`git -c user.name=t -c user.email=${authorEmail} commit -q -m change`);
   git('checkout -q main');
-  sh(`git -c user.name=t -c user.email=${mergerEmail} merge -q --no-ff ${branch} -m "Merged in ${branch} (pull request #9)"`);
+  sh(`git -c user.name=t -c user.email=t@t merge -q --no-ff ${branch} -m ${JSON.stringify(message)}`);
   sh('sh scripts/ci/merge-source.sh > merge-source.txt');
-  const r = spawnSync('sh', ['scripts/ci/recheck-merge.sh'], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync('sh', ['scripts/ci/recheck-merge.sh'], { cwd: dir, encoding: 'utf8', env: { ...process.env, MERGED_BY: mergedBy } });
   fs.rmSync(dir, { recursive: true, force: true });
   return { ok: r.status === 0, out: r.stdout + r.stderr };
 }
@@ -73,12 +75,12 @@ test('origem sem publicação (hotfix) não é reconferida', () => {
   assert.match(r.out, /nada a reconferir/);
 });
 test('chore/* mesclado por admin passa', () => {
-  const r = mergeAndRecheck('chore/x', (w) => w('README.md', 'ajuste\n'), 'drianim.oliveira@gmail.com');
+  const r = mergeAndRecheck('chore/x', (w) => w('README.md', 'ajuste\n'), 'adrianoo-del');
   assert.strictEqual(r.ok, true, r.out);
   assert.match(r.out, /feito por admin/);
 });
 test('chore/* mesclado por quem não é admin é reprovado', () => {
-  const r = mergeAndRecheck('chore/x', (w) => w('README.md', 'ajuste\n'), 'outra.pessoa@x.com');
+  const r = mergeAndRecheck('chore/x', (w) => w('README.md', 'ajuste\n'), 'outra-pessoa');
   assert.strictEqual(r.ok, false);
   assert.match(r.out, /só admin pode mesclar chore/);
 });
@@ -112,4 +114,14 @@ test('release de autor sem vínculo com a equipe é reprovada', () => {
   const r = mergeAndRecheck('release/x', (w) => w('env/prod/ft_a.json', JSON.stringify({ prod: { default: 'false' } })), 't@t', 'outra.pessoa@x.com');
   assert.strictEqual(r.ok, false);
   assert.match(r.out, /permissão por equipe/);
+});
+
+test('revert/* mesclado por quem não é admin é reprovado; por admin passa', () => {
+  assert.strictEqual(mergeAndRecheck('revert/pr-1-feature-x', (w) => w('README.md', 'x\n'), 'outra-pessoa').ok, false);
+  assert.strictEqual(mergeAndRecheck('revert/pr-1-feature-x', (w) => w('README.md', 'x\n'), 'adrianoo-del').ok, true);
+});
+test('histórico antigo do Bitbucket ("Merged in ...") continua reconhecido', () => {
+  const r = mergeAndRecheck('feature/x', (w) => w('env/nonprod/ft_a.json', np('true')), 'adrianoo-del', PLATFORM, 'Merged in feature/x (pull request #9)');
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /já existe/);
 });

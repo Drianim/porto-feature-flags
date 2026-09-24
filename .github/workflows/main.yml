@@ -1,0 +1,135 @@
+name: main
+# Depois de cada merge na main (spec 0010): valida e reconfere o merge (escopo, nome único, equipe; chore/* e revert/*
+# só por admin). Se a reconferência falhar, prepara a branch revert/* com o link e nenhum deploy é oferecido.
+# Publicar em NÃO PROD e em PROD pede aprovação no ambiente (nonprod / production): é o antigo "Run".
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main
+  cancel-in-progress: false
+
+jobs:
+  reconferir:
+    name: Validar e reconferir o merge
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # só para empurrar a branch revert/* quando a reconferência falha
+      pull-requests: read    # quem mesclou (merged_by), para chore/* e revert/*
+    outputs:
+      source: ${{ steps.origem.outputs.source }}
+      nonprod: ${{ steps.mudancas.outputs.nonprod }}
+      prod: ${{ steps.mudancas.outputs.prod }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - id: origem
+        run: |
+          sh scripts/ci/merge-source.sh > merge-source.txt
+          echo "Origem do merge: $(cat merge-source.txt)"
+          echo "source=$(cat merge-source.txt)" >> "$GITHUB_OUTPUT"
+      - id: mudancas
+        run: |
+          files=$(git diff --name-only HEAD^1 HEAD 2>/dev/null || true)
+          echo "$files" | grep -qE '^(flags|env/nonprod)/' && echo "nonprod=true" >> "$GITHUB_OUTPUT" || echo "nonprod=false" >> "$GITHUB_OUTPUT"
+          echo "$files" | grep -qE '^(env/prod|rm)/' && echo "prod=true" >> "$GITHUB_OUTPUT" || echo "prod=false" >> "$GITHUB_OUTPUT"
+      - id: recheck
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm test
+          npm run validate
+          sh scripts/ci/recheck-merge.sh
+      - name: Preparar a reversão (se a reconferência falhou)
+        if: failure() && steps.recheck.outcome == 'failure'
+        env:
+          RECHECK_EXIT_CODE: '1'
+        run: sh scripts/ci/revert-merge.sh
+
+  publicar-nonprod:
+    name: Publicar ou remover e verificar NÃO PROD
+    needs: reconferir
+    if: needs.reconferir.outputs.nonprod == 'true' && (startsWith(needs.reconferir.outputs.source, 'feature/') || startsWith(needs.reconferir.outputs.source, 'update/') || startsWith(needs.reconferir.outputs.source, 'remove/'))
+    environment: nonprod
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SA_KEY_NONPROD: ${{ secrets.FIREBASE_SA_KEY_NONPROD }}
+      SOURCE: ${{ needs.reconferir.outputs.source }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          echo "$SOURCE" > merge-source.txt
+          sh scripts/ci/run-if-source.sh "feature/|update/" node scripts/deploy.js nonprod
+          sh scripts/ci/run-if-source.sh "remove/" node scripts/remove-flags.js nonprod --base HEAD^1
+          sh scripts/ci/run-if-source.sh "feature/|update/|remove/" node scripts/verify-sync.js nonprod
+
+  validar-prod:
+    name: Validar regras de PROD (release/*)
+    needs: reconferir
+    if: needs.reconferir.outputs.prod == 'true' && startsWith(needs.reconferir.outputs.source, 'release/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm run validate:prod
+
+  gate-prod:
+    name: Gate de aprovação (plataforma + equipe)
+    needs: validar-prod
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: node scripts/check-approvals.js
+
+  publicar-prod:
+    name: Publicar PROD (release/*)
+    needs: [reconferir, gate-prod]
+    environment: production
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SA_KEY_PROD: ${{ secrets.FIREBASE_SA_KEY_PROD }}
+      FIREBASE_PROJECT_PROD: ${{ vars.FIREBASE_PROJECT_PROD }}
+      SOURCE: ${{ needs.reconferir.outputs.source }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          echo "$SOURCE" > merge-source.txt
+          sh scripts/ci/run-if-source.sh release/ node scripts/deploy.js prod

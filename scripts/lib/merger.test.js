@@ -1,38 +1,33 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { evaluate } = require('./merger');
+const { evaluate, approversErrors } = require('./merger');
 
-const admins = ['Admin@x.com'];
-test('admin pode mesclar chore/* (ignora maiúsculas)', () => {
-  assert.strictEqual(evaluate({ source: 'chore/ajuste', mergerEmail: 'admin@x.com', admins }).ok, true);
+const adminLogins = ['Adrianoo-Del'];
+test('admin pode mesclar chore/* e revert/* (login do GitHub, ignora maiúsculas)', () => {
+  for (const source of ['chore/ajuste', 'revert/pr-9-feature-x']) {
+    assert.deepStrictEqual(evaluate({ source, mergedBy: 'adrianoo-del', adminLogins }), { ok: true, problems: [] }, source);
+  }
 });
-test('quem não é admin não pode mesclar chore/*', () => {
-  const r = evaluate({ source: 'chore/ajuste', mergerEmail: 'outro@x.com', admins });
+test('quem não é admin não pode mesclar chore/* nem revert/*', () => {
+  const r = evaluate({ source: 'chore/ajuste', mergedBy: 'outra-pessoa', adminLogins });
   assert.strictEqual(r.ok, false);
-  assert.match(r.problems[0], /só admin pode mesclar chore/);
+  assert.match(r.problems[0], /só admin pode mesclar chore\/\*; o merge foi feito por outra-pessoa/);
+  assert.strictEqual(evaluate({ source: 'revert/pr-1-x', mergedBy: 'outra-pessoa', adminLogins }).ok, false);
 });
 test('outras origens não passam por essa regra', () => {
-  for (const source of ['feature/a', 'update/a', 'remove/a', 'release/a', '']) assert.strictEqual(evaluate({ source, mergerEmail: 'outro@x.com', admins }).ok, true);
+  for (const source of ['feature/a', 'update/a', 'remove/a', 'release/a', '']) assert.strictEqual(evaluate({ source, mergedBy: 'outra', adminLogins }).ok, true);
 });
-test('lista de admins vazia ou merger desconhecido reprova chore/*', () => {
-  assert.strictEqual(evaluate({ source: 'chore/a', mergerEmail: 'admin@x.com', admins: [] }).ok, false);
-  assert.strictEqual(evaluate({ source: 'chore/a', mergerEmail: '', admins }).ok, false);
-});
-
-test('a conta-bot (mergeBot) também pode mesclar chore/*: é quem mescla depois de a pipeline conferir o admin', () => {
-  assert.strictEqual(evaluate({ source: 'chore/a', mergerEmail: 'Bot@x.com', admins, mergeBot: 'bot@x.com' }).ok, true);
-  assert.strictEqual(evaluate({ source: 'chore/a', mergerEmail: 'outro@x.com', admins, mergeBot: 'bot@x.com' }).ok, false);
-  assert.strictEqual(evaluate({ source: 'chore/a', mergerEmail: 'admin@x.com', admins, mergeBot: '' }).ok, true);
+test('lista de admins vazia ou quem mesclou desconhecido reprova', () => {
+  assert.match(evaluate({ source: 'chore/a', mergedBy: 'adrianoo-del', adminLogins: [] }).problems[0], /adminLogins/);
+  assert.match(evaluate({ source: 'chore/a', mergedBy: '', adminLogins }).problems[0], /não consegui identificar/);
 });
 
-const { approversErrors } = require('./merger');
-test('config/approvers.json: formato de mergeBot, adminUuids e minApprovals', () => {
-  const ok = { admins: ['a@x.com'], adminUuids: ['{11111111-2222-3333-4444-555555555555}'], mergeBot: 'bot@x.com', minApprovals: 0, platform: [] };
+test('config/approvers.json: adminLogins e platformLogins (logins do GitHub)', () => {
+  const ok = { adminLogins: ['adrianoo-del'], platformLogins: [] };
   assert.deepStrictEqual(approversErrors(ok), []);
-  assert.deepStrictEqual(approversErrors({ ...ok, mergeBot: '', adminUuids: [] }), [], 'vazios = ainda não configurado');
-  assert.match(approversErrors({ ...ok, mergeBot: 'sem-arroba' }).join('|'), /mergeBot/);
-  assert.match(approversErrors({ ...ok, adminUuids: ['nao-e-uuid'] }).join('|'), /adminUuids/);
-  assert.match(approversErrors({ ...ok, adminUuids: 'x' }).join('|'), /adminUuids/);
-  for (const m of [-1, 1.5, '1']) assert.match(approversErrors({ ...ok, minApprovals: m }).join('|'), /minApprovals/, String(m));
-  assert.match(approversErrors({ ...ok, admins: [] }).join('|'), /admins/);
+  assert.match(approversErrors({ ...ok, adminLogins: [] }).join('|'), /adminLogins/);
+  assert.match(approversErrors({ ...ok, adminLogins: ['a@b.com'] }).join('|'), /adminLogins/);
+  assert.match(approversErrors({ ...ok, platformLogins: ['com espaço'] }).join('|'), /platformLogins/);
+  assert.match(approversErrors({ ...ok, platformLogins: 'x' }).join('|'), /platformLogins/);
+  assert.match(approversErrors({ ...ok, admins: ['a@b.com'] }).join('|'), /substituído por adminLogins/);
 });

@@ -1,11 +1,11 @@
 #!/bin/sh
-# Roda no after-script do step "Reconferir regras do merge". Se ele FALHOU, prepara a reversão do merge ruim:
-# cria a branch revert/pr-<n>-<origem>, empurra por SSH e imprime o link de um clique para abrir o PR.
-# Nunca faz merge sozinho e nunca falha o step (sempre sai com 0).
-# Pré-requisito (uma vez): chave SSH do Pipelines cadastrada como Access key com escrita (ver README).
-# Env do Bitbucket: BITBUCKET_EXIT_CODE, BITBUCKET_REPO_FULL_NAME. REVERT_REMOTE_URL sobrescreve o remoto (testes).
+# Roda depois do passo "Reconferir regras do merge" (GitHub Actions). Se ele FALHOU, prepara a reversão do merge ruim:
+# cria a branch revert/pr-<n>-<origem>, empurra e imprime o link para abrir o PR. Nunca faz merge sozinho e nunca
+# falha o passo (sempre sai com 0).
+# Empurra pelo remoto "origin" do checkout, que já leva o GITHUB_TOKEN (o job precisa de permissions: contents: write).
+# Env: RECHECK_EXIT_CODE (resultado da reconferência), GITHUB_REPOSITORY. REVERT_REMOTE_URL sobrescreve o remoto (testes).
 
-if [ "${BITBUCKET_EXIT_CODE:-1}" = "0" ]; then exit 0; fi   # a reconferência passou: nada a reverter
+if [ "${RECHECK_EXIT_CODE:-1}" = "0" ]; then exit 0; fi   # a reconferência passou: nada a reverter
 
 src=$(cat merge-source.txt 2>/dev/null)
 case "$src" in
@@ -18,10 +18,11 @@ if [ "$(git rev-list --parents -n 1 HEAD | wc -w | tr -d ' ')" != "3" ]; then
   echo "HEAD não é um commit de merge: reversão automática não se aplica."; exit 0
 fi
 
-pr=$(git log -1 --pretty=%B | sed -n 's/.*(pull request #\([0-9][0-9]*\)).*/\1/p' | head -1)
+# número do PR: "Merge pull request #N from ..." (GitHub) ou "... (pull request #N)" (histórico do Bitbucket)
+pr=$(git log -1 --pretty=%B | sed -n -e 's/^Merge pull request #\([0-9][0-9]*\) .*/\1/p' -e 's/.*(pull request #\([0-9][0-9]*\)).*/\1/p' | head -1)
 branch="revert/${pr:+pr-$pr-}$(echo "$src" | tr '/' '-')"
-remote_url="${REVERT_REMOTE_URL:-git@bitbucket.org:${BITBUCKET_REPO_FULL_NAME}.git}"
-link="https://bitbucket.org/${BITBUCKET_REPO_FULL_NAME:-workspace/repo}/pull-requests/new?source=${branch}&dest=main"
+remote_url="${REVERT_REMOTE_URL:-}"
+link="https://github.com/${GITHUB_REPOSITORY:-dono/repo}/compare/main...${branch}?expand=1"
 base_sha=$(git rev-parse HEAD^1)
 
 manual() {
@@ -34,12 +35,16 @@ Reversão manual (rode no seu computador):
 TXT
 }
 
-git config user.name "Pipelines (reversão automática)"
-git config user.email "pipelines@bitbucket.org"
-git remote remove revert-origin >/dev/null 2>&1
-git remote add revert-origin "$remote_url"
+git config user.name "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+remote=origin
+if [ -n "$remote_url" ]; then
+  git remote remove revert-origin >/dev/null 2>&1
+  git remote add revert-origin "$remote_url"
+  remote=revert-origin
+fi
 
-if git ls-remote --exit-code --heads revert-origin "$branch" >/dev/null 2>&1; then
+if git ls-remote --exit-code --heads "$remote" "$branch" >/dev/null 2>&1; then
   echo "A branch $branch já existe no remoto (reexecução?). Abra ou confira o PR: $link"; exit 0
 fi
 
@@ -50,8 +55,8 @@ if ! git revert -m 1 --no-edit "$sha" >/dev/null 2>&1; then
   manual; exit 0
 fi
 
-if ! git push revert-origin "$branch" 2>&1; then
-  echo "Não consegui empurrar $branch. Confira se a chave SSH do Pipelines está cadastrada como Access key com escrita."
+if ! git push "$remote" "$branch" 2>&1; then
+  echo "Não consegui empurrar $branch. Confira se o job tem permissions: contents: write."
   manual; exit 0
 fi
 
@@ -60,7 +65,7 @@ cat <<TXT
 ============================================================
 Merge $sha violou as regras. Preparei a reversão em '$branch'
 (main antes do merge: $base_sha).
-Abra o PR com um clique e mergeie: $link
+Abra o PR e mescle (depois de a pipeline do PR passar): $link
 ============================================================
 TXT
 exit 0

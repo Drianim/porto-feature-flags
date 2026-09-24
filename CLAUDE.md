@@ -1,6 +1,6 @@
 # CLAUDE.md — porto-feature-flags
 
-Repositório que governa as Feature Flags (Firebase Remote Config) por PR e pipeline do Bitbucket. **Leia o
+Repositório **público no GitHub** (`drianimadriano/porto-feature-flags`) que governa as Feature Flags (Firebase Remote Config) por PR e GitHub Actions. **Leia o
 [README.md](README.md)** para o quadro completo (o que faz, arquitetura, processo, configuração). Este arquivo
 resume o que um Claude Code precisa saber antes de mexer.
 
@@ -26,28 +26,28 @@ Onde cada processo está e como acioná-lo (`README.md` traz o detalhe; a skill 
 | Alterar FF existente | README, *Processo* | `update/*`; skill `feature-flag` |
 | Remover FF | README, *Processo* | `remove/*`; `remove-flags.js`; app primeiro |
 | Levar para PROD (RM) | README, *PROD, RM e criticidade* | `release/*`; `npm run new:rm`; `validate:prod` |
-| Aprovação na pipeline (Run) | README, *Pipelines* | clicar em **Run** no passo manual da `main` |
+| Aprovação do deploy (ambiente nonprod) | README, *Aprovação do deploy* | revisor aprova o job no ambiente `nonprod` (*Review deployments*) |
 | Preflight e npm run pr | README, *Preflight e template de PR* | `npm run preflight`; `npm run pr` |
 | Hook pre-push | README, *Preflight e template de PR* | `npm run hooks` (uma vez) |
-| Template de PR | `.bitbucket/pull_request_template.md` | seção por tipo de branch |
-| Criar branch pela interface do Bitbucket | README, *Processo* | Feature, Release ou Other (`update/`, `remove/`, `chore/`) |
+| Template de PR | `.github/pull_request_template.md` | seção por tipo de branch |
+| Criar a branch com o prefixo certo | README, *Criar a branch* | nome completo com o prefixo (`feature/`, `update/`, `remove/`, `release/`, `chore/`) |
 | Plataforma e versão mínima | README, *Modelo de uma FF* | `platforms` e `minVersion` em `flags/` |
 | Equipe e permissão | README, *Permissão por equipe* | `config/teams.json`; `check-ownership` |
 | Reconferência e reversão automática | README, *Proteções* | `recheck-merge.sh`; `revert/*` |
 | Sincronia main = Firebase | README, *Pipelines* | `sync-nonprod`; `verify-sync`; `npm run status -- sync` |
 | Teste real de plataforma | README, *Proteções* | `node scripts/test-platforms.js nonprod` |
 | Validar template no Firebase (sem publicar) | README, *Pipelines* | `node scripts/deploy.js nonprod --validate` |
-| chore/* (só admin mescla) | README, *Processo* | branch `chore/*`; testes no PR; só admin clica em Mesclar |
+| chore/* e revert/* (só admin) | README, *Processo* | só admin abre (PR) e mescla (reconferência); `adminLogins` |
 | SDD nos scripts | `docs/sdd/README.md` | spec em `docs/specs/`; skill `sdd-scripts` |
 | Consultar o status | README, *Scripts* | `npm run status`; skill `ff-status` |
 | Código do app (templates) | `docs/templates/codigo-app/` | `android.md` (Kotlin); `ios.md` (Swift) |
 | Catálogo de chaves | README, *Mapa de pastas* | `npm run catalog` |
-| Escopo da PoC e credenciais | README, *Configuração no Bitbucket* | só NÃO PROD; `FIREBASE_SA_KEY_NONPROD` |
+| Escopo da PoC e credenciais | README, *Configuração no GitHub* | só NÃO PROD; `FIREBASE_SA_KEY_NONPROD` |
 | Rollback | README, *PROD, RM e criticidade* | voltar a FF para desligada em `update/*` |
 | Criticidade e rollout por estágio | README, *PROD, RM e criticidade* | `rolloutPlan` do RM |
 | Campanha de teste do processo | `docs/testes-do-processo.md` | PRs positivos e negativos, em fases |
-| Merge só pela pipeline | README, *Merge só pela pipeline* | último passo manual "Mesclar o PR"; conta-bot; `scripts/ci/merge-pr.js` |
-| PR vermelho (nunca mesclar) | README, *Decisões, limites e armadilhas* | sem o passo "Mesclar"; se entrar, reverter com `revert/*` |
+| Merge bloqueado até tudo verde | README, *Merge bloqueado até tudo verde* | proteção da `main` exige o job "Tudo verde" (`.github/workflows/pr.yml`) |
+| PR vermelho (nunca mesclar) | README, *Decisões, limites e armadilhas* | o botão não libera; se algo entrar, reverter com `revert/*` |
 
 ## Comandos
 
@@ -70,7 +70,7 @@ npm run status -- list                     # status das FFs (somente leitura; sk
   Pergunte.
 - Nada é editado no console do Firebase: o repositório é a fonte única e a `main` deve ser idêntica ao Remote Config
   NÃO PROD (`verify-sync`).
-- **Merge só pela pipeline:** na `main` só a conta-bot mescla, pelo último passo (manual) do PR, que só aparece com tudo verde. Não mescle nada à mão. Só **admin** (`adminUuids`) clica em Mesclar em `chore/*` e `revert/*`; `chore/*` não publica.
+- **Merge só com "Tudo verde":** a proteção da `main` só libera o merge quando todas as checagens do PR passaram (sem exceção para admins). Não mescle nada que não esteja verde nem desligue a proteção. Só **admin** (`adminLogins` em `config/approvers.json`) abre e mescla `chore/*` e `revert/*`; `chore/*` não publica.
 - Toda FF tem `team` (uma equipe de `config/teams.json`), `platforms` (`android|ios|ambas`) e `minVersion` (`x.y.z`), sem exceção.
 - **Uma equipe só mexe nas FFs dela**; só a equipe de **plataforma** altera FF de outra equipe e transfere FF entre equipes (`scripts/check-ownership.js`, pelos e-mails dos commits). Equipes e membros mudam só por `chore/*`.
 
@@ -80,7 +80,7 @@ npm run status -- list                     # status das FFs (somente leitura; sk
 - **Lógica pura:** `scripts/lib/` (flags, remote-config, escopo, nome único, aprovações, rollout, merger, specs) com
   testes `*.test.js` ao lado.
 - **CLIs finas:** `scripts/*.js` (validate, deploy, verify-sync, remove-flags, check-*, preflight, test-platforms).
-- **CI:** `bitbucket-pipelines.yml` só orquestra; a regra mora em script testável (`scripts/ci/*.sh` para o que é shell).
+- **CI:** `.github/workflows/*.yml` só orquestram; a regra mora em script testável (`scripts/ci/`). `scripts/lib/workflows.test.js` trava o formato e a segurança dos workflows.
 - **Governança:** tipo de branch define o que pode mudar e onde publica; reconferência na `main`; reversão automática.
 
 ## Convenções
@@ -89,12 +89,15 @@ npm run status -- list                     # status das FFs (somente leitura; sk
 - Lógica em `scripts/lib/`, CLI fina, testes ao lado (`node:test`). Shell POSIX em `scripts/ci/` com teste.
 - Commits: `tipo: resumo em português` (`feat`, `fix`, `docs`, `ci`, `test`, `chore`).
 
-## Armadilhas do Bitbucket já vividas
+## Armadilhas já vividas
 
-- Um `deployment` por ambiente **por pipeline** (por isso deploy e verify ficam no mesmo step; `pipeline.test.js` trava).
-- Pipeline de PR não recebe variável de Deployment: `FIREBASE_SA_KEY_NONPROD` é variável de **repositório** (secured).
-- O merge check do plano atual **não bloqueia** o botão de merge (é Premium): por isso o merge é só pela pipeline, com conta-bot.
-- *Access keys* do repositório são **somente leitura**: o push da reversão automática exige chave SSH da conta ou do
-  workspace (ou token de repositório por HTTPS).
+- **O PR roda os workflows e scripts do próprio PR** (evento `pull_request`): mudar `.github/` ou `scripts/` num PR muda as
+  checagens dele. Isso vai em `chore/*` (só admin). Nunca use `pull_request_target` com checkout do código do PR.
+- **Entrada do PR** (nome da branch, autor, título) só entra nos scripts por `env`, nunca `${{ ... }}` dentro de `run`.
+- **PR de fork não recebe secrets:** as checagens com Firebase falham; é esperado.
+- **A proteção da `main` exige o job `Tudo verde`:** renomear o job sem atualizar a proteção trava os merges.
+- **Merge só por merge commit** (squash e rebase desligados): a reconferência e a reversão usam o commit de merge e a
+  mensagem `Merge pull request #N from <dono>/<branch>`.
 - `catalog/keys.json` desatualizado quebra a pipeline: rode `npm run catalog`.
-- Step sem mudança na pasta da `condition: changesets` aparece como "skipped" (é de propósito).
+- No Bitbucket (histórico até a spec 0010) o merge check do plano **não bloqueava** o botão: os PRs #37, #39 e #47 entraram
+  sem validação. Foi o motivo da migração para o GitHub.

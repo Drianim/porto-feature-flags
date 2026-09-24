@@ -15,5 +15,11 @@ test('prLink monta o link de um clique a partir do remoto SSH ou HTTPS', () => {
   assert.strictEqual(prLink('git@bitbucket.org:Drianim/porto-feature-flags.git', 'feature/x'), want);
   assert.strictEqual(prLink('https://Drianim@bitbucket.org/Drianim/porto-feature-flags.git', 'feature/x'), want);
   assert.strictEqual(prLink('https://bitbucket.org/Drianim/porto-feature-flags', 'feature/x'), want);
-  assert.strictEqual(prLink('git@github.com:a/b.git', 'feature/x'), null);
+  assert.strictEqual(prLink('git@gitlab.com:a/b.git', 'feature/x'), null);
+});
+test('prLink do GitHub: link de comparação que abre o PR', () => {
+  const want = 'https://github.com/drianimadriano/porto-feature-flags/compare/main...feature/x?expand=1';
+  assert.strictEqual(prLink('git@github.com:drianimadriano/porto-feature-flags.git', 'feature/x'), want);
+  assert.strictEqual(prLink('https://github.com/drianimadriano/porto-feature-flags.git', 'feature/x'), want);
+  assert.strictEqual(prLink('https://github.com/drianimadriano/porto-feature-flags', 'feature/x'), want);
 });

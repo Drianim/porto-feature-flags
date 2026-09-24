@@ -10,8 +10,8 @@ TDD, revisão antes de codar), sem a parte de Jira, épico e história: aqui a s
 | O que muda | Usa SDD? | Como entra |
 |---|---|---|
 | Uma **FF**: `flags/`, `env/`, `rm/` (valores, rollout, criar, alterar, remover, PROD) | **Não** | `feature/*`, `update/*`, `remove/*` ou `release/*` + template de PR |
-| **Scripts e automação**: `scripts/`, `bitbucket-pipelines.yml`, `.githooks/`, regras em `config/` | **Sim** | spec em `docs/specs/` + branch `chore/*` |
-| **Documentação e ferramentas do Claude**: `README.md`, `CLAUDE.md`, `.claude/`, `docs/`, `.bitbucket/` | **Sim** (spec curta) | `chore/*` |
+| **Scripts e automação**: `scripts/`, `.github/workflows/`, `.githooks/`, regras em `config/` | **Sim** | spec em `docs/specs/` + branch `chore/*` |
+| **Documentação e ferramentas do Claude**: `README.md`, `CLAUDE.md`, `.claude/`, `docs/`, `.github/pull_request_template.md` | **Sim** (spec curta) | `chore/*` |
 
 Mudança mista (script novo que exige migrar dados de FF): a spec descreve as duas partes e a `chore/*` leva os
 dois. `chore/*` não publica nada, então depois do merge rode a pipeline `sync-nonprod` se o Firebase precisar mudar
@@ -62,7 +62,7 @@ Os rótulos estruturais (`Task`, `Files`, `Interfaces`) ficam em inglês porque 
 - **Todo comportamento tem teste** `*.test.js` ao lado (`node:test`); shell em `scripts/ci/` também tem teste.
 - Mensagens em português, acionáveis (dizem o que corrigir); erro = `exit 1`. Scripts que publicam aceitam `--dry-run`.
 - Nada de credencial no repositório; chaves entram por variável de ambiente secured.
-- Pipeline (`bitbucket-pipelines.yml`) só **orquestra**: a regra mora em script testável. `scripts/lib/pipeline.test.js` trava o formato.
+- Workflows (`.github/workflows/`) só **orquestram**: a regra mora em script testável. `scripts/lib/workflows.test.js` trava o formato e a segurança.
 
 ## Exemplos
 

@@ -162,7 +162,7 @@ async function connect(cfgEnv) {
   if (!projectId) throw new Error(`${cfgEnv.projectVar} não definido`);
   const keyB64 = process.env[cfgEnv.keyVar];
   if (!keyB64) {
-    throw new Error(`${cfgEnv.keyVar} não definido. Crie-a no Bitbucket como variável SECURED (Repository settings > Pipelines > Repository variables) com o JSON do service account em base64: base64 -i chave.json | pbcopy`);
+    throw new Error(`${cfgEnv.keyVar} não definido. No GitHub, crie o secret do repositório (Settings > Secrets and variables > Actions) com o JSON do service account em base64: base64 -i chave.json | pbcopy. Localmente: export ${cfgEnv.keyVar}=$(base64 -i chave.json)`);
   }
   const admin = require('firebase-admin');
   const credential = admin.credential.cert(JSON.parse(Buffer.from(keyB64, 'base64').toString('utf8')));

@@ -1,0 +1,28 @@
+name: verify-nonprod
+# Só leitura: falha se a main e o Firebase NÃO PROD divergirem (inclui chave que só existe no Firebase). Serve de alarme.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 11 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verificar sincronia NÃO PROD (só leitura)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SA_KEY_NONPROD: ${{ secrets.FIREBASE_SA_KEY_NONPROD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          node scripts/verify-sync.js nonprod --strict

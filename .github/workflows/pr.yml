@@ -1,0 +1,168 @@
+name: PR
+# Checagens do PR para a main (spec 0010). A proteção da main exige o job "Tudo verde": o botão de merge só é
+# liberado quando todas as checagens passaram (as que não se aplicam ao tipo da branch ficam como "skipped").
+# Tudo que vem de quem abre o PR (nome da branch, autor) entra por env, nunca direto no script.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  tipo:
+    name: Tipo da branch
+    runs-on: ubuntu-latest
+    outputs:
+      kind: ${{ steps.tipo.outputs.kind }}
+      ff: ${{ steps.tipo.outputs.ff }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - id: tipo
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: node scripts/ci/pr-kind.js
+
+  validacao:
+    name: Testes e validação
+    needs: tipo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run validate
+
+  escopo:
+    name: Escopo da branch
+    needs: tipo
+    if: needs.tipo.outputs.ff == 'true'
+    runs-on: ubuntu-latest
+    env:
+      HEAD_REF: ${{ github.head_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - run: node scripts/check-scope.js "$HEAD_REF" origin/main
+
+  equipe:
+    name: Permissão por equipe
+    needs: tipo
+    if: needs.tipo.outputs.ff == 'true'
+    runs-on: ubuntu-latest
+    env:
+      HEAD_REF: ${{ github.head_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - run: node scripts/check-ownership.js "$HEAD_REF" origin/main
+
+  nome-unico:
+    name: FF nova x update (nome único)
+    needs: tipo
+    if: needs.tipo.outputs.ff == 'true'
+    runs-on: ubuntu-latest
+    env:
+      HEAD_REF: ${{ github.head_ref }}
+      FIREBASE_SA_KEY_NONPROD: ${{ secrets.FIREBASE_SA_KEY_NONPROD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          node scripts/check-new-flags.js "$HEAD_REF" origin/main
+
+  previa:
+    name: Prévia do deploy (dry-run)
+    needs: tipo
+    if: needs.tipo.outputs.ff == 'true'
+    runs-on: ubuntu-latest
+    env:
+      HEAD_REF: ${{ github.head_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          node scripts/deploy.js nonprod --dry-run
+          case "$HEAD_REF" in
+            release/*) npm run validate:prod && node scripts/deploy.js prod --dry-run ;;
+            *) echo "Origem $HEAD_REF: regras de PROD só se aplicam a release/*" ;;
+          esac
+
+  firebase:
+    name: Validar o template no Firebase (sem publicar)
+    needs: tipo
+    if: needs.tipo.outputs.ff == 'true'
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SA_KEY_NONPROD: ${{ secrets.FIREBASE_SA_KEY_NONPROD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          node scripts/deploy.js nonprod --validate
+
+  revert:
+    name: Só reverts de merge da main
+    needs: tipo
+    if: needs.tipo.outputs.kind == 'revert'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - run: node scripts/ci/check-revert.js origin/main
+
+  tudo-verde:
+    name: Tudo verde
+    if: always()
+    needs: [tipo, validacao, escopo, equipe, nome-unico, previa, firebase, revert]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: node scripts/ci/all-green.js

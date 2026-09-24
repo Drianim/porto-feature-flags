@@ -85,11 +85,11 @@ test('README dos templates: linha do tempo por situação, tipos de branch, roll
   assert.match(t, /ios\.md/);
 });
 
-test('o repositório aponta para os templates de código e explica os tipos de branch do Bitbucket', () => {
-  for (const f of ['README.md', 'CLAUDE.md', path.join('.claude', 'skills', 'feature-flag', 'SKILL.md'), path.join('.bitbucket', 'pull_request_template.md')]) {
+test('o repositório aponta para os templates de código e explica como nomear a branch', () => {
+  for (const f of ['README.md', 'CLAUDE.md', path.join('.claude', 'skills', 'feature-flag', 'SKILL.md'), path.join('.github', 'pull_request_template.md')]) {
     assert.ok(read(f).includes('docs/templates/codigo-app'), `${f} não aponta para os templates de código`);
   }
-  assert.match(read('.bitbucket', 'pull_request_template.md'), /PR do app/);
+  assert.match(read('.github', 'pull_request_template.md'), /PR do app/);
   const readme = read('README.md');
-  for (const w of ['Bugfix', 'Hotfix', 'Other', 'Feature', 'Release']) assert.ok(readme.includes(w), `README sem "${w}" (branches pela interface do Bitbucket)`);
+  for (const w of ['nome completo com o prefixo', 'hotfix/', 'feature/', 'update/', 'remove/', 'release/', 'chore/']) assert.ok(readme.includes(w), `README sem "${w}" (como nomear a branch)`);
 });

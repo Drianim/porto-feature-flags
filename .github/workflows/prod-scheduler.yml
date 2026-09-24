@@ -1,0 +1,32 @@
+name: prod-scheduler
+# Avança os estágios do rollout de PROD conforme o horário do RM (idempotente). Manual até existir o projeto de PROD;
+# depois, descomente o schedule (ex.: a cada 15 min).
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '7,22,37,52 * * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  rollout:
+    name: Deploy PROD (avanço de rollout)
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SA_KEY_PROD: ${{ secrets.FIREBASE_SA_KEY_PROD }}
+      FIREBASE_PROJECT_PROD: ${{ vars.FIREBASE_PROJECT_PROD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          npm run validate:prod
+          node scripts/deploy.js prod

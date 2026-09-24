@@ -1,10 +1,7 @@
 {
-  "_comment": "admins: e-mails de quem pode mesclar chore/* (reconferência da main). adminUuids: UUIDs do Bitbucket (com chaves) de quem pode clicar em \"Mesclar o PR\" em chore/* e revert/*. mergeBot: e-mail dos commits de merge da conta-bot (a única com permissão de merge na main). minApprovals: aprovações de outras pessoas exigidas no passo de merge (PoC: 0). platform: account_id do time de plataforma; preencha antes de usar PROD.",
-  "admins": [
-    "drianim.oliveira@gmail.com"
+  "_comment": "Logins do GitHub. adminLogins: quem pode abrir e mesclar chore/* e revert/* (checagem do PR e reconferência da main). platformLogins: time de plataforma, exigido na dupla aprovação de PROD (release/*); preencha antes de usar PROD.",
+  "adminLogins": [
+    "adrianoo-del"
   ],
-  "adminUuids": [],
-  "mergeBot": "",
-  "minApprovals": 0,
-  "platform": []
+  "platformLogins": []
 }

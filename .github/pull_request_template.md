@@ -67,12 +67,12 @@ Antes de abrir: npm run preflight (ou npm run pr).
 - [ ] Critérios de aceite da spec marcados e spec `implementada`
 - [ ] README, CLAUDE.md e skills atualizados, se o comportamento mudou
 - [ ] Se mexe em dados de FF: depois do merge, rodar a pipeline `sync-nonprod`
-- Só **admin** clica em "Mesclar o PR" em `chore/*`; o merge não publica nada.
+- Só **admin** abre e mescla `chore/*` (o job "Tipo da branch" confere); o merge não publica nada.
 
 ---
 
-## Depois do merge
-1. Aguarde a **reconferência do merge** na pipeline da main.
-2. Clique em **Run** no passo "Aprovar, publicar ou remover e verificar NÃO PROD".
-3. Confirme o `verify-sync` verde (main = Firebase).
-Se algo falhar, a pipeline gera uma branch `revert/*` com o link para abrir o PR de reversão.
+## Antes e depois do merge
+1. Espere o job **"Tudo verde"**: o botão de merge só é liberado quando todas as checagens passam.
+2. Depois do merge, aguarde a **reconferência** no workflow `main`.
+3. Aprove o deploy no ambiente `nonprod` (*Review deployments*) e confira o `verify-sync` verde (main = Firebase).
+Se a reconferência falhar, o workflow gera uma branch `revert/*` com o link para abrir o PR de reversão.

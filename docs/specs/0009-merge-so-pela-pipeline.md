@@ -8,6 +8,8 @@ atualizado: 2026-09-24
 
 # Spec 0009 — Merge só pela pipeline: o botão de merge não existe antes de a validação passar
 
+> **Substituída pela spec 0010:** o repositório migrou para o GitHub (público), onde a proteção da `main` bloqueia o merge de forma nativa até o job "Tudo verde" passar. A conta-bot, o `merge-gate` e o `merge-pr` saíram do repositório. Esta spec fica como registro da decisão.
+
 ## Resumo
 
 Como **responsável pelo processo de FF**, quero **que nenhum PR possa ser mesclado na `main` antes de a pipeline do PR validar tudo**, para que **um PR vermelho, ou um PR mesclado antes de a pipeline começar, nunca chegue à `main`**.

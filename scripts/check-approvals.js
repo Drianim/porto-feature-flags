@@ -1,32 +1,36 @@
 #!/usr/bin/env node
-// Gate de PROD na pipeline de main: confere no Bitbucket se o PR mergeado tem aprovação
-// de plataforma + equipe. Env: BB_ACCESS_TOKEN (repository access token, escopo pullrequest:read),
-// BITBUCKET_WORKSPACE, BITBUCKET_REPO_SLUG, BITBUCKET_COMMIT (fornecidas pelo Bitbucket).
+// Gate de PROD na pipeline da main: confere no GitHub se o PR mesclado tem aprovação da plataforma + da equipe.
+// Env do GitHub Actions: GITHUB_TOKEN (permissão pull-requests: read), GITHUB_REPOSITORY, GITHUB_SHA, GITHUB_API_URL.
 const { readJson } = require('./lib/common');
 const { evaluate } = require('./lib/approvals');
 
-const { BB_ACCESS_TOKEN, BITBUCKET_WORKSPACE: ws, BITBUCKET_REPO_SLUG: slug, BITBUCKET_COMMIT: commit } = process.env;
-if (!BB_ACCESS_TOKEN || !ws || !slug || !commit) {
-  console.error('✗ Defina BB_ACCESS_TOKEN (e rode dentro do Bitbucket Pipelines)');
-  process.exit(1);
-}
-const api = async (p) => {
-  const r = await fetch(`https://api.bitbucket.org/2.0/repositories/${ws}/${slug}/${p}`, {
-    headers: { Authorization: `Bearer ${BB_ACCESS_TOKEN}` },
-  });
-  if (!r.ok) throw new Error(`Bitbucket API ${r.status} em ${p}`);
-  return r.json();
-};
-
-(async () => {
-  const prs = await api(`commit/${commit}/pullrequests`);
-  const merged = (prs.values || []).find((p) => p.state === 'MERGED') || (prs.values || [])[0];
-  if (!merged) throw new Error('nenhum PR associado ao commit; push direto em main não é permitido');
-  const pr = await api(`pullrequests/${merged.id}`);
-  const result = evaluate(pr, readJson('config', 'approvers.json'));
-  if (!result.ok) {
-    console.error(`✗ PR #${merged.id} não cumpre a dupla aprovação:\n${result.problems.map((p) => `  - ${p}`).join('\n')}`);
-    process.exit(1);
+async function run(env = process.env, deps = {}) {
+  const d = { fetch: globalThis.fetch, config: null, stdout: console.log, stderr: console.error, ...deps };
+  const { GITHUB_TOKEN: token, GITHUB_REPOSITORY: repo, GITHUB_SHA: sha } = env;
+  if (!token || !repo || !sha) { d.stderr('✗ Defina GITHUB_TOKEN, GITHUB_REPOSITORY e GITHUB_SHA (rode dentro do GitHub Actions)'); return 1; }
+  const base = `${env.GITHUB_API_URL || 'https://api.github.com'}/repos/${repo}`;
+  const api = async (p) => {
+    const r = await d.fetch(`${base}/${p}`, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } });
+    if (!r.ok) throw new Error(`GitHub API ${r.status} em ${p}`);
+    return r.json();
+  };
+  try {
+    const prs = await api(`commits/${sha}/pulls`);
+    const pr = prs.find((p) => p.merged_at) || prs[0];
+    if (!pr) throw new Error('nenhum PR associado ao commit; push direto na main não é permitido');
+    const reviews = await api(`pulls/${pr.number}/reviews?per_page=100`);
+    const result = evaluate(reviews, pr.user && pr.user.login, d.config || readJson('config', 'approvers.json'));
+    if (!result.ok) {
+      d.stderr(`✗ PR #${pr.number} não cumpre a dupla aprovação:\n${result.problems.map((p) => `  - ${p}`).join('\n')}`);
+      return 1;
+    }
+    d.stdout(`✓ PR #${pr.number}: ${result.platform.length} aprovação(ões) da plataforma e ${result.team.length} da equipe`);
+    return 0;
+  } catch (e) {
+    d.stderr(`✗ ${e.message}`);
+    return 1;
   }
-  console.log(`✓ PR #${merged.id}: ${result.platform.length} aprovação(ões) da plataforma e ${result.team.length} da equipe`);
-})().catch((e) => { console.error(`✗ ${e.message}`); process.exit(1); });
+}
+
+if (require.main === module) run().then((code) => process.exit(code));
+module.exports = { run };

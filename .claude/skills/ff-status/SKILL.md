@@ -76,13 +76,13 @@ Aceite português e inglês.
 - **Estado por plataforma** vem do repositório, com as mesmas regras do deploy: `ligada N%`, `desligada`, `valor` (chaves `rc_`), `n/a` (a FF não existe naquela plataforma) ou `aguardando horário` (PROD antes do RM).
 - **Versão mínima:** abaixo dela a FF nunca ativa (toggle recebe `false`; `rc_` não é enviada). O detalhe mostra o que o app recebe **na versão mínima**, **logo abaixo** e **fora da plataforma**.
 - **Porcentagem:** o sorteio usa o nome da FF como semente; não dá para saber em qual grupo um usuário específico cai.
-- **Firebase (coluna/sincronia):** `✓ ok` = idêntico ao que a `main` manda publicar; `✗ diverge` = há diferença (o comando diz qual); `✗ ausente` = ainda não publicada; `✗ inválida` = FF sem plataforma/versão mínima. Divergência costuma ser um deploy que ainda não recebeu o **Run** ou que falhou: a correção é a pipeline `sync-nonprod`.
+- **Firebase (coluna/sincronia):** `✓ ok` = idêntico ao que a `main` manda publicar; `✗ diverge` = há diferença (o comando diz qual); `✗ ausente` = ainda não publicada; `✗ inválida` = FF sem plataforma/versão mínima. Divergência costuma ser um deploy que ainda não foi aprovado no ambiente `nonprod` ou que falhou: a correção é a pipeline `sync-nonprod`.
 
 ### Diagnóstico ("por que a FF X não aparece no meu app?")
 
 Rode `detail X` e percorra, nesta ordem, citando a saída:
 
-1. **Publicada?** Sincronia `ausente` ou `diverge` → o Firebase ainda não tem o que a `main` manda (falta o Run ou o `sync-nonprod`).
+1. **Publicada?** Sincronia `ausente` ou `diverge` → o Firebase ainda não tem o que a `main` manda (falta a aprovação do deploy no ambiente `nonprod` ou o `sync-nonprod`).
 2. **Plataforma:** o app do usuário está em `platforms`? Se o estado da plataforma é `n/a`, a FF não existe nela.
 3. **Versão do app ≥ versão mínima?** Abaixo, a FF não ativa.
 4. **Valor e porcentagem:** `desligada` ou `ligada N%` (com N < 100, só parte dos usuários recebe).
@@ -90,7 +90,7 @@ Rode `detail X` e percorra, nesta ordem, citando a saída:
 
 ## Depois de cada resposta
 
-Sugira um próximo passo relevante: de `list` → "quer o detalhe ou o rollout de alguma?"; de `detail` → "quer conferir a sincronia?"; de `summary` → "quer ver as candidatas a limpeza?"; de `sync` com divergência → "rode a pipeline `sync-nonprod` (ou faça o Run pendente)"; de `stale` → "para remover, use a skill `feature-flag` (branch `remove/*`)".
+Sugira um próximo passo relevante: de `list` → "quer o detalhe ou o rollout de alguma?"; de `detail` → "quer conferir a sincronia?"; de `summary` → "quer ver as candidatas a limpeza?"; de `sync` com divergência → "rode a pipeline `sync-nonprod` (ou faça a aprovação do deploy pendente)"; de `stale` → "para remover, use a skill `feature-flag` (branch `remove/*`)".
 
 ## O que esta skill não responde
 

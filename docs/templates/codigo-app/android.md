@@ -81,7 +81,7 @@ Checklist do PR do app: constante em `FeatureToggle`, padrão `false` em `PADROE
 
 ### 2. Ligar e subir o rollout (update/*)
 
-**Nada sobe no app.** Ligar por plataforma, mudar o percentual (5% → 25% → 100%) e desligar são mudanças do repositório de FF, numa branch `update/*`, com o Run da pipeline. O app só precisa:
+**Nada sobe no app.** Ligar por plataforma, mudar o percentual (5% → 25% → 100%) e desligar são mudanças do repositório de FF, numa branch `update/*`, publicadas depois da aprovação do deploy. O app só precisa:
 
 - ler a FF no início do fluxo, então a mudança vale na próxima abertura da tela, depois do próximo fetch (o intervalo mínimo é o `minimumFetchIntervalInSeconds` da inicialização);
 - manter os dois caminhos de código (o rollback é voltar o valor da FF, sem publicar app).

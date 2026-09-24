@@ -1,11 +1,11 @@
 ---
 name: sdd-scripts
-description: Spec-Driven Development para mudanças nos scripts, pipeline, hooks e documentação deste repositório (não para FFs). Use quando o pedido for criar ou alterar scripts/, bitbucket-pipelines.yml, .githooks/, regras em config/, README/CLAUDE.md ou skills — escreve a spec em docs/specs/, pede aprovação, implementa em TDD e verifica.
+description: Spec-Driven Development para mudanças nos scripts, pipeline, hooks e documentação deste repositório (não para FFs). Use quando o pedido for criar ou alterar scripts/, .github/workflows, .githooks/, regras em config/, README/CLAUDE.md ou skills — escreve a spec em docs/specs/, pede aprovação, implementa em TDD e verifica.
 ---
 
 # SDD nos scripts
 
-Vale para **scripts e automação** (`scripts/`, `bitbucket-pipelines.yml`, `.githooks/`, regras em `config/`, docs e
+Vale para **scripts e automação** (`scripts/`, `.github/workflows/`, `.githooks/`, regras em `config/`, docs e
 skills). **Não vale para FF** (`flags/`, `env/`, `rm/`): FF segue a skill `feature-flag`, sem spec.
 
 Processo completo e checklist: `docs/sdd/README.md`. Para operar FFs use `feature-flag`; para só consultar, `ff-status`; o **Mapa dos processos** está no `CLAUDE.md`. Template: `docs/sdd/template.md`. Exemplos: `docs/specs/0001-*` e `0002-*`.
