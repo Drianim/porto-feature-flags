@@ -1,6 +1,6 @@
 <!--
-Template de PR de Feature Flag. Apague as seções dos tipos que NÃO são o seu.
-O tipo é definido pelo nome da branch: feature/*, update/*, remove/* ou release/*.
+Template de PR. Apague as seções dos tipos que NÃO são o seu.
+O tipo é definido pelo nome da branch: feature/*, update/*, remove/*, release/* ou chore/*.
 Antes de abrir: npm run preflight (ou npm run pr).
 -->
 
@@ -14,6 +14,7 @@ Antes de abrir: npm run preflight (ou npm run pr).
 - [ ] update/* — alterar FF que já existe (NÃO PROD)
 - [ ] remove/* — apagar FF (NÃO PROD)
 - [ ] release/* — levar para PROD
+- [ ] chore/* — ajuste de script, pipeline ou documentação (não é FF)
 
 ---
 
@@ -56,6 +57,15 @@ Antes de abrir: npm run preflight (ou npm run pr).
 - [ ] A FF já foi validada em NÃO PROD
 - [ ] Só mexi em `env/prod/`, `rm/` e `catalog/`
 - [ ] `npm run validate:prod` passa
+
+## chore/* — script, pipeline ou documentação
+- **Spec:** `docs/specs/NNNN-...md` (aprovada antes do código; SDD)
+- **O que muda no comportamento:**
+- [ ] `npm test`, `npm run validate` e `npm run specs` passam (chore/* não roda pipeline de PR)
+- [ ] Critérios de aceite da spec marcados e spec `implementada`
+- [ ] README, CLAUDE.md e skills atualizados, se o comportamento mudou
+- [ ] Se mexe em dados de FF: depois do merge, rodar a pipeline `sync-nonprod`
+- Só **admin** mescla `chore/*`; o merge não publica nada.
 
 ---
 

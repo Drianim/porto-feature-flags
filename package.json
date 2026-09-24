@@ -5,6 +5,7 @@
     "test": "node --test \"scripts/**/*.test.js\"",
     "validate": "node scripts/validate.js && node scripts/catalog.js --check",
     "validate:prod": "node scripts/validate.js --prod",
+    "specs": "node scripts/check-specs.js",
     "new:flag": "node scripts/new-flag.js",
     "new:rm": "node scripts/new-rm.js",
     "plan": "node scripts/deploy.js",

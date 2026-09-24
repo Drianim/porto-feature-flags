@@ -13,7 +13,7 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 - `rm/RM-*.json` — arquivo de RM (obrigatório para PROD)
 - `config/environments.json` — variáveis por ambiente e regras (PROD é time-gated e exige `team` + `platform`)
 - `scripts/` — `new-flag.js`, `new-rm.js`, `validate.js`, `deploy.js`
-- `bitbucket-pipelines.yml` — validação em PR, NÃO PROD em `develop` e em feature→main, PROD em release→main
+- `bitbucket-pipelines.yml` — validação em PR, `develop` só valida; NÃO PROD em feature/update/remove→main, PROD em release→main
 
 ## Qual branch usar
 
@@ -40,7 +40,7 @@ Os ambientes são só **NÃO PROD** e **PROD**. `feature/*` mexe apenas em `flag
 3. Crie `env/prod/<key>.json`: `{"prod": {"default": "false", "ios": {"value": "true"}, "android": {"value": "true"}}}` (`rolloutPercent` é teto). Toggles que liberam algo e todas as `rc_*` exigem RM em PROD.
 4. **Aprovações**: `approvals.team` e `approvals.platform` devem ser preenchidas (nome + data) por **pessoas diferentes**. Nunca preencha em nome de alguém: peça ao usuário os nomes e datas reais.
 5. `npm run validate:prod` e `node scripts/deploy.js prod --dry-run --now <ISO>` para conferir o estágio em um horário específico.
-6. PR `develop` → `main` (2 aprovações, uma da plataforma).
+6. PR `release/*` → `main` (2 aprovações, uma da plataforma).
 
 ## Antes de abrir o PR
 
@@ -61,3 +61,6 @@ Branch `chore/*` é para ajuste em script, pipeline ou documentação (não em F
 - Pergunte sempre, antes de criar a FF: **para quais plataformas** (Android, iOS ou ambas) e **qual a versão mínima do app** que já tem o código. Sem isso o `validate` reprova.
 - Abaixo da `minVersion` (ou fora das plataformas) a FF nunca ativa: toggle = `false`, `rc_*` não é enviado. Versões diferentes por plataforma: `"minVersion": { "android": "2.58.3", "ios": "2.61.0" }`.
 - Mudar plataforma ou versão mínima de FF existente é `update/*`.
+
+## Mudança em script, pipeline ou documentação
+Não é FF: use a skill `sdd-scripts` (spec em `docs/specs/` aprovada antes do código, branch `chore/*`).
