@@ -1,6 +1,6 @@
 {
   "key": "ft_plat_android",
-  "description": "Teste de plataforma: ligada só no Android",
+  "description": "Teste de plataforma: ligada só no Android (v2)",
   "owner": "squad-poc",
   "criticality": "baixa"
 }
