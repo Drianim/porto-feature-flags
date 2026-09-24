@@ -64,3 +64,6 @@ Branch `chore/*` é para ajuste em script, pipeline ou documentação (não em F
 
 ## Mudança em script, pipeline ou documentação
 Não é FF: use a skill `sdd-scripts` (spec em `docs/specs/` aprovada antes do código, branch `chore/*`).
+
+## Só consultar o status
+Para ver o que está ligado, em qual plataforma/versão/porcentagem ou se o Firebase confere com a `main`, use a skill `ff-status` (somente leitura): `npm run status -- list`.

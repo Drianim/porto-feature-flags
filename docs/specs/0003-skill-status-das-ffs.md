@@ -1,7 +1,7 @@
 ---
 spec: 0003
 titulo: Skill e comando para consultar o status das FFs
-status: aprovada
+status: implementada
 criado: 2026-09-24
 atualizado: 2026-09-24
 ---
@@ -24,20 +24,20 @@ Hoje o status de uma FF só se descobre lendo `flags/` e `env/` à mão, abrindo
 
 ## Critérios de aceite
 
-- [ ] CA-1: `ff-status.js list` mostra uma linha por FF com chave, tipo (toggle/config), tipo no Remote Config (Boolean/String), plataformas, versão mínima, criticidade, dono e o estado por plataforma (`ligada 100%`, `ligada 50%`, `desligada`, `n/a`).
-- [ ] CA-2: `ff-status.js detail <chave>` mostra a ficha completa: definição, valores por ambiente e plataforma, o que o app recebe (na versão mínima, logo abaixo e fora das plataformas) e, com Firebase, as condições e o valor padrão publicados.
-- [ ] CA-3: `ff-status.js rollout <chave>` mostra a porcentagem por plataforma e a versão mínima; para PROD, o estágio atual do RM ou "aguardando o horário".
-- [ ] CA-4: `ff-status.js summary` conta FFs por estado, plataforma, tipo e criticidade, indica quantas estão em rollout parcial e mostra a última publicação no Firebase (versão, data, quem).
-- [ ] CA-5: `ff-status.js sync` compara `main` com o Firebase por FF (`ok`, `diverge` com o motivo, `ausente`) e lista as chaves que só existem no Firebase.
-- [ ] CA-6: `ff-status.js history [--limit N]` lista as últimas versões publicadas (número, data, quem, descrição), 10 por padrão.
-- [ ] CA-7: `ff-status.js stale` aponta candidatas a limpeza: toggles ligados em 100% em todas as plataformas da FF, mais chaves no Firebase que não estão no repositório.
-- [ ] CA-8: os filtros `--platform android|ios`, `--owner <squad>`, `--search <termo>` e `--criticality <nível>` valem para `list` e `summary`.
-- [ ] CA-9: sem `FIREBASE_SA_KEY_NONPROD` (ou com `--offline`) o comando responde só com o repositório e avisa "Firebase não consultado"; com a credencial, qualquer falha de rede sai com mensagem clara e código 1.
-- [ ] CA-10: o comando é somente leitura: nenhuma chamada de escrita do Admin SDK é feita (`validateTemplate`, `publishTemplate`, `createTemplateFromJSON`, etc.) e um teste com um cliente falso que falha em qualquer escrita prova isso.
-- [ ] CA-11: chave, termo, dono e demais argumentos são validados (chave `ft_`/`rc_`, termo `[A-Za-z0-9_-]{1,40}`, plataforma e criticidade nos valores válidos); entrada fora disso sai com erro sem executar nada.
-- [ ] CA-12: `--json` imprime a mesma informação em JSON estável para o Claude ou outra ferramenta consumir.
-- [ ] CA-13: a skill `.claude/skills/ff-status/SKILL.md` mapeia perguntas em português e inglês para os subcomandos, valida os argumentos antes de montar o comando, usa só `node scripts/ff-status.js`, é somente leitura e sugere o próximo passo depois de cada resposta.
-- [ ] CA-14: `check-specs` não confunde palavras comuns em português (a palavra "todo" e "método") com marcador de pendência: só contam as siglas de pendência em maiúsculas e as expressões de adiamento previstas no template.
+- [x] CA-1: `ff-status.js list` mostra uma linha por FF com chave, tipo (toggle/config), tipo no Remote Config (Boolean/String), plataformas, versão mínima, criticidade, dono e o estado por plataforma (`ligada 100%`, `ligada 50%`, `desligada`, `n/a`).
+- [x] CA-2: `ff-status.js detail <chave>` mostra a ficha completa: definição, valores por ambiente e plataforma, o que o app recebe (na versão mínima, logo abaixo e fora das plataformas) e, com Firebase, as condições e o valor padrão publicados.
+- [x] CA-3: `ff-status.js rollout <chave>` mostra a porcentagem por plataforma e a versão mínima; para PROD, o estágio atual do RM ou "aguardando o horário".
+- [x] CA-4: `ff-status.js summary` conta FFs por estado, plataforma, tipo e criticidade, indica quantas estão em rollout parcial e mostra a última publicação no Firebase (versão, data, quem).
+- [x] CA-5: `ff-status.js sync` compara `main` com o Firebase por FF (`ok`, `diverge` com o motivo, `ausente`) e lista as chaves que só existem no Firebase.
+- [x] CA-6: `ff-status.js history [--limit N]` lista as últimas versões publicadas (número, data, quem, descrição), 10 por padrão.
+- [x] CA-7: `ff-status.js stale` aponta candidatas a limpeza: toggles ligados em 100% em todas as plataformas da FF, mais chaves no Firebase que não estão no repositório.
+- [x] CA-8: os filtros `--platform android|ios`, `--owner <squad>`, `--search <termo>` e `--criticality <nível>` valem para `list` e `summary`.
+- [x] CA-9: sem `FIREBASE_SA_KEY_NONPROD` (ou com `--offline`) o comando responde só com o repositório e avisa "Firebase não consultado"; com a credencial, qualquer falha de rede sai com mensagem clara e código 1.
+- [x] CA-10: o comando é somente leitura: nenhuma chamada de escrita do Admin SDK é feita (`validateTemplate`, `publishTemplate`, `createTemplateFromJSON`, etc.) e um teste com um cliente falso que falha em qualquer escrita prova isso.
+- [x] CA-11: chave, termo, dono e demais argumentos são validados (chave `ft_`/`rc_`, termo `[A-Za-z0-9_-]{1,40}`, plataforma e criticidade nos valores válidos); entrada fora disso sai com erro sem executar nada.
+- [x] CA-12: `--json` imprime a mesma informação em JSON estável para o Claude ou outra ferramenta consumir.
+- [x] CA-13: a skill `.claude/skills/ff-status/SKILL.md` mapeia perguntas em português e inglês para os subcomandos, valida os argumentos antes de montar o comando, usa só `node scripts/ff-status.js`, é somente leitura e sugere o próximo passo depois de cada resposta.
+- [x] CA-14: `check-specs` não confunde palavras comuns em português (a palavra "todo" e "método") com marcador de pendência: só contam as siglas de pendência em maiúsculas e as expressões de adiamento previstas no template.
 
 ## Desenho
 
@@ -62,7 +62,7 @@ Hoje o status de uma FF só se descobre lendo `flags/` e `env/` à mão, abrindo
 - `scripts/lib/specs.js` e `scripts/lib/specs.test.js`: correção do marcador de pendência.
 - `scripts/lib/status.js` e `scripts/lib/status.test.js`: lógica pura e testes.
 - `scripts/ff-status.js` e `scripts/ff-status.test.js`: CLI e testes (modo offline e cliente falso).
-- `.claude/skills/ff-status/SKILL.md`: a skill.
+- `.claude/skills/ff-status/SKILL.md` e `scripts/skills.test.js`: a skill e o teste que trava o formato dela.
 - `.claude/skills/feature-flag/SKILL.md`, `CLAUDE.md`, `README.md`: apontam para a nova skill e o comando.
 - `package.json`: script `npm run status`.
 
@@ -92,7 +92,7 @@ Hoje o status de uma FF só se descobre lendo `flags/` e `env/` à mão, abrindo
 
 **Files:** `scripts/lib/status.js`, `scripts/lib/status.test.js`
 
-**Interfaces:** produz `renderTable(rows, { sync }) -> string`, `renderDetail(row, { sync, template, served }) -> string`, `renderSummary(summary, { lastVersion }) -> string`, `renderHistory(versions) -> string`, `renderSync({ rows, extras }) -> string`.
+**Interfaces:** produz `servedFor(flag, env)`, `remoteInfo(template, key)`, `renderTable(rows, { sync }) -> string`, `renderDetail(row, { flag, env, sync, template }) -> string`, `renderRollout(row, { flag, env, rm, now }) -> string`, `renderSummary(summary, { lastVersion }) -> string`, `renderHistory(versions) -> string`, `renderSync({ rows, sync, extras }) -> string` e `renderStale({ ligadasEm100, foraDoRepositorio }) -> string`.
 
 1. Teste: saída contém cabeçalho, uma linha por FF, o estado por plataforma e o aviso "Firebase não consultado" quando não há template.
 2. Implementação: as renderizações.
@@ -102,7 +102,7 @@ Hoje o status de uma FF só se descobre lendo `flags/` e `env/` à mão, abrindo
 
 **Files:** `scripts/ff-status.js`, `scripts/ff-status.test.js`, `package.json`
 
-**Interfaces:** consome tudo de `scripts/lib/status.js`, `connect` de `scripts/lib/remote-config.js`, `loadFlags`, `loadRms`, `environments`, `parseArgs` de `scripts/lib/common.js`; produz o comando `node scripts/ff-status.js <subcomando> ...` (exit 0 em sucesso, 1 em erro) e `npm run status`.
+**Interfaces:** consome tudo de `scripts/lib/status.js`, `connect` de `scripts/lib/remote-config.js`, `loadFlags`, `loadRms`, `environments`, `parseArgs` de `scripts/lib/common.js`; produz `parseStatusArgs(args) -> consulta` (em `scripts/lib/status.js`, lança erro em argumento inválido), `run(argv, deps) -> Promise<exit code>` (exportado por `scripts/ff-status.js`, com `deps` injetável) e o comando `node scripts/ff-status.js <subcomando> ...` (exit 0 em sucesso, 1 em erro) e `npm run status`.
 
 1. Teste: subcomandos rodando `--offline` sobre o repositório real; `--json` parseável; argumento inválido (`ft_x; rm -rf`, plataforma `web`) sai com 1; com `rc` falso que falha em qualquer método de escrita, `list`, `sync`, `history` e `stale` passam (CA-10).
 2. Implementação: parsing, validação, conexão opcional, despacho por subcomando. A conexão é injetável para o teste.

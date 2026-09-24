@@ -9,6 +9,7 @@ resume o que um Claude Code precisa saber antes de mexer.
 | Mudança | Como fazer |
 |---|---|
 | **FF** (`flags/`, `env/`, `rm/`): criar, alterar, remover, PROD | branch `feature/*`, `update/*`, `remove/*` ou `release/*`; skill `feature-flag`; **sem SDD** |
+| **Consultar o status** das FFs (ligada, plataforma, versão mínima, %, sincronia) | skill `ff-status` / `npm run status`; somente leitura |
 | **Scripts, pipeline, hooks, docs, regras em `config/`** | **SDD**: spec aprovada em `docs/specs/` antes do código; branch `chore/*`; skill `sdd-scripts` |
 
 Se o pedido for de script e não houver spec aprovada, **escreva a spec primeiro** (`docs/sdd/README.md`) e peça a
@@ -23,6 +24,7 @@ npm run specs            # formato das specs de docs/specs/
 npm run catalog          # regenera catalog/keys.json (rode ao mexer em flags/)
 npm run preflight        # as checagens do PR, antes de abrir o PR (npm run pr também empurra a branch)
 node scripts/deploy.js nonprod --dry-run   # o que seria publicado, sem publicar
+npm run status -- list                     # status das FFs (somente leitura; skill ff-status)
 ```
 
 ## Regras que não se negociam

@@ -73,7 +73,7 @@ Quatro camadas, cada uma com uma responsabilidade:
 | `config/approvers.json` | `admins` (e-mails que podem mesclar `chore/*`) e `platform` (aprovadores de PROD, a preencher) |
 | `docs/sdd/`, `docs/specs/` | Processo SDD dos scripts, template e as specs |
 | `.bitbucket/pull_request_template.md` | Descrição padrão do PR, com uma seção por tipo de branch |
-| `.claude/skills/` | Skills do Claude Code: `feature-flag` (operar FFs) e `sdd-scripts` (evoluir scripts) |
+| `.claude/skills/` | Skills do Claude Code: `feature-flag` (operar FFs), `ff-status` (consultar o status) e `sdd-scripts` (evoluir scripts) |
 | `CLAUDE.md` | Resumo das regras e armadilhas para um Claude Code que abrir o repositório |
 | `.githooks/pre-push` | Roda o preflight ao empurrar `feature/`, `update/`, `remove/`, `release/` (`npm run hooks` ativa) |
 
@@ -89,6 +89,7 @@ Quatro camadas, cada uma com uma responsabilidade:
 | `check-approvals.js` | Gate de PROD: 1 aprovação de plataforma + 1 de equipe, nenhuma do autor (precisa `BB_ACCESS_TOKEN`) |
 | `check-merger.js` | Só admin mescla `chore/*` |
 | `check-specs.js` | Formato das specs de `docs/specs/` |
+| `ff-status.js` | **Status das FFs, somente leitura:** lista, detalhe, rollout, resumo, sincronia, histórico e obsoletas (`npm run status -- list`); usa o Firebase se houver credencial |
 | `preflight.js` | As checagens do PR, no seu computador (`npm run preflight`, `npm run pr`) |
 | `deploy.js` | Publica no Remote Config (`--dry-run`, `--now <ISO>`) |
 | `remove-flags.js` | Apaga do Remote Config as FFs removidas do repositório (só NÃO PROD) |
@@ -265,11 +266,12 @@ O avanço entre estágios é por **tempo**, não consulta métricas de saúde: m
 ## Trabalhando com o Claude Code e o SDD
 
 Este repositório é feito para ser evoluído junto com um Claude Code. Ao abrir a pasta, ele lê o **`CLAUDE.md`** (regras,
-comandos, armadilhas) e encontra duas skills em `.claude/skills/`:
+comandos, armadilhas) e encontra três skills em `.claude/skills/`:
 
 | Skill | Use para | Método |
 |---|---|---|
 | `feature-flag` | criar, alterar, remover, levar FF para PROD, preparar RM | fluxo de PR por tipo de branch; **sem spec** |
+| `ff-status` | **consultar** o status das FFs (o que está ligado, plataforma, versão mínima, %, sincronia, histórico) | somente leitura, via `node scripts/ff-status.js` |
 | `sdd-scripts` | mudar `scripts/`, pipeline, hooks, regras de `config/`, docs e skills | **SDD**: spec → aprovação → TDD → verificação → `chore/*` |
 
 **SDD (Spec-Driven Development) vale só para os scripts e a automação, não para as FFs.** Uma mudança de FF é dado
@@ -293,7 +295,7 @@ pedir (está no `CLAUDE.md`); para FF use a skill `feature-flag` e os comandos `
 
 ## Testes e convenções
 
-- `npm test` roda todos os testes (`node --test`, ~110 casos): regras de FF, montagem de condições (com um avaliador
+- `npm test` roda todos os testes (`node --test`, ~150 casos): regras de FF, montagem de condições (com um avaliador
   mínimo das expressões), escopo, nome único, rollout, aprovações, merger, pipeline (lint do YAML), specs e os scripts
   de CI em repositórios Git temporários. Sem Firebase real: o que precisa dele é o `test-platforms.js`.
 - Node 22, CommonJS, sem dependência nova (`firebase-admin`; `js-yaml` só em teste). Lógica em `scripts/lib/`, CLI fina,
