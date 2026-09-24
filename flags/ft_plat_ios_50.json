@@ -1,8 +1,0 @@
-{
-  "key": "ft_plat_ios_50",
-  "description": "Teste de plataforma: iOS em 50% dos usuários, Android desligado",
-  "team": "squad-poc",
-  "criticality": "baixa",
-  "platforms": "ios",
-  "minVersion": "2.61.0"
-}
