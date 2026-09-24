@@ -19,6 +19,8 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 | `scripts/check-new-flags.js` | Bloqueia nome de FF duplicado: feature/* só cria FF nova (consulta o Firebase), update/* só altera existente |
 | `scripts/remove-flags.js` | Apaga FFs removidas do repositório no Remote Config NÃO PROD (`--base`, `--keys`, `--dry-run`) |
 | `scripts/test-platforms.js` | Teste real do filtro Android/iOS: registra 2 apps temporários, pede ao Firebase para avaliar o Remote Config como cada plataforma e compara com o repositório (`--keys`, `--samples`) |
+| `scripts/preflight.js` | Valida antes de abrir o PR (`npm run preflight`, `npm run pr`, hook `pre-push`) |
+| `scripts/ci/revert-merge.sh` | Prepara a reversão do merge que violou as regras (branch `revert/*` + link de um clique) |
 | `scripts/verify-sync.js` | Compara `main` com o Remote Config real (`--fix` publica se houver divergência, `--strict` também reprova chaves fora do repo) |
 | `scripts/deploy.js` | Publica no Remote Config (`--dry-run`, `--now <ISO>` para simular) |
 | `scripts/lib/` | Código compartilhado e testes do rollout (`npm test`) |
@@ -50,6 +52,27 @@ Por enquanto usamos apenas o ambiente **NÃO PROD**, no projeto Firebase de test
 O Bitbucket só bloqueia o merge de PR com pipeline vermelha se você configurar *Merge checks* (recomendado: exigir build com sucesso). Mesmo sem isso, o step **Reconferir regras do merge** (`scripts/ci/recheck-merge.sh`) roda logo no início da pipeline de `main`: lê a origem do merge e o 1º pai do commit de merge e reaplica o escopo de pastas (`check-scope`) e a regra FF nova x existente (`check-new-flags --skip-remote`). Se um PR fora das regras for mergeado, a pipeline falha ali e o step de deploy nem chega a ser oferecido.
 
 Limites: o conteúdo que já entrou em `main` continua lá e a pipeline agendada `sync-nonprod` publica o que estiver em `main`. Para desfazer, reverta o commit de merge. A consulta ao Firebase não se repete aqui (foi feita no PR; depois do deploy o nome já existiria e daria falso bloqueio).
+
+## Validar antes de abrir o PR (preflight)
+
+A mesma validação da pipeline do PR roda no seu computador, antes de o PR existir:
+
+- `npm run preflight`: confere formato das FFs, catálogo, escopo da branch, nome único (FF nova x update x remove) e, em `release/*`, as regras de PROD.
+- `npm run pr`: roda o preflight e, se passar, empurra a branch e imprime o **link de um clique** para abrir o PR.
+- `npm run hooks` (uma vez): ativa o hook de `pre-push`, que roda o preflight ao empurrar `feature/`, `update/`, `remove/` ou `release/` e bloqueia o push se falhar (`git push --no-verify` ignora, por sua conta).
+- A consulta ao Firebase (nome que já existe lá) usa `FIREBASE_SA_KEY_NONPROD`; sem ela é pulada e a pipeline do PR confere.
+
+O Bitbucket do plano atual não impede abrir nem mergear um PR vermelho, por isso a validação mais cedo possível é esta.
+
+## Reversão automática do merge que violou as regras
+
+Se o step **Reconferir regras do merge** falhar na `main` (alguém mergeou um PR vermelho), o `after-script` roda `scripts/ci/revert-merge.sh`: cria a branch `revert/pr-<n>-<origem>` com `git revert -m 1` do commit de merge, empurra por SSH e imprime no log o **link de um clique** para abrir o PR de reversão. Nunca faz merge sozinho, nunca falha o step e não duplica em reexecução. Como `revert/*` não publica nada, o merge da reversão devolve a `main` ao estado que o Firebase já tem (o deploy do merge ruim nunca foi oferecido).
+
+Configuração única da chave SSH:
+1. *Repository settings → Pipelines → SSH keys → Generate keys* (copie a chave pública).
+2. *Repository settings → Security → Access keys → Add key*, cole a chave pública com permissão de escrita.
+
+Sem a chave, o script imprime os comandos da reversão manual. Limites: o clone do Pipelines é raso (serve para merge recente) e, se algo mais tiver mexido nos mesmos arquivos depois, o PR de reversão pode ter conflito.
 
 ## Aprovação dentro da pipeline
 

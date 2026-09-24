@@ -42,6 +42,10 @@ Os ambientes são só **NÃO PROD** e **PROD**. `feature/*` mexe apenas em `flag
 5. `npm run validate:prod` e `node scripts/deploy.js prod --dry-run --now <ISO>` para conferir o estágio em um horário específico.
 6. PR `develop` → `main` (2 aprovações, uma da plataforma).
 
+## Antes de abrir o PR
+
+Rode `npm run preflight` (mesmas checagens da pipeline do PR) e, se passar, `npm run pr` (empurra e imprime o link de um clique). Só faça push se o usuário pedir.
+
 ## Regras a respeitar
 
 - Não use `git push` nem abra PR sem o usuário pedir.
