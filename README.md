@@ -331,6 +331,7 @@ pedir (está no `CLAUDE.md`); para FF use a skill `feature-flag` e os comandos `
 
 ## Testes e convenções
 
+- A **campanha de teste do processo** (PRs positivos e negativos, em fases, com o resultado esperado de cada um) está em `docs/testes-do-processo.md`.
 - `npm test` roda todos os testes (`node --test`, ~200 casos): regras de FF, montagem de condições (com um avaliador
   mínimo das expressões), escopo, nome único, rollout, aprovações, merger, pipeline (lint do YAML), specs e os scripts
   de CI em repositórios Git temporários. Sem Firebase real: o que precisa dele é o `test-platforms.js`.

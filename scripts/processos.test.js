@@ -14,10 +14,10 @@ const SKILLS = Object.fromEntries(['feature-flag', 'ff-status', 'sdd-scripts'].m
 
 // [nome (igual ao do mapa), skill dona, pistas no README, pistas na skill dona]
 const PROCESSOS = [
-  ['Criar FF nova', 'feature-flag', ['feature/*', 'new:flag'], ['new-flag.js', 'feature/*']],
+  ['Criar FF nova', 'feature-flag', ['feature/*', 'new:flag'], ['new:flag', 'feature/*']],
   ['Alterar FF existente', 'feature-flag', ['update/*'], ['update/*']],
   ['Remover FF', 'feature-flag', ['remove/*', 'remove-flags'], ['remove/*', 'remove-flags']],
-  ['Levar para PROD (RM)', 'feature-flag', ['release/*', 'new:rm'], ['new-rm.js', 'release/*']],
+  ['Levar para PROD (RM)', 'feature-flag', ['release/*', 'new:rm'], ['new:rm', 'release/*']],
   ['Aprovação na pipeline (Run)', 'feature-flag', ['clicar em **Run**'], ['clicar em **Run**']],
   ['Preflight e npm run pr', 'feature-flag', ['npm run preflight', 'npm run pr'], ['npm run preflight', 'npm run pr']],
   ['Hook pre-push', 'feature-flag', ['npm run hooks'], ['npm run hooks']],
@@ -36,6 +36,9 @@ const PROCESSOS = [
   ['Escopo da PoC e credenciais', 'feature-flag', ['FIREBASE_SA_KEY_NONPROD'], ['FIREBASE_SA_KEY_NONPROD', 'NÃO PROD']],
   ['Rollback', 'feature-flag', ['rollback'], ['rollback']],
   ['Criticidade e rollout por estágio', 'feature-flag', ['rolloutPlan'], ['rolloutPlan']],
+  ['Validar template no Firebase (sem publicar)', 'feature-flag', ['--validate'], ['--validate']],
+  ['Campanha de teste do processo', 'feature-flag', ['testes-do-processo'], ['testes-do-processo']],
+  ['PR vermelho (nunca mesclar)', 'feature-flag', ['não bloqueia'], ['PR vermelho']],
 ];
 const has = (text, pista) => text.toLowerCase().includes(pista.toLowerCase());
 const mapa = (() => { const m = /^## Mapa dos processos\n([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(CLAUDE); return m ? m[1] : ''; })();

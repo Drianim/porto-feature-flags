@@ -1,7 +1,7 @@
 ---
 spec: 0006
 titulo: Visibilidade de todos os processos nas skills e no CLAUDE.md, com teste de cobertura
-status: aprovada
+status: implementada
 criado: 2026-09-24
 atualizado: 2026-09-24
 ---
@@ -24,14 +24,14 @@ Uma auditoria comparou 20 processos com o texto de cada arquivo. O `README.md` c
 
 ## Critérios de aceite
 
-- [ ] CA-1: o `CLAUDE.md` ganha o "Mapa dos processos", uma tabela com todos os processos da lista do teste, cada um com onde está documentado e o comando ou a skill.
-- [ ] CA-2: a `description` da skill `feature-flag` cita os pedidos que devem acioná-la: criar, alterar, remover, levar a PROD, equipe e permissão, plataforma e versão mínima, código do app, rollback, pipeline, PR e branch.
-- [ ] CA-3: a skill não tem mais os trechos errados: usa `npm run preflight` antes do PR de `release/*` e descreve a credencial como variável de repositório `FIREBASE_SA_KEY_NONPROD` (secured) com o escopo de PoC (só NÃO PROD).
-- [ ] CA-4: a skill cobre o Run manual depois do merge, a reversão automática (o que fazer quando aparece `revert/*`), `test-platforms`, o hook `pre-push`, o template de PR, a criação de branch pela interface do Bitbucket, o catálogo e o rollback.
-- [ ] CA-5: as três skills se referenciam (`feature-flag`, `ff-status`, `sdd-scripts`) e cada uma diz quando usar a outra.
-- [ ] CA-6: `scripts/processos.test.js` lista os processos e exige que cada um esteja no README, no mapa do `CLAUDE.md` e na skill dona, com a mensagem trazendo o nome do processo que falta.
-- [ ] CA-7: o mesmo teste confere que todo `npm run <script>` e todo `node scripts/<arquivo>` citado nas skills, no `CLAUDE.md` e no README existe (em `package.json` e em `scripts/`).
-- [ ] CA-8: `docs/sdd/README.md` e a skill `sdd-scripts` mandam colocar um processo novo no mapa e no teste de cobertura no passo "Documentar".
+- [x] CA-1: o `CLAUDE.md` ganha o "Mapa dos processos", uma tabela com todos os processos da lista do teste (25 na entrega, incluindo os criados depois da pausa: validar template no Firebase, campanha de teste e PR vermelho), cada um com onde está documentado e o comando ou a skill.
+- [x] CA-2: a `description` da skill `feature-flag` cita os pedidos que devem acioná-la: criar, alterar, remover, levar a PROD, equipe e permissão, plataforma e versão mínima, código do app, rollback, pipeline, PR e branch.
+- [x] CA-3: a skill não tem mais os trechos errados: usa `npm run preflight` antes do PR de `release/*` e descreve a credencial como variável de repositório `FIREBASE_SA_KEY_NONPROD` (secured) com o escopo de PoC (só NÃO PROD).
+- [x] CA-4: a skill cobre o Run manual depois do merge, a reversão automática (o que fazer quando aparece `revert/*`), `test-platforms`, o hook `pre-push`, o template de PR, a criação de branch pela interface do Bitbucket, o catálogo e o rollback.
+- [x] CA-5: as três skills se referenciam (`feature-flag`, `ff-status`, `sdd-scripts`) e cada uma diz quando usar a outra.
+- [x] CA-6: `scripts/processos.test.js` lista os processos e exige que cada um esteja no README, no mapa do `CLAUDE.md` e na skill dona, com a mensagem trazendo o nome do processo que falta.
+- [x] CA-7: o mesmo teste confere que todo `npm run <script>` e todo `node scripts/<arquivo>` citado nas skills, no `CLAUDE.md` e no README existe (em `package.json` e em `scripts/`).
+- [x] CA-8: `docs/sdd/README.md` e a skill `sdd-scripts` mandam colocar um processo novo no mapa e no teste de cobertura no passo "Documentar".
 
 ## Desenho
 
