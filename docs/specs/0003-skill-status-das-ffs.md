@@ -1,7 +1,7 @@
 ---
 spec: 0003
 titulo: Skill e comando para consultar o status das FFs
-status: rascunho
+status: aprovada
 criado: 2026-09-24
 atualizado: 2026-09-24
 ---
@@ -37,6 +37,7 @@ Hoje o status de uma FF só se descobre lendo `flags/` e `env/` à mão, abrindo
 - [ ] CA-11: chave, termo, dono e demais argumentos são validados (chave `ft_`/`rc_`, termo `[A-Za-z0-9_-]{1,40}`, plataforma e criticidade nos valores válidos); entrada fora disso sai com erro sem executar nada.
 - [ ] CA-12: `--json` imprime a mesma informação em JSON estável para o Claude ou outra ferramenta consumir.
 - [ ] CA-13: a skill `.claude/skills/ff-status/SKILL.md` mapeia perguntas em português e inglês para os subcomandos, valida os argumentos antes de montar o comando, usa só `node scripts/ff-status.js`, é somente leitura e sugere o próximo passo depois de cada resposta.
+- [ ] CA-14: `check-specs` não confunde palavras comuns em português (a palavra "todo" e "método") com marcador de pendência: só contam as siglas de pendência em maiúsculas e as expressões de adiamento previstas no template.
 
 ## Desenho
 
@@ -58,6 +59,7 @@ Hoje o status de uma FF só se descobre lendo `flags/` e `env/` à mão, abrindo
 
 ## Arquivos afetados
 
+- `scripts/lib/specs.js` e `scripts/lib/specs.test.js`: correção do marcador de pendência.
 - `scripts/lib/status.js` e `scripts/lib/status.test.js`: lógica pura e testes.
 - `scripts/ff-status.js` e `scripts/ff-status.test.js`: CLI e testes (modo offline e cliente falso).
 - `.claude/skills/ff-status/SKILL.md`: a skill.
@@ -115,6 +117,16 @@ Hoje o status de uma FF só se descobre lendo `flags/` e `env/` à mão, abrindo
 1. Escrita da skill, espelhando a estrutura da skill de referência (segurança, intenções, ajuda sem argumentos, tratamento de erro, regras).
 2. Atualizar README (tabela de scripts, seção de Claude Code), CLAUDE.md (comando) e a skill `feature-flag` (cita `ff-status`).
 3. Comando: `npm test && npm run validate && npm run specs` e marcar os critérios de aceite.
+
+### Task 6: Corrigir o falso positivo do marcador de pendência
+
+**Files:** `scripts/lib/specs.js`, `scripts/lib/specs.test.js`
+
+**Interfaces:** consome o `PENDING` de `scripts/lib/specs.js`; produz o mesmo `checkSpec(fileName, text)`, agora sem reprovar as palavras comuns "todo" e "método" e reprovando as siglas de pendência em maiúsculas e as expressões de adiamento.
+
+1. Teste: spec aprovada com "todo o repositório" e "método" passa; com cada marcador de pendência reprova.
+2. Implementação: regex com maiúsculas exatas e limites de palavra que entendem acento.
+3. Comando: `node --test scripts/lib/specs.test.js` (esperado: passa).
 
 ## Verificação
 

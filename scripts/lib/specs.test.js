@@ -50,3 +50,12 @@ test('spec implementada exige todos os critérios marcados', () => {
   assert.match(checkSpec('0003-x.md', ok).join('|'), /critério de aceite ainda desmarcado/);
   assert.deepStrictEqual(checkSpec('0003-x.md', ok.replace(/- \[ \] CA/g, '- [x] CA')), []);
 });
+
+test('palavras comuns em português não são marcador de pendência', () => {
+  const ok = draft({ status: 'aprovada' }).replace(/<!--[\s\S]*?-->\n/, '').replace(/<[^>\n]+>/g, 'ok');
+  const withText = ok.replace('## Decisões\n', '## Decisões\n\nTodo o repositório usa esse método; todo teste passa.\n');
+  assert.deepStrictEqual(checkSpec('0003-x.md', withText), []);
+  for (const bad of ['TODO', 'TBD', 'FIXME', 'a definir', 'preencher depois']) {
+    assert.match(checkSpec('0003-x.md', ok.replace('## Decisões\n', `## Decisões\n\nisto fica ${bad} na próxima\n`)).join('|'), /marcador de pendência/, bad);
+  }
+});

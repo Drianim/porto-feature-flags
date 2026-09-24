@@ -5,7 +5,15 @@ const FRONT = ['spec', 'titulo', 'status', 'criado', 'atualizado'];
 // Seções obrigatórias, nesta ordem.
 const SECTIONS = ['Resumo', 'Contexto', 'Objetivo e fora de escopo', 'Critérios de aceite', 'Desenho', 'Arquivos afetados', 'Plano de implementação', 'Verificação', 'Riscos e reversão', 'Decisões'];
 // Marcadores de pendência: não podem existir numa spec aprovada ou implementada.
-const PENDING = /\b(TBD|TODO|FIXME)\b|\ba definir\b|\bpreencher depois\b/i;
+// Só TBD, TODO e FIXME em maiúsculas ("todo" e "método" são português comum) e as expressões "a definir" / "preencher depois".
+// \b não entende acento, então o limite de palavra usa classes Unicode.
+const NOT_WORD = '(?<![\\p{L}\\p{N}_])';
+const NOT_WORD_AFTER = '(?![\\p{L}\\p{N}_])';
+const PENDING_RE = [
+  new RegExp(`${NOT_WORD}(TBD|TODO|FIXME)${NOT_WORD_AFTER}`, 'u'),
+  new RegExp(`${NOT_WORD}(a definir|preencher depois)${NOT_WORD_AFTER}`, 'iu'),
+];
+const PENDING = { test: (line) => PENDING_RE.some((r) => r.test(line)) };
 
 function parse(text) {
   const m = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(text);
