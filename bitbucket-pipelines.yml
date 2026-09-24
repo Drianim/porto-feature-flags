@@ -94,6 +94,9 @@ pipelines:
           name: Reconferir regras do merge (escopo e nome de FF)
           script:
             - sh scripts/ci/recheck-merge.sh
+          # Se a reconferência falhar, prepara a reversão do merge e imprime o link de um clique (não faz merge).
+          after-script:
+            - sh scripts/ci/revert-merge.sh
       # feature/*, update/* e remove/* -> main: NÃO PROD. Só aparece se o merge alterou flags/ ou env/nonprod/.
       # APROVAÇÃO: fica pausado até alguém clicar em "Run" no pipeline.
       - step:
