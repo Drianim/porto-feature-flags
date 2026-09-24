@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-// Teste real do filtro por plataforma: registra (ou reaproveita) um app Android e um iOS de teste no projeto,
+// Teste real do filtro por plataforma e por versão mínima: registra (ou reaproveita) um app Android e um iOS de teste no projeto,
 // pede ao PRÓPRIO Firebase para avaliar o Remote Config como cada plataforma (endpoint de fetch dos apps)
-// e compara com o que o repositório manda. Depois remove os apps que criou.
+// (informando a versão do app: exatamente a mínima da FF, logo abaixo dela e uma bem acima) e compara com o que
+// o repositório manda. Depois remove os apps que criou.
 // Uso: node scripts/test-platforms.js nonprod [--keys a,b] [--samples 60] [--keep-apps]
 // Env: FIREBASE_SA_KEY_NONPROD. Só ambientes NÃO PROD.
 const crypto = require('crypto');
 const { loadFlags, environments, parseArgs } = require('./lib/common');
-const { rules } = require('./lib/flags');
+const { platformsOf, minVersionFor, justBelow, expectedAt, rules } = require('./lib/flags');
 
 const args = parseArgs(process.argv.slice(2));
 const env = args._[0];
@@ -69,7 +70,7 @@ async function apiKeyFor(platform, app) {
 
 const newFid = () => { const b = crypto.randomBytes(17); b[0] = 0x70 | (b[0] & 0x0f); return b.toString('base64url').slice(0, 22); };
 
-async function fetchAs(platform, app, apiKey, projectNumber) {
+async function fetchAs(platform, app, apiKey, projectNumber, appVersion) {
   const fid = newFid();
   const inst = await call('POST', `https://firebaseinstallations.googleapis.com/v1/projects/${projectId}/installations`,
     { fid, authVersion: 'FIS_v2', appId: app.appId, sdkVersion: platform === 'android' ? 'a:17.0.0' : 'i:10.0.0' }, { 'x-goog-api-key': apiKey });
@@ -77,7 +78,7 @@ async function fetchAs(platform, app, apiKey, projectNumber) {
   const res = await call('POST', `https://firebaseremoteconfig.googleapis.com/v1/projects/${projectNumber}/namespaces/firebase:fetch`, {
     appInstanceId: fid, appInstanceIdToken: inst.authToken.token, appId: app.appId,
     countryCode: 'BR', languageCode: 'pt-BR', platformVersion: platform === 'android' ? '33' : '17', timeZone: 'America/Sao_Paulo',
-    appVersion: '1.0', appBuild: '1', packageName: PKG, sdkVersion: '21.0.0',
+    appVersion, appBuild: '1', packageName: PKG, sdkVersion: '21.0.0',
   }, headers);
   return res.entries || {};
 }
@@ -111,33 +112,52 @@ async function cleanup() {
   }
   await new Promise((r) => setTimeout(r, 4000)); // deixa as chaves de API propagarem
 
-  const needsSamples = flags.some((f) => Object.values(rules(f, env).overrides).some((o) => o.rolloutPercent !== undefined && o.rolloutPercent < 100 && o.rolloutPercent > 0));
+  // Versões a consultar em cada plataforma: uma bem acima (onde se mede o rollout em %), a mínima de cada FF e a logo abaixo.
+  const HIGH = '99.0.0';
+  const needsSamples = flags.some((f) => (rules(f, env).overrides && Object.values(rules(f, env).overrides).some((o) => o.rolloutPercent > 0 && o.rolloutPercent < 100)));
   const results = {};
   for (const p of ['android', 'ios']) {
-    const n = needsSamples ? SAMPLES : 3;
-    results[p] = await pool(n, 2, async () => { const e = await fetchAs(p, apps[p], apps[p].key, projectNumber); await new Promise((r) => setTimeout(r, 900)); return e; });
+    const versions = new Set([HIGH]);
+    for (const f of flags.filter((x) => platformsOf(x).includes(p))) {
+      const min = minVersionFor(f, p);
+      versions.add(min);
+      if (justBelow(min)) versions.add(justBelow(min));
+    }
+    results[p] = {};
+    for (const v of versions) {
+      const n = v === HIGH && needsSamples ? SAMPLES : 2;
+      results[p][v] = await pool(n, 2, async () => { const e = await fetchAs(p, apps[p], apps[p].key, projectNumber, v); await new Promise((r) => setTimeout(r, 900)); return e; });
+    }
   }
 
   let bad = 0;
   await cleanup();
-  console.log(`\n${'FF'.padEnd(20)} ${'plataforma'.padEnd(10)} ${'esperado'.padEnd(26)} obtido`);
+  console.log(`\n${'FF'.padEnd(20)} ${'plataforma'.padEnd(10)} ${'versão'.padEnd(9)} ${'esperado'.padEnd(28)} obtido`);
+  const show = (v) => (v === undefined ? 'ausente' : v);
   for (const f of flags) {
-    const { defaultValue, overrides } = rules(f, env);
     for (const p of ['android', 'ios']) {
-      const o = overrides[p];
-      const got = results[p].map((e) => e[f.key]);
-      const trueShare = Math.round((got.filter((v) => v === 'true').length / got.length) * 100);
-      let ok; let expected;
-      if (got.every((v) => v === undefined)) { ok = false; expected = '(ainda não publicada)'; }
-      else if (o && o.rolloutPercent > 0 && o.rolloutPercent < 100) {
-        expected = `~${o.rolloutPercent}% recebem ${o.value}`; ok = Math.abs(trueShare - o.rolloutPercent) <= 25 && got.every((v) => v === o.value || v === defaultValue);
-      } else { const want = o && o.rolloutPercent !== 0 ? o.value : defaultValue; expected = `sempre ${want}`; ok = got.every((v) => v === want); }
-      const obtido = got.every((v) => v === undefined) ? 'ausente' : (new Set(got).size === 1 ? `sempre ${got[0]}` : `${trueShare}% true (${got.length} instâncias)`);
-      if (!ok) bad++;
-      console.log(`${f.key.padEnd(20)} ${p.padEnd(10)} ${expected.padEnd(26)} ${obtido} ${ok ? 'OK' : 'DIVERGE'}`);
+      const min = platformsOf(f).includes(p) ? minVersionFor(f, p) : null;
+      const versions = [HIGH, ...(min ? [min, justBelow(min)] : [])].filter(Boolean);
+      for (const v of versions) {
+        const exp = expectedAt(f, env, p, v);
+        const got = results[p][v].map((e) => e[f.key]);
+        const trueShare = Math.round((got.filter((x) => x === 'true').length / got.length) * 100);
+        let ok; let expected;
+        if (exp.mode === 'percent') {
+          expected = `~${exp.percent}% recebem ${exp.value}`;
+          // amostra grande só na versão alta; na mínima só confere que ninguém recebe valor fora do previsto
+          ok = got.every((x) => x === exp.value || x === exp.other) && (v !== HIGH || Math.abs(trueShare - exp.percent) <= 25);
+        } else {
+          expected = `sempre ${show(exp.value)}${min && v === justBelow(min) ? ' (abaixo da mínima)' : ''}${!min ? ' (fora da plataforma)' : ''}`;
+          ok = got.every((x) => x === exp.value);
+        }
+        const obtido = new Set(got).size === 1 ? `sempre ${show(got[0])}` : `${trueShare}% true (${got.length} instâncias)`;
+        if (!ok) bad++;
+        console.log(`${f.key.padEnd(20)} ${p.padEnd(10)} ${v.padEnd(9)} ${expected.padEnd(28)} ${obtido} ${ok ? 'OK' : 'DIVERGE'}`);
+      }
     }
   }
 
   if (bad) { console.error(`\n✗ ${bad} combinação(ões) fora do esperado`); process.exit(1); }
-  console.log('\n✓ o filtro por plataforma se comporta como o repositório manda');
+  console.log('\n✓ plataforma e versão mínima se comportam como o repositório manda');
 })().catch(async (e) => { console.error(`✗ ${e.message}`); await cleanup(); process.exit(1); });

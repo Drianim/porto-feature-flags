@@ -9,7 +9,7 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 
 ## Estrutura
 
-- `flags/<key>.json` — definição (owner, criticality, descrição; o tipo Boolean/String é derivado dos valores; valores em `env/nonprod/` e `env/prod/`)
+- `flags/<key>.json` — definição (owner, criticality, descrição, **platforms** `android|ios|ambas` e **minVersion** `x.y.z`, ambos obrigatórios; o tipo Boolean/String é derivado dos valores; valores em `env/nonprod/` e `env/prod/`)
 - `rm/RM-*.json` — arquivo de RM (obrigatório para PROD)
 - `config/environments.json` — variáveis por ambiente e regras (PROD é time-gated e exige `team` + `platform`)
 - `scripts/` — `new-flag.js`, `new-rm.js`, `validate.js`, `deploy.js`
@@ -24,7 +24,7 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 
 ## Criar uma flag nova
 
-1. `node scripts/new-flag.js <ft_ou_rc_chave> --owner <squad> --criticality <baixa|media|alta|critica> --description "..."`
+1. `node scripts/new-flag.js <ft_ou_rc_chave> --owner <squad> --criticality <baixa|media|alta|critica> --description "..." --platforms <android|ios|ambas> --min-version <x.y.z>`
    (a key começa com `ft_` para toggle ou `rc_` para valor de configuração — este exige `--value`; use `--group "Nome"` para agrupar; o arquivo se chama `<key>.json`)
 2. Ligue nos ambientes não produtivos com override por plataforma, ex.: em `env/nonprod/<key>.json`: `{"nonprod": {"default": "false", "ios": {"value": "true"}, "android": {"value": "true"}}}` (ou `default: "true"` para todas). `rolloutPercent` opcional limita o percentual.
 3. `npm run catalog && npm run validate` (o catálogo `catalog/keys.json` é gerado e conferido na pipeline)
@@ -55,4 +55,9 @@ Rode `npm run preflight` (mesmas checagens da pipeline do PR) e, se passar, `npm
 - O rollout é liberado por tempo, não por saúde; monitore métricas entre os estágios e faça rollback se necessário.
 
 ## chore/*
-Branch `chore/*` é para ajuste em script, pipeline ou documentação (não em FF). O PR de `chore/*` **não roda pipeline** e o merge não publica nada no Firebase. Para FF, use sempre feature/, update/, remove/ ou release/.
+Branch `chore/*` é para ajuste em script, pipeline ou documentação (não em FF). O PR de `chore/*` **não roda pipeline** e o merge não publica nada no Firebase. **Só admin (`admins` em `config/approvers.json`) pode mesclar `chore/*`**: a reconferência da main confere quem fez o merge e, se não for admin, reprova e prepara a reversão. Para FF, use sempre feature/, update/, remove/ ou release/.
+
+## Plataforma e versão mínima (obrigatórias em toda FF)
+- Pergunte sempre, antes de criar a FF: **para quais plataformas** (Android, iOS ou ambas) e **qual a versão mínima do app** que já tem o código. Sem isso o `validate` reprova.
+- Abaixo da `minVersion` (ou fora das plataformas) a FF nunca ativa: toggle = `false`, `rc_*` não é enviado. Versões diferentes por plataforma: `"minVersion": { "android": "2.58.3", "ios": "2.61.0" }`.
+- Mudar plataforma ou versão mínima de FF existente é `update/*`.

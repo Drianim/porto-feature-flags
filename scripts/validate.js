@@ -2,7 +2,7 @@
 // Valida flags/*.json e rm/RM-*.json. Uso: node scripts/validate.js [--prod]
 const fs = require('fs');
 const path = require('path');
-const { PLATFORMS, KEY_RE, kindOf, isActive, valueTypeOf } = require('./lib/flags');
+const { PLATFORMS, KEY_RE, kindOf, isActive, valueTypeOf, targetingErrors, platformsOf } = require('./lib/flags');
 const { mergeFlag } = require('./lib/common');
 
 const root = path.join(__dirname, '..');
@@ -53,6 +53,8 @@ for (const { file, data: d } of flags) {
   if (file !== `flags/${d.key}.json`) err(file, 'nome do arquivo deve ser <key>.json');
   if (!d.description) err(file, 'description obrigatória');
   if (!d.owner) err(file, 'owner obrigatório');
+  const targeting = targetingErrors(d);
+  targeting.forEach((m) => err(file, m));
   if (d.group !== undefined && (typeof d.group !== 'string' || !d.group)) err(file, 'group deve ser texto');
   if (!CRIT.includes(d.criticality)) err(file, `criticality deve ser ${CRIT.join('|')}`);
   if (d.valueType !== undefined) {
@@ -71,6 +73,9 @@ for (const { file, data: d } of flags) {
       if (o.rolloutPercent !== undefined && !(o.rolloutPercent >= 0 && o.rolloutPercent <= 100)) err(file, `${env}.${p}.rolloutPercent deve estar entre 0 e 100`);
     }
     for (const k of Object.keys(e)) if (k !== 'default' && !PLATFORMS.includes(k)) err(file, `${env}.${k} desconhecido (use default, ios, android)`);
+    if (!targeting.length) {
+      for (const p of PLATFORMS) if (e[p] && !platformsOf(d).includes(p)) err(file, `${env}.${p} definido, mas a FF é só para ${d.platforms}: ajuste "platforms" ou remova o bloco`);
+    }
   }
 }
 

@@ -21,14 +21,17 @@ Antes de abrir: npm run preflight (ou npm run pr).
 - **Chave(s):** `ft_...` / `rc_...`
 - **Squad / dono:**
 - **Criticidade:** baixa | média | alta | crítica
+- **Plataformas:** Android | iOS | ambas
+- **Versão mínima do app:** `x.y.z` (a partir de qual versão o código da FF existe; por plataforma, se forem diferentes)
 - **Valores por plataforma:** default `...`, iOS `...` (rollout `..%`), Android `...` (rollout `..%`)
 - [ ] O nome não existe no repositório nem no Firebase NÃO PROD
+- [ ] `platforms` e `minVersion` preenchidos em `flags/<chave>.json`
 - [ ] Só mexi em `flags/`, `env/nonprod/` e `catalog/`
 - [ ] `npm run catalog && npm run validate` passam
 
 ## update/* — alterar FF existente
 - **Chave(s):**
-- **O que mudou:** valor / plataforma / rollout / descrição
+- **O que mudou:** valor / plataforma / versão mínima / rollout / descrição
 - **Valor antes → depois:**
 - **Motivo:**
 - [ ] A FF já existe (não criei nenhuma nova)

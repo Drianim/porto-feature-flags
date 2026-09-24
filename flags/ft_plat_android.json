@@ -2,5 +2,7 @@
   "key": "ft_plat_android",
   "description": "Teste de plataforma: ligada só no Android",
   "owner": "squad-poc",
-  "criticality": "baixa"
+  "criticality": "baixa",
+  "platforms": "android",
+  "minVersion": "2.61.0"
 }

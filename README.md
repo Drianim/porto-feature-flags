@@ -6,7 +6,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 
 | Caminho | Conteúdo |
 |---|---|
-| `flags/<key>.json` | Definição da flag: dono, criticidade, tipo e definição da flag (sem valores) |
+| `flags/<key>.json` | Definição da flag: dono, criticidade, **plataformas** (`android`, `ios` ou `ambas`) e **versão mínima do app** (sem valores) |
 | `env/nonprod/<key>.json` | Valor em **NÃO PROD** (`{"nonprod": {...}}`). Só `feature/*` altera |
 | `env/prod/<key>.json` | Valor em **PROD** (`{"prod": {...}}`). Só `release/*` altera |
 | `rm/RM-*.json` | Arquivo de RM: flags, ambientes, rollback, data/hora de PROD, plano de rollout, aprovações |
@@ -14,7 +14,7 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 | `scripts/new-flag.js`, `new-rm.js` | Geram flag e RM |
 | `scripts/validate.js` | Valida flags e RM (`--prod` aplica as regras de PROD) |
 | `scripts/check-approvals.js` | Gate de PROD: confere no Bitbucket o PR mergeado (1 aprovação da plataforma + 1 da equipe, nenhuma do autor) |
-| `config/approvers.json` | `account_id` das pessoas da plataforma (preencher) |
+| `config/approvers.json` | `admins` (e-mails que podem mesclar `chore/*`) e `account_id` das pessoas da plataforma (preencher) |
 | `catalog/keys.json` | Catálogo gerado com todas as chaves do Remote Config e o estado por ambiente (`npm run catalog`; a pipeline falha se estiver desatualizado) |
 | `scripts/check-new-flags.js` | Bloqueia nome de FF duplicado: feature/* só cria FF nova (consulta o Firebase), update/* só altera existente |
 | `scripts/remove-flags.js` | Apaga FFs removidas do repositório no Remote Config NÃO PROD (`--base`, `--keys`, `--dry-run`) |
@@ -31,8 +31,12 @@ Fonte única de verdade das Feature Flags (Firebase Remote Config), com validaç
 
 - `ft_*` = feature toggle (valores `"true"`/`"false"`); `rc_*` = valor de configuração (texto, URL etc.). O **tipo no Remote Config vem dos valores**: se todos os valores da FF (padrão e overrides, em todos os ambientes) forem `true`/`false`, ela é publicada como **Boolean**; qualquer outro valor (URL, texto) a torna **String**. Vale para `ft_` e `rc_`; o campo `valueType` do arquivo é ignorado.
 - Por ambiente: `default` + override opcional por plataforma (`ios`, `android`), cada um com `value` e `rolloutPercent` (teto opcional).
+- **Plataformas e versão mínima são obrigatórias em toda FF** (em `flags/<key>.json`; o `validate` reprova sem elas):
+  - `"platforms": "android" | "ios" | "ambas"`: para quais plataformas a FF existe. Um bloco `ios`/`android` em `env/` fora dessa lista é reprovado.
+  - `"minVersion": "2.61.0"` (só números, `x.y.z`): a versão do app que já tem o código da FF. Se a plataforma tiver versões diferentes, use `"minVersion": { "android": "2.58.3", "ios": "2.61.0" }` (exatamente as plataformas da FF).
+  - Abaixo da versão mínima, ou fora das plataformas da FF, a FF **nunca é ativada**: toggle recebe `false`; `rc_*` não é enviado (o app usa o valor padrão dele). Para subir a versão mínima ou mudar a plataforma de uma FF existente, use uma branch `update/*`.
 - `group` opcional coloca o parâmetro num grupo do console (ex.: "Vitrine Hub").
-- No Firebase viram condições `device.os == 'ios'` / `'android'` (com `&& percent('<chave-da-FF>') <= N` durante o rollout). A semente com o nome da FF faz cada FF sortear o seu próprio grupo de usuários, e quem entra em 5% continua dentro quando o rollout sobe.
+- No Firebase viram condições `device.os == 'ios' && app.version >= '<minVersion>'` (idem `'android'`), com `&& percent('<chave-da-FF>') <= N` durante o rollout. Nas `rc_*` o valor padrão também só é servido a partir da versão mínima (condição `<key>_<plataforma>_base`; o padrão do parâmetro passa a ser "usar o valor do app"). A semente com o nome da FF faz cada FF sortear o seu próprio grupo de usuários, e quem entra em 5% continua dentro quando o rollout sobe.
 - Em PROD, toggles que liberam algo e todas as `rc_*` exigem RM e sobem só depois do `prodSchedule`. Desligar um toggle (rollback) nunca é bloqueado.
 
 ## Escopo da PoC: só NÃO PROD
@@ -99,7 +103,7 @@ O script registra um app Android e um iOS temporários (pacote `com.poc.rcteste`
 | `remove/*` | **apagar** FF (do repo e do Remote Config NÃO PROD) | só **apaga** arquivos em `flags/`, `env/nonprod/`, `env/prod/` e `rm/` | remove a FF do Firebase (depois do Run) |
 | `release/*` | levar para PROD | somente `env/prod/`, `rm/` e `catalog/` | PROD (time-gated pelo RM) |
 
-O CI reprova o PR que violar isso: `scripts/check-scope.js` (pastas) e `scripts/check-new-flags.js` (nome de FF). Outros prefixos (`chore/`...) não são restringidos, **não rodam a pipeline do PR** e **não disparam deploy**: servem para ajustes em script, pipeline e documentação, que não são ajuste de FF. Após o merge, a pipeline da main ainda roda os testes e a validação, mas não publica nada.
+O CI reprova o PR que violar isso: `scripts/check-scope.js` (pastas) e `scripts/check-new-flags.js` (nome de FF). Outros prefixos (`chore/`...) não são restringidos, **não rodam a pipeline do PR** e **não disparam deploy**: servem para ajustes em script, pipeline e documentação, que não são ajuste de FF. **Só admin pode mesclar `chore/*`**: o Bitbucket não restringe merge pela branch de origem, então a reconferência da main (`scripts/check-merger.js`) confere o e-mail de quem fez o merge contra `admins` em `config/approvers.json`; se não for admin, a reconferência reprova e a pipeline prepara a reversão (`revert/*`). Após o merge, a pipeline da main ainda roda os testes e a validação, mas não publica nada.
 
 ### Remover uma FF
 
@@ -118,7 +122,7 @@ O CI reprova o PR que violar isso: `scripts/check-scope.js` (pastas) e `scripts/
 
 ## Fluxo
 
-1. Branch a partir de `develop`. Crie a flag: `npm run new:flag -- ft_minha_flag --owner squad-x --criticality media --description "..."`.
+1. Branch a partir de `develop`. Crie a flag: `npm run new:flag -- ft_minha_flag --owner squad-x --criticality media --description "..." --platforms ambas --min-version 2.61.0`.
 2. PR: a pipeline roda testes e `validate`. Precisa de **1 aprovação da equipe**.
 3. Rode `npm run catalog` e commite o resultado. Merge em `develop` **não publica** no Firebase (só valida): `main` é a única fonte do NÃO PROD.
 4. Para PROD: `npm run new:rm -- --flags ft_minha_flag --squad squad-x --schedule 2026-10-01T14:00:00-03:00` e defina em `environments.prod` o override por plataforma (ex.: `"ios": {"value": "true"}`). Preencha `approvals.team` e `approvals.platform` (pessoas diferentes).
@@ -143,7 +147,7 @@ Simular sem publicar: `node scripts/deploy.js prod --dry-run --now 2026-10-01T18
 - **Variável de repositório** (*Repository settings → Pipelines → Repository variables*, marque **Secured**): `FIREBASE_SA_KEY_NONPROD` = JSON do service account em base64 (`base64 -i key.json | pbcopy`), papel *Firebase Remote Config Admin*. Uma só variável cobre PR, `main` e as pipelines custom. O ID do projeto NÃO PROD já vem do `config/environments.json`.
 - **Quando PROD entrar**: crie `FIREBASE_SA_KEY_PROD` e `FIREBASE_PROJECT_PROD` **no Deployment `Production`** (assim a credencial de PROD só existe nos steps de PROD). Uma variável de Deployment com o mesmo nome sobrescreve a de repositório.
 - **Repository variable** `BB_ACCESS_TOKEN` (secured): repository access token com escopo `pullrequest:read`, usado pelo gate de aprovação.
-- **`config/approvers.json`**: preencha `platform` com os `account_id` do time de plataforma.
+- **`config/approvers.json`**: `admins` = e-mails de quem pode mesclar `chore/*`; preencha `platform` com os `account_id` do time de plataforma.
 - **Deployment `production`**: restrinja quem pode fazer deploy (plataforma/admins).
 - **Schedules**: agende `sync-nonprod` em `main` (ex.: a cada 30 min) para retentar deploys que falharam, e `prod-scheduler` em `main` (ex.: a cada 15 min). Ela avança os estágios do rollout no horário certo.
 

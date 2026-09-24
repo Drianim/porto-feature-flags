@@ -1,19 +1,22 @@
 #!/usr/bin/env node
 // Cria flags/<key>.json.
 // Cria a definição (flags/) e os ambientes não produtivos (env/nonprod/). PROD fica para a release/*.
-// Toggle: node scripts/new-flag.js ft_minha_flag --owner <squad> --criticality <nivel> --description "..." [--group "Vitrine Hub"]
-// Config: node scripts/new-flag.js rc_url_x --owner <squad> --criticality <nivel> --description "..." --value "https://..."
+// Toda FF exige --platforms (android | ios | ambas) e --min-version (x.y.z: versão mínima do app com o código da FF).
+// Toggle: node scripts/new-flag.js ft_minha_flag --owner <squad> --criticality <nivel> --description "..." --platforms ambas --min-version 2.61.0 [--group "Vitrine Hub"]
+// Config: node scripts/new-flag.js rc_url_x --owner <squad> --criticality <nivel> --description "..." --platforms ios --min-version 2.61.0 --value "https://..."
 const fs = require('fs');
 const path = require('path');
 const { root, parseArgs } = require('./lib/common');
-const { KEY_RE, kindOf } = require('./lib/flags');
+const { KEY_RE, kindOf, targetingErrors } = require('./lib/flags');
 
 const a = parseArgs(process.argv.slice(2));
 const key = a._[0];
-if (!key || !KEY_RE.test(key) || !a.owner || !a.criticality || !a.description) {
-  console.error('Uso: node scripts/new-flag.js <ft_|rc_chave> --owner <squad> --criticality <baixa|media|alta|critica> --description "..." [--group "Nome"] [--value "..." (rc_)]');
+if (!key || !KEY_RE.test(key) || !a.owner || !a.criticality || !a.description || !a.platforms || !a['min-version']) {
+  console.error('Uso: node scripts/new-flag.js <ft_|rc_chave> --owner <squad> --criticality <baixa|media|alta|critica> --description "..." --platforms <android|ios|ambas> --min-version <x.y.z> [--group "Nome"] [--value "..." (rc_)]');
   process.exit(1);
 }
+const targetingProblems = targetingErrors({ platforms: a.platforms, minVersion: a['min-version'] });
+if (targetingProblems.length) { targetingProblems.forEach((m) => console.error(`✗ ${m}`)); process.exit(1); }
 const toggle = kindOf(key) === 'toggle';
 if (!toggle && !a.value) { console.error('✗ chaves rc_ exigem --value'); process.exit(1); }
 const file = path.join(root, 'flags', `${key}.json`);
@@ -26,6 +29,8 @@ const flag = {
   ...(a.group ? { group: a.group } : {}),
   owner: a.owner,
   criticality: a.criticality,
+  platforms: a.platforms,
+  minVersion: a['min-version'],
 };
 const envFile = path.join(root, 'env', 'nonprod', `${key}.json`);
 fs.mkdirSync(path.dirname(envFile), { recursive: true });

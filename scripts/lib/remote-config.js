@@ -1,7 +1,7 @@
 // Lógica compartilhada entre deploy.js e verify-sync.js: monta o que deve existir no Remote Config,
 // aplica no template e compara com o que existe de fato no Firebase.
 const { currentStage } = require('./rollout');
-const { kindOf, rules, isActive, valueTypeOf } = require('./flags');
+const { kindOf, rules, isActive, valueTypeOf, platformsOf, minVersionFor, targetingErrors } = require('./flags');
 
 // flags + RMs -> { items, conditions, skipped } (o "estado desejado" do ambiente)
 function build(flags, rms, env, cfgEnv, now = new Date()) {
@@ -19,28 +19,47 @@ function build(flags, rms, env, cfgEnv, now = new Date()) {
       if (!stage) { skipped.push(flag.key); continue; }
       stagePercent = stage.percent;
     }
+    const bad = targetingErrors(flag);
+    if (bad.length) throw new Error(`${flag.key}: ${bad.join('; ')}`);
+    // Toggle: padrão explícito "false" (o override "true" só vale nas plataformas/versões da FF).
+    // Config (rc_): sem valor padrão (usa o do app); o valor só é servido nas plataformas da FF a partir da versão mínima.
     const param = {
       description: flag.description,
       valueType: valueTypeOf(flag),
-      defaultValue: { value: defaultValue },
+      defaultValue: toggle ? { value: defaultValue } : { useInAppDefault: true },
       conditionalValues: {},
     };
-    for (const [platform, o] of Object.entries(overrides)) {
-      let pct = o.rolloutPercent ?? 100;
-      if (toggle && stagePercent !== undefined) pct = Math.min(pct, stagePercent);
-      if (pct <= 0) continue;
-      const name = `${flag.key}_${platform}`;
-      // Semente = nome da FF: cada FF sorteia o seu próprio grupo de usuários (sem semente, todas as FFs em % pegariam os mesmos)
-      // e quem entra em 5% continua dentro quando o rollout sobe para 25%.
-      conditions.push({ name, expression: `device.os == '${platform}'${pct < 100 ? ` && percent('${flag.key}') <= ${pct}` : ''}` });
-      param.conditionalValues[name] = { value: o.value };
+    for (const platform of platformsOf(flag)) {
+      const o = overrides[platform];
+      // Toda condição da FF exige plataforma E versão mínima: abaixo dela o código não existe e a FF não liga.
+      const target = `device.os == '${platform}' && app.version >= '${minVersionFor(flag, platform)}'`;
+      let coversAll = false;
+      if (o) {
+        let pct = o.rolloutPercent ?? 100;
+        if (toggle && stagePercent !== undefined) pct = Math.min(pct, stagePercent);
+        if (pct > 0) {
+          const name = `${flag.key}_${platform}`;
+          // Semente = nome da FF: cada FF sorteia o seu próprio grupo de usuários (sem semente, todas as FFs em % pegariam os mesmos)
+          // e quem entra em 5% continua dentro quando o rollout sobe para 25%.
+          conditions.push({ name, expression: `${target}${pct < 100 ? ` && percent('${flag.key}') <= ${pct}` : ''}` });
+          param.conditionalValues[name] = { value: o.value };
+          coversAll = pct >= 100;
+        }
+      }
+      // Config: quem está na plataforma e na versão mas fora do override recebe o valor padrão (condição depois do override).
+      if (!toggle && !coversAll) {
+        const name = `${flag.key}_${platform}_base`;
+        conditions.push({ name, expression: target });
+        param.conditionalValues[name] = { value: defaultValue };
+      }
     }
     items.push({ key: flag.key, group: flag.group, param });
   }
   return { items, conditions, skipped };
 }
 
-const isOwnedCondition = (name, keys) => [...keys].some((k) => name === `${k}_ios` || name === `${k}_android` || name === `${k}_rollout`);
+const OWNED_SUFFIXES = ['_ios', '_android', '_ios_base', '_android_base', '_rollout'];
+const isOwnedCondition = (name, keys) => [...keys].some((k) => OWNED_SUFFIXES.some((suffix) => name === `${k}${suffix}`));
 
 // Aplica o estado desejado no template (mexe só nas chaves do repositório).
 function apply(template, { items, conditions }) {
@@ -63,7 +82,7 @@ function apply(template, { items, conditions }) {
   return template;
 }
 
-// Remove chaves do template: parâmetros, entradas em grupos e condições próprias (<key>_ios/_android/_rollout).
+// Remove chaves do template: parâmetros, entradas em grupos e condições próprias (<key>_ios/_android/_*_base/_rollout).
 // Grupos que ficam vazios por causa da remoção também saem.
 function removeKeys(template, keys) {
   const ks = new Set(keys);
@@ -104,8 +123,9 @@ function diff(template, plan) {
     if ((group || null) !== r.group) problems.push(`${key}: grupo esperado "${group || '(nenhum)'}", atual "${r.group || '(nenhum)'}"`);
     if ((a.valueType || 'STRING') !== e.valueType) problems.push(`${key}: tipo esperado ${e.valueType}, atual ${a.valueType}`);
     if ((a.description || '') !== e.description) problems.push(`${key}: descrição diferente`);
-    const actualDefault = a.defaultValue && a.defaultValue.value;
-    if (actualDefault !== e.defaultValue.value) problems.push(`${key}: valor padrão esperado "${e.defaultValue.value}", atual "${actualDefault}"`);
+    const describeDefault = (d) => (d && d.useInAppDefault ? 'padrão do app' : `"${d && d.value}"`);
+    const sameDefault = e.defaultValue.useInAppDefault ? Boolean(a.defaultValue && a.defaultValue.useInAppDefault) : (a.defaultValue && a.defaultValue.value) === e.defaultValue.value;
+    if (!sameDefault) problems.push(`${key}: valor padrão esperado ${describeDefault(e.defaultValue)}, atual ${describeDefault(a.defaultValue)}`);
     const ev = e.conditionalValues || {};
     const av = a.conditionalValues || {};
     for (const name of new Set([...Object.keys(ev), ...Object.keys(av)])) {

@@ -3,5 +3,7 @@
   "description": "Exemplo: novo fluxo de checkout (PoC)",
   "owner": "squad-poc",
   "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": "2.61.0",
   "valueType": "STRING"
 }

@@ -16,6 +16,8 @@ const catalog = {
     group: f.group || null,
     valueType: valueTypeOf(f),
     criticality: f.criticality,
+    platforms: f.platforms,
+    minVersion: f.minVersion,
     owner: f.owner,
     description: f.description,
     environments: f.environments,

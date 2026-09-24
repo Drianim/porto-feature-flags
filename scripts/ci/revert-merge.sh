@@ -9,7 +9,7 @@ if [ "${BITBUCKET_EXIT_CODE:-1}" = "0" ]; then exit 0; fi   # a reconferência p
 
 src=$(cat merge-source.txt 2>/dev/null)
 case "$src" in
-  feature/*|update/*|remove/*|release/*) ;;
+  feature/*|update/*|remove/*|release/*|chore/*) ;;
   *) echo "Origem '${src:-desconhecida}': não publica, nada a reverter."; exit 0 ;;
 esac
 
