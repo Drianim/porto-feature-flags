@@ -1,5 +1,31 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 0,
-  "keys": []
+  "total": 1,
+  "keys": [
+    {
+      "key": "ft_teste_01_ambas",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ambas",
+      "minVersion": "2.61.0",
+      "team": "squad-poc",
+      "description": "Teste 01: toggle ligado em iOS e Android",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    }
+  ]
 }
