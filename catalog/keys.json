@@ -76,7 +76,7 @@
       "valueType": "BOOLEAN",
       "criticality": "baixa",
       "owner": "squad-poc",
-      "description": "Teste de plataforma: ligada só no iOS",
+      "description": "Teste de plataforma: ligada só no iOS (v2)",
       "environments": {
         "nonprod": {
           "default": "false",
