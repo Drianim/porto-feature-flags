@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 2,
+  "total": 3,
   "keys": [
     {
       "key": "ft_teste_01_ambas",
@@ -43,6 +43,28 @@
           "ios": {
             "value": "true",
             "rolloutPercent": 50
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_teste_03_android",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "android",
+      "minVersion": "2.61.0",
+      "team": "squad-poc",
+      "description": "Teste 03: toggle só no Android",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "android": {
+            "value": "true"
           }
         },
         "prod": {
