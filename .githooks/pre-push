@@ -1,0 +1,12 @@
+#!/bin/sh
+# Valida antes de empurrar branches feature/, update/, remove/ e release/ (o mesmo preflight de "npm run preflight").
+# Instalar uma vez: npm run hooks   |   Ignorar por sua conta: git push --no-verify
+current=$(git rev-parse --abbrev-ref HEAD)
+while read local_ref local_sha remote_ref remote_sha; do
+  case "$local_ref" in
+    refs/heads/feature/*|refs/heads/update/*|refs/heads/remove/*|refs/heads/release/*)
+      [ "${local_ref#refs/heads/}" = "$current" ] || continue
+      node scripts/preflight.js --branch "$current" || { echo "Push bloqueado pelo preflight."; exit 1; } ;;
+  esac
+done
+exit 0
