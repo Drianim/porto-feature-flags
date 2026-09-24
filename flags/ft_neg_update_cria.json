@@ -1,0 +1,8 @@
+{
+  "key": "ft_neg_update_cria",
+  "description": "Negativo: update criando FF nova",
+  "team": "squad-poc",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": "2.61.0"
+}
