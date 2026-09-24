@@ -1,0 +1,6 @@
+{
+  "key": "ft_plat_ambos",
+  "description": "Teste de plataforma: ligada em iOS e Android",
+  "owner": "squad-poc",
+  "criticality": "baixa"
+}
