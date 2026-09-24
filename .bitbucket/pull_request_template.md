@@ -24,6 +24,7 @@ Antes de abrir: npm run preflight (ou npm run pr).
 - **Equipe dona** (de `config/teams.json`; só a equipe ou a plataforma altera):
 - **Criticidade:** baixa | média | alta | crítica
 - **Plataformas:** Android | iOS | ambas
+- **PR do app** (link do PR com o código atrás da FF; templates em `docs/templates/codigo-app/`; ligue a FF só depois do app publicado):
 - **Versão mínima do app:** `x.y.z` (a partir de qual versão o código da FF existe; por plataforma, se forem diferentes)
 - **Valores por plataforma:** default `...`, iOS `...` (rollout `..%`), Android `...` (rollout `..%`)
 - [ ] O nome não existe no repositório nem no Firebase NÃO PROD

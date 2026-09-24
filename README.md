@@ -73,6 +73,7 @@ Quatro camadas, cada uma com uma responsabilidade:
 | `config/teams.json` | Equipes válidas (`teams`), os e-mails dos **membros** de cada uma e a **equipe de plataforma** (`platform`) |
 | `config/approvers.json` | `admins` (e-mails que podem mesclar `chore/*`) e `platform` (aprovadores de PROD, a preencher) |
 | `docs/sdd/`, `docs/specs/` | Processo SDD dos scripts, template e as specs |
+| `docs/templates/codigo-app/` | **Templates do código do app** (Kotlin e Swift) que lê a FF, por situação da FF |
 | `.bitbucket/pull_request_template.md` | Descrição padrão do PR, com uma seção por tipo de branch |
 | `.claude/skills/` | Skills do Claude Code: `feature-flag` (operar FFs), `ff-status` (consultar o status) e `sdd-scripts` (evoluir scripts) |
 | `CLAUDE.md` | Resumo das regras e armadilhas para um Claude Code que abrir o repositório |
@@ -146,6 +147,19 @@ O CI só **proíbe PROD** em `feature/*` e `update/*`; por convenção elas mexe
 
 O CI reprova PR fora dessas regras (`check-scope`, `check-new-flags`). A origem do merge vem da mensagem do commit
 (`Merged in <branch> (pull request #N)`); merge sem origem identificável não publica nada.
+
+### Criar a branch pela interface do Bitbucket
+
+Na tela **Create branch** do Bitbucket, **From branch** é sempre `main` e o **Type** decide o prefixo:
+
+| Type na tela | Prefixo | Use para |
+|---|---|---|
+| Feature | `feature/` | FF nova |
+| Release | `release/` | levar para PROD |
+| Other | (você digita o nome completo) | `update/...`, `remove/...` e `chore/...` |
+| Bugfix, Hotfix | `bugfix/`, `hotfix/` | **não fazem parte do processo**: não têm regra de escopo e não publicam nada |
+
+`update/`, `remove/` e `chore/` não existem como tipo na tela: escolha **Other** e digite o prefixo junto com o nome (ex.: `update/ft-checkout-50`).
 
 ### Criar uma FF (`feature/*`)
 
@@ -309,13 +323,15 @@ Detalhes, checklist de revisão e convenções: [`docs/sdd/README.md`](docs/sdd/
 [0001](docs/specs/0001-plataforma-e-versao-minima.md) e [0002](docs/specs/0002-chore-sem-pipeline-e-merge-por-admin.md)
 (retroativas); a partir da 0003 a spec vem antes do código. `npm run specs` valida o formato e roda dentro do `npm test`.
 
+**Código do app:** os templates de como o app Android e iOS lê a FF em cada situação (nova FF, rollout, `rc_*`, versão mínima, remoção e teste) estão em `docs/templates/codigo-app/` (`android.md` em Kotlin, `ios.md` em Swift).
+
 **Dicas para quem trabalha com outro Claude Code:** peça "siga a skill sdd-scripts" para mudança de script; deixe o
 Claude ler `README.md`, `CLAUDE.md` e a spec antes; ele não deve fazer push, abrir PR nem procurar credenciais sem você
 pedir (está no `CLAUDE.md`); para FF use a skill `feature-flag` e os comandos `npm run new:flag` / `npm run preflight`.
 
 ## Testes e convenções
 
-- `npm test` roda todos os testes (`node --test`, ~190 casos): regras de FF, montagem de condições (com um avaliador
+- `npm test` roda todos os testes (`node --test`, ~200 casos): regras de FF, montagem de condições (com um avaliador
   mínimo das expressões), escopo, nome único, rollout, aprovações, merger, pipeline (lint do YAML), specs e os scripts
   de CI em repositórios Git temporários. Sem Firebase real: o que precisa dele é o `test-platforms.js`.
 - Node 22, CommonJS, sem dependência nova (`firebase-admin`; `js-yaml` só em teste). Lógica em `scripts/lib/`, CLI fina,
