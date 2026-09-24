@@ -64,12 +64,13 @@ Quatro camadas, cada uma com uma responsabilidade:
 
 | Caminho | Conteúdo |
 |---|---|
-| `flags/<key>.json` | Definição da FF: dono, criticidade, descrição, grupo, **plataformas** e **versão mínima** (sem valores) |
+| `flags/<key>.json` | Definição da FF: **equipe**, criticidade, descrição, grupo, **plataformas** e **versão mínima** (sem valores) |
 | `env/nonprod/<key>.json` | Valores em NÃO PROD: `{"nonprod": {default, ios, android}}` |
 | `env/prod/<key>.json` | Valores em PROD: `{"prod": {...}}` |
 | `rm/RM-*.json` | Arquivo de RM de PROD: flags, criticidade, rollback, data/hora, plano de rollout, aprovações |
 | `catalog/keys.json` | Catálogo gerado de todas as chaves (`npm run catalog`); a pipeline falha se estiver desatualizado |
 | `config/environments.json` | Projeto e variável de credencial por ambiente; PROD é *time-gated* |
+| `config/teams.json` | Equipes válidas (`teams`), os e-mails dos **membros** de cada uma e a **equipe de plataforma** (`platform`) |
 | `config/approvers.json` | `admins` (e-mails que podem mesclar `chore/*`) e `platform` (aprovadores de PROD, a preencher) |
 | `docs/sdd/`, `docs/specs/` | Processo SDD dos scripts, template e as specs |
 | `.bitbucket/pull_request_template.md` | Descrição padrão do PR, com uma seção por tipo de branch |
@@ -87,6 +88,7 @@ Quatro camadas, cada uma com uma responsabilidade:
 | `check-scope.js` | Cada tipo de branch só mexe nas suas pastas |
 | `check-new-flags.js` | Nome único: `feature` cria, `update` altera, `remove` apaga; consulta o Firebase |
 | `check-approvals.js` | Gate de PROD: 1 aprovação de plataforma + 1 de equipe, nenhuma do autor (precisa `BB_ACCESS_TOKEN`) |
+| `check-ownership.js` | **Permissão por equipe:** só a equipe dona da FF (ou a plataforma) a altera; transferir FF entre equipes é da plataforma |
 | `check-merger.js` | Só admin mescla `chore/*` |
 | `check-specs.js` | Formato das specs de `docs/specs/` |
 | `ff-status.js` | **Status das FFs, somente leitura:** lista, detalhe, rollout, resumo, sincronia, histórico e obsoletas (`npm run status -- list`); usa o Firebase se houver credencial |
@@ -113,6 +115,8 @@ Quatro camadas, cada uma com uma responsabilidade:
     `"minVersion": { "android": "2.58.3", "ios": "2.61.0" }` (exatamente as plataformas da FF).
   - Abaixo da versão mínima, ou fora das plataformas, a FF **nunca ativa**: toggle recebe `false`; `rc_*` não é enviada (o app usa o padrão dele).
   - Mudar plataforma ou versão mínima de FF existente é `update/*`.
+- **Equipe obrigatória:** `"team": "squad-poc"` em `flags/<key>.json`, sempre uma das equipes de `config/teams.json` (o campo antigo `owner` foi renomeado e dá erro). No Firebase a equipe vai como prefixo da descrição (`[squad-poc] texto...`), porque o Remote Config não tem rótulo por parâmetro: assim ela aparece no console, e o `verify-sync` acusa se divergir. `npm run status -- summary` conta as FFs por equipe.
+- **Permissão por equipe:** uma equipe só cria, altera, remove ou leva a PROD as FFs **dela**. A **equipe de plataforma** (`platform` em `config/teams.json`) mexe em qualquer FF e é a única que **transfere** uma FF de uma equipe para outra (mudar o `team`). Detalhes em *Permissão por equipe*, abaixo.
 - **Grupo** opcional agrupa parâmetros no console (`"group": "Vitrine Hub"`).
 - **No Firebase** viram condições `device.os == 'ios' && app.version >= '<minVersion>'` (idem `'android'`), com
   `&& percent('<chave>') <= N` durante o rollout. A semente com o nome da FF faz cada FF sortear seu próprio grupo, e
@@ -121,7 +125,7 @@ Quatro camadas, cada uma com uma responsabilidade:
 - Exemplo (`flags/ft_plat_ios_50.json` + `env/nonprod/ft_plat_ios_50.json`):
 
 ```json
-{ "key": "ft_plat_ios_50", "description": "...", "owner": "squad-poc", "criticality": "baixa",
+{ "key": "ft_plat_ios_50", "description": "...", "team": "squad-poc", "criticality": "baixa",
   "platforms": "ios", "minVersion": "2.61.0" }
 { "nonprod": { "default": "false", "ios": { "value": "true", "rolloutPercent": 50 } } }
 ```
@@ -145,7 +149,7 @@ O CI reprova PR fora dessas regras (`check-scope`, `check-new-flags`). A origem 
 
 ### Criar uma FF (`feature/*`)
 
-1. `npm run new:flag -- ft_minha_flag --owner squad-x --criticality media --description "..." --platforms ambas --min-version 2.61.0`
+1. `npm run new:flag -- ft_minha_flag --team squad-poc --criticality media --description "..." --platforms ambas --min-version 2.61.0`
    (`rc_*` exige também `--value`; `--group "Nome"` agrupa).
 2. Edite `env/nonprod/ft_minha_flag.json` com os valores por plataforma e o `rolloutPercent`, se houver.
 3. `npm run catalog && npm run validate`; simule com `node scripts/deploy.js nonprod --dry-run`.
@@ -169,9 +173,24 @@ próprias) só as FFs cujo `flags/<key>.json` foi apagado naquele merge. O scrip
 `feature/*` só cria FF nova: o nome não pode existir em `main` (ignorando maiúsculas) nem no Remote Config NÃO PROD (o PR
 consulta o Firebase de verdade). Se existir, a mensagem manda usar `update/*`. `--skip-remote` pula a consulta local.
 
+### Permissão por equipe
+
+Quem pode mexer em qual FF é decidido por `config/teams.json`: `platform` (e-mails da equipe de plataforma) e, por equipe, `members` (e-mails).
+
+| Mudança | Quem pode |
+|---|---|
+| criar, alterar, apagar ou levar a PROD uma FF (`flags/`, `env/`, `rm/`) | membros da **equipe dona** da FF (o `team` dela) ou a **plataforma** |
+| criar FF nova | membros da equipe declarada no `team` da FF nova ou a plataforma |
+| **transferir** a FF para outra equipe (mudar `team`) | só a **plataforma** |
+| alterar `config/teams.json` (equipes e membros) | só numa `chore/*`, mesclada por admin |
+
+- **Como é conferido:** `scripts/check-ownership.js` compara a equipe de cada FF tocada (no ponto de partida do PR e no fim) com os **e-mails dos commits do PR**. Roda no `preflight`, na pipeline de PR (`feature/*`, `update/*`, `remove/*`, `release/*`) e na **reconferência da `main`** (a barreira real, que aciona a reversão automática). Um RM vale para as FFs listadas nele.
+- **Um PR não se autoriza:** a lista de membros é lida do ponto de partida (`main`), nunca do próprio PR, e mudar `config/teams.json` numa branch de FF é reprovado.
+- **Limite:** o e-mail do commit é configurado por quem commita: isto barra o erro e o descuido (a equipe errada mexendo na FF errada), não a má-fé. Quem tem mais de um e-mail lista todos. Equipe sem membros cadastrados só é alterada pela plataforma.
+
 ### Preflight e template de PR
 
-- `npm run preflight`: formato, catálogo em dia, escopo da branch, nome único e, em `release/*`, regras de PROD.
+- `npm run preflight`: formato, catálogo em dia, escopo da branch, permissão por equipe, nome único e, em `release/*`, regras de PROD.
 - `npm run pr`: preflight e, se passar, empurra a branch e imprime o **link de um clique** do PR.
 - `npm run hooks` (uma vez): o `pre-push` roda o preflight ao empurrar branches de FF (`git push --no-verify` ignora).
 - `.bitbucket/pull_request_template.md` (lido da `main`) traz uma seção por tipo; apague as que não são do seu PR.
@@ -183,7 +202,7 @@ consulta o Firebase de verdade). Se existir, a mensagem manda usar `update/*`. `
 
 | Pipeline | Quando | O que faz |
 |---|---|---|
-| **PR** (`feature/**`, `update/**`, `remove/**`, `release/**`) | ao abrir/atualizar PR | testes e `validate`, escopo, nome único, dry-run (e regras de PROD em `release/*`) |
+| **PR** (`feature/**`, `update/**`, `remove/**`, `release/**`) | ao abrir/atualizar PR | testes e `validate`, escopo, permissão por equipe, nome único, dry-run (e regras de PROD em `release/*`) |
 | **`main`** | a cada merge | valida; **reconfere o merge**; passo manual de deploy NÃO PROD (`deployment: test`); passos de PROD (só se o merge mexeu em `env/prod/**` ou `rm/**`) |
 | **`develop`** | push | só valida (não publica) |
 | **`sync-nonprod`** (custom, manual/agendada, em `main`) | divergência main ≠ Firebase | publica o que está em `main` e confere de novo |
@@ -212,7 +231,7 @@ existe no Firebase.
 2. **Merge check do Bitbucket**: configurado na `main`, mas **no plano atual não impede o botão de merge** (a opção
    *Prevent a merge with unresolved merge checks* não está disponível). O PR fica vermelho, ainda mesclável.
 3. **Reconferência na `main`** (`scripts/ci/recheck-merge.sh`): no início da pipeline reaplica escopo e nome único ao
-   commit de merge (e, para `chore/*`, exige admin). Se falhar, o passo de deploy nem é oferecido. **É a barreira real.**
+   commit de merge (permissão por equipe e, para `chore/*`, exige admin). Se falhar, o passo de deploy nem é oferecido. **É a barreira real.**
 4. **Reversão automática** (`scripts/ci/revert-merge.sh`, `after-script` da reconferência): cria a branch
    `revert/pr-<n>-<origem>` com `git revert -m 1`, empurra por SSH e imprime o **link de um clique** do PR de reversão.
    Nunca mescla sozinho, nunca falha o passo, não duplica em reexecução. Sem a chave, imprime os comandos manuais.
@@ -256,6 +275,7 @@ O avanço entre estágios é por **tempo**, não consulta métricas de saúde: m
 - **Branch restrictions** na `main`: só via PR (mín. de aprovações conforme o plano). Merge check "build com sucesso" já
   configurado (ver limite em *Proteções*).
 - **Chave SSH** da reversão automática (ver *Proteções*, item 4).
+- **`config/teams.json`**: `platform` (e-mails da equipe de plataforma), `teams` (equipes válidas) e os `members` de cada uma, sempre os e-mails que aparecem nos commits. Equipe nova ou mudança de membro entra por uma `chore/*` (só admin mescla).
 - **`config/approvers.json`**: `admins` (e-mails que fazem merge de `chore/*`; é o e-mail do commit de merge) e, quando
   PROD entrar, `platform` com os `account_id` do time de plataforma.
 - **Quando PROD entrar:** `FIREBASE_SA_KEY_PROD` e `FIREBASE_PROJECT_PROD` **no Deployment `Production`**;
@@ -295,7 +315,7 @@ pedir (está no `CLAUDE.md`); para FF use a skill `feature-flag` e os comandos `
 
 ## Testes e convenções
 
-- `npm test` roda todos os testes (`node --test`, ~150 casos): regras de FF, montagem de condições (com um avaliador
+- `npm test` roda todos os testes (`node --test`, ~190 casos): regras de FF, montagem de condições (com um avaliador
   mínimo das expressões), escopo, nome único, rollout, aprovações, merger, pipeline (lint do YAML), specs e os scripts
   de CI em repositórios Git temporários. Sem Firebase real: o que precisa dele é o `test-platforms.js`.
 - Node 22, CommonJS, sem dependência nova (`firebase-admin`; `js-yaml` só em teste). Lógica em `scripts/lib/`, CLI fina,

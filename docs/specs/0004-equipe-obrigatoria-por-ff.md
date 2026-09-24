@@ -1,7 +1,7 @@
 ---
 spec: 0004
 titulo: Equipe obrigatória por FF, visível no Firebase, e só a equipe dona (ou a plataforma) altera
-status: aprovada
+status: implementada
 criado: 2026-09-24
 atualizado: 2026-09-24
 ---
@@ -29,21 +29,21 @@ Toda FF já tem o campo `owner` (obrigatório, ex.: `squad-poc`), usado no catá
 
 ## Critérios de aceite
 
-- [ ] CA-1: `flags/<chave>.json` exige `team`; o `validate` reprova FF sem `team` ou com um nome que não esteja na lista oficial `config/teams.json`, dizendo a lista válida.
-- [ ] CA-2: o campo antigo `owner` é reprovado com a mensagem de renomear para `team`, e as FFs existentes são migradas.
-- [ ] CA-3: `config/teams.json` lista as equipes válidas; o `validate` reprova lista vazia, nome duplicado ou fora do formato `^[a-z0-9]+(-[a-z0-9]+)*$`.
-- [ ] CA-4: `new-flag` exige `--team <equipe>` (validada contra a lista) e grava `team`; `--owner` é recusado com a mensagem de usar `--team`.
-- [ ] CA-5: o Remote Config recebe a descrição publicada como `[<equipe>] <descrição>`, e `verify-sync` e `sync` acusam divergência quando a equipe ou a descrição publicada diferem.
-- [ ] CA-6: o catálogo `catalog/keys.json` traz `team` no lugar de `owner`.
-- [ ] CA-7: `ff-status` mostra a coluna Equipe, aceita `--team <equipe>` no lugar de `--owner`, e `summary` traz a contagem de FFs por equipe.
-- [ ] CA-8: a skill `ff-status`, a skill `feature-flag`, o template de PR, o README e o `CLAUDE.md` falam em `team`.
-- [ ] CA-9: `config/teams.json` tem `platform` (e-mails da equipe de plataforma, ao menos um) e, por equipe, `members` (e-mails; pode estar vazio); o `validate` reprova e-mail fora do formato e `platform` vazio.
-- [ ] CA-10: um PR que cria, altera ou apaga arquivos de uma FF (`flags/`, `env/nonprod/`, `env/prod/`) só passa se todos os autores dos commits forem membros da equipe dona da FF ou da plataforma; a equipe dona é a do `main` (base do PR), e a do próprio PR quando a FF é nova.
-- [ ] CA-11: um PR que altera um `rm/` só passa se os autores forem membros da equipe de todas as FFs do RM (antes ou depois da mudança) ou da plataforma.
-- [ ] CA-12: mudar o `team` de uma FF existente (transferir para outra equipe) só passa se os autores forem da plataforma, mesmo que sejam da equipe de origem ou de destino.
-- [ ] CA-13: um PR que mexe em FFs de várias equipes exige, para cada FF, um autor autorizado por ela (todos os autores precisam estar autorizados em todas, ou ser da plataforma).
-- [ ] CA-14: a mensagem de reprovação diz qual FF, qual a equipe dona, qual autor não está autorizado e manda pedir à equipe dona ou à plataforma.
-- [ ] CA-15: a checagem roda no `preflight`, na pipeline de PR (`feature/*`, `update/*`, `remove/*`, `release/*`) e na reconferência da `main`, que aciona a reversão automática.
+- [x] CA-1: `flags/<chave>.json` exige `team`; o `validate` reprova FF sem `team` ou com um nome que não esteja na lista oficial `config/teams.json`, dizendo a lista válida.
+- [x] CA-2: o campo antigo `owner` é reprovado com a mensagem de renomear para `team`, e as FFs existentes são migradas.
+- [x] CA-3: `config/teams.json` lista as equipes válidas; o `validate` reprova lista vazia ou nome fora do formato `^[a-z0-9]+(-[a-z0-9]+)*$`.
+- [x] CA-4: `new-flag` exige `--team <equipe>` (validada contra a lista) e grava `team`; `--owner` é recusado com a mensagem de usar `--team`.
+- [x] CA-5: o Remote Config recebe a descrição publicada como `[<equipe>] <descrição>`, e `verify-sync` e `sync` acusam divergência quando a equipe ou a descrição publicada diferem.
+- [x] CA-6: o catálogo `catalog/keys.json` traz `team` no lugar de `owner`.
+- [x] CA-7: `ff-status` mostra a coluna Equipe, aceita `--team <equipe>` no lugar de `--owner`, e `summary` traz a contagem de FFs por equipe.
+- [x] CA-8: a skill `ff-status`, a skill `feature-flag`, o template de PR, o README e o `CLAUDE.md` falam em `team`.
+- [x] CA-9: `config/teams.json` tem `platform` (e-mails da equipe de plataforma, ao menos um) e, por equipe, `members` (e-mails; pode estar vazio); o `validate` reprova e-mail fora do formato e `platform` vazio.
+- [x] CA-10: um PR que cria, altera ou apaga arquivos de uma FF (`flags/`, `env/nonprod/`, `env/prod/`) só passa se todos os autores dos commits forem membros da equipe dona da FF ou da plataforma; a equipe dona é a do `main` (base do PR), e a do próprio PR quando a FF é nova.
+- [x] CA-11: um PR que altera um `rm/` só passa se os autores forem membros da equipe de todas as FFs do RM (antes ou depois da mudança) ou da plataforma.
+- [x] CA-12: mudar o `team` de uma FF existente (transferir para outra equipe) só passa se os autores forem da plataforma, mesmo que sejam da equipe de origem ou de destino.
+- [x] CA-13: um PR que mexe em FFs de várias equipes exige, para cada FF, um autor autorizado por ela (todos os autores precisam estar autorizados em todas, ou ser da plataforma).
+- [x] CA-14: a mensagem de reprovação diz qual FF, qual a equipe dona, qual autor não está autorizado e manda pedir à equipe dona ou à plataforma.
+- [x] CA-15: a checagem roda no `preflight`, na pipeline de PR (`feature/*`, `update/*`, `remove/*`, `release/*`) e na reconferência da `main`, que aciona a reversão automática.
 
 ## Desenho
 
@@ -75,9 +75,9 @@ Toda FF já tem o campo `owner` (obrigatório, ex.: `squad-poc`), usado no catá
 
 **Files:** `config/teams.json`, `scripts/lib/common.js`, `scripts/lib/flags.js`, `scripts/lib/flags.test.js`
 
-**Interfaces:** produz `loadTeams() -> string[]` (em `common.js`) e `teamErrors(flag, teams) -> string[]` (em `flags.js`): erro se `team` ausente, se `owner` existir (mensagem de renomear) ou se `team` não estiver em `teams`.
+**Interfaces:** produz `loadTeamsConfig() -> { platform, teams }` e `loadTeams() -> string[]` (em `common.js`), `teamErrors(flag, teams) -> string[]` e `teamsErrors(cfg) -> string[]` (em `flags.js`): erro se `team` ausente, se `owner` existir (mensagem de renomear) ou se `team` não estiver em `teams`.
 
-1. Teste: FF sem `team`, com `owner`, com equipe fora da lista e com equipe válida.
+1. Teste: FF sem `team`, com `owner`, com equipe fora da lista e com equipe válida; `config/teams.json` com plataforma vazia, e-mail inválido, repetido e formato de equipe inválido.
 2. Implementação: `loadTeams` e `teamErrors`.
 3. Comando: `node --test scripts/lib/flags.test.js` (esperado: passa).
 
@@ -85,7 +85,7 @@ Toda FF já tem o campo `owner` (obrigatório, ex.: `squad-poc`), usado no catá
 
 **Files:** `scripts/validate.js`, `scripts/new-flag.js`, `scripts/catalog.js`, `flags/*.json`, `catalog/keys.json`, `scripts/validate.test.js`
 
-**Interfaces:** consome `teamErrors` e `loadTeams`; `validate` reprova lista de equipes vazia, duplicada ou com formato inválido; `new-flag` recebe `--team` e recusa `--owner`.
+**Interfaces:** consome `teamErrors` e `loadTeams`; `validate` reprova `config/teams.json` inválido (plataforma vazia, e-mail ruim, lista de equipes vazia ou nome fora do formato); `new-flag` recebe `--team` e recusa `--owner`.
 
 1. Teste: `validate.test.js` cobre CA-1 a CA-3 num repositório temporário.
 2. Implementação: as três mudanças e a migração das FFs.

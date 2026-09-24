@@ -32,12 +32,13 @@ npm run status -- list                     # status das FFs (somente leitura; sk
 - **Nunca** grave credencial no repositório e **não procure** chave do Firebase em histórico, disco ou variáveis: se
   precisar, peça ao usuário para exportar `FIREBASE_SA_KEY_NONPROD` (JSON do service account em base64).
 - **Não faça `git push` nem abra PR** sem o usuário pedir. Não mescle nada.
-- **Nunca invente** dado de negócio: data/hora de PROD, aprovadores, plataformas, versão mínima, dono, criticidade.
+- **Nunca invente** dado de negócio: data/hora de PROD, aprovadores, plataformas, versão mínima, equipe, criticidade.
   Pergunte.
 - Nada é editado no console do Firebase: o repositório é a fonte única e a `main` deve ser idêntica ao Remote Config
   NÃO PROD (`verify-sync`).
 - Só **admin** (`config/approvers.json`) mescla `chore/*`; `chore/*` não roda pipeline de PR nem publica.
-- Toda FF tem `platforms` (`android|ios|ambas`) e `minVersion` (`x.y.z`), sem exceção.
+- Toda FF tem `team` (uma equipe de `config/teams.json`), `platforms` (`android|ios|ambas`) e `minVersion` (`x.y.z`), sem exceção.
+- **Uma equipe só mexe nas FFs dela**; só a equipe de **plataforma** altera FF de outra equipe e transfere FF entre equipes (`scripts/check-ownership.js`, pelos e-mails dos commits). Equipes e membros mudam só por `chore/*`.
 
 ## Arquitetura em uma tela
 

@@ -27,7 +27,7 @@ node scripts/ff-status.js <list|detail|rollout|summary|sync|history|stale> [chav
 |---|---|
 | `<chave>` (detail, rollout) | `^(ft\|rc)_[A-Za-z0-9_]+$` |
 | `--platform` | `ios` ou `android` |
-| `--owner` | `^[A-Za-z0-9_.-]{1,40}$` |
+| `--team` | `^[a-z0-9]+(-[a-z0-9]+)*$` (equipe de `config/teams.json`, ex.: `squad-poc`) |
 | `--search` | `^[A-Za-z0-9_-]{1,40}$` |
 | `--criticality` | `baixa`, `media`, `alta` ou `critica` |
 | `--limit` (history) | número de 1 a 50 |
@@ -50,7 +50,7 @@ Aceite português e inglês.
 | **Detalhe** | "detalhe/detail de X", "info sobre X", nome `ft_…`/`rc_…` sozinho | `detail X` |
 | **Rollout** | "rollout", "porcentagem", "a quanto está", "estágio", "exposure" | `rollout X` |
 | **Por plataforma** | "ios", "android", "flags do iOS" | `list --platform ios\|android` |
-| **Por dono** | "flags do squad X", "minhas flags", "de {squad}" | `list --owner X` |
+| **Por equipe** | "flags da equipe X", "minhas flags", "do squad X" | `list --team X` |
 | **Por criticidade** | "críticas", "alta criticidade" | `list --criticality X` |
 | **Buscar** | "buscar X", "search X", "que tenham X" | `list --search X` |
 | **Resumo** | "resumo", "overview", "summary", "como estamos" | `summary` |
@@ -61,7 +61,7 @@ Aceite português e inglês.
 | **Sem argumento** | vazio | mostre a Ajuda |
 
 - Chave `ft_…`/`rc_…` sozinha → **Detalhe**. Palavra solta que não é chave → **Listar** com `--search`.
-- "minhas flags" sem squad: pergunte o squad (o dono é o campo `owner`, ex.: `squad-poc`).
+- "minhas flags" sem equipe: pergunte a equipe (é o campo `team`, ex.: `squad-poc`). O `summary` mostra quantas FFs cada equipe tem.
 - Pergunta sobre PROD: use `--env prod` (mostra o estágio do RM ou "aguardando horário") e diga que PROD ainda não está no Firebase.
 
 ## Passo 2: Rode e apresente
@@ -112,7 +112,7 @@ Status das FFs — somente leitura (repositório + Firebase NÃO PROD quando há
   detalhe <chave>            ficha completa e o que o app recebe por versão
   rollout <chave>            porcentagem por plataforma (e estágio do RM em PROD)
   ios | android              FFs de uma plataforma
-  <squad>                    FFs de um dono (ex.: squad-poc)
+  <equipe>                   FFs de uma equipe (ex.: squad-poc)
   buscar <termo>             busca por nome/descrição
   resumo                     contagens e última publicação
   sincronia                  main × Firebase e chaves só no Firebase

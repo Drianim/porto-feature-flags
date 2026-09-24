@@ -9,7 +9,7 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 
 ## Estrutura
 
-- `flags/<key>.json` — definição (owner, criticality, descrição, **platforms** `android|ios|ambas` e **minVersion** `x.y.z`, ambos obrigatórios; o tipo Boolean/String é derivado dos valores; valores em `env/nonprod/` e `env/prod/`)
+- `flags/<key>.json` — definição (team, criticality, descrição, **platforms** `android|ios|ambas` e **minVersion** `x.y.z`, ambos obrigatórios; o tipo Boolean/String é derivado dos valores; valores em `env/nonprod/` e `env/prod/`)
 - `rm/RM-*.json` — arquivo de RM (obrigatório para PROD)
 - `config/environments.json` — variáveis por ambiente e regras (PROD é time-gated e exige `team` + `platform`)
 - `scripts/` — `new-flag.js`, `new-rm.js`, `validate.js`, `deploy.js`
@@ -24,7 +24,7 @@ Fonte única de verdade das flags. Nada é editado no console do Firebase; tudo 
 
 ## Criar uma flag nova
 
-1. `node scripts/new-flag.js <ft_ou_rc_chave> --owner <squad> --criticality <baixa|media|alta|critica> --description "..." --platforms <android|ios|ambas> --min-version <x.y.z>`
+1. `node scripts/new-flag.js <ft_ou_rc_chave> --team <equipe> --criticality <baixa|media|alta|critica> --description "..." --platforms <android|ios|ambas> --min-version <x.y.z>`
    (a key começa com `ft_` para toggle ou `rc_` para valor de configuração — este exige `--value`; use `--group "Nome"` para agrupar; o arquivo se chama `<key>.json`)
 2. Ligue nos ambientes não produtivos com override por plataforma, ex.: em `env/nonprod/<key>.json`: `{"nonprod": {"default": "false", "ios": {"value": "true"}, "android": {"value": "true"}}}` (ou `default: "true"` para todas). `rolloutPercent` opcional limita o percentual.
 3. `npm run catalog && npm run validate` (o catálogo `catalog/keys.json` é gerado e conferido na pipeline)
@@ -67,3 +67,8 @@ Não é FF: use a skill `sdd-scripts` (spec em `docs/specs/` aprovada antes do c
 
 ## Só consultar o status
 Para ver o que está ligado, em qual plataforma/versão/porcentagem ou se o Firebase confere com a `main`, use a skill `ff-status` (somente leitura): `npm run status -- list`.
+
+## Equipe e permissão
+- Toda FF tem `team` (equipe dona, de `config/teams.json`): **pergunte a equipe** ao criar; nunca invente. Ela vai como prefixo da descrição no Firebase (`[equipe] texto`).
+- **Uma equipe só altera as FFs dela.** Só a equipe de **plataforma** mexe em FF de outra equipe e transfere FF entre equipes (mudar `team`). O `check-ownership` confere pelos e-mails dos commits; se um PR for reprovado por isso, peça à equipe dona ou à plataforma.
+- Equipes e membros mudam só em `config/teams.json`, por uma `chore/*` (só admin mescla).

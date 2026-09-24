@@ -10,6 +10,7 @@ Antes de abrir: npm run preflight (ou npm run pr).
 
 ## Tipo do PR
 <!-- Marque um. Precisa bater com o prefixo da branch. -->
+<!-- Permissão: só a equipe dona da FF (ou a plataforma) a altera; transferir FF entre equipes é só da plataforma. -->
 - [ ] feature/* — criar FF nova (NÃO PROD)
 - [ ] update/* — alterar FF que já existe (NÃO PROD)
 - [ ] remove/* — apagar FF (NÃO PROD)
@@ -20,7 +21,7 @@ Antes de abrir: npm run preflight (ou npm run pr).
 
 ## feature/* — FF nova
 - **Chave(s):** `ft_...` / `rc_...`
-- **Squad / dono:**
+- **Equipe dona** (de `config/teams.json`; só a equipe ou a plataforma altera):
 - **Criticidade:** baixa | média | alta | crítica
 - **Plataformas:** Android | iOS | ambas
 - **Versão mínima do app:** `x.y.z` (a partir de qual versão o código da FF existe; por plataforma, se forem diferentes)

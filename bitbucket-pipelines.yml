@@ -10,6 +10,7 @@ image: node:22
 #  - PR remove/*  -> main (mergeado)  -> REMOVE a FF do NÃO PROD (após aprovação manual); só apaga FF
 #  - PR release/* -> main (mergeado)  -> PROD (aprovação manual), time-gated pelo RM (release/* só altera env/prod/ e rm/)
 # PR de chore/* (ou de qualquer outro prefixo) não roda pipeline.
+#  - Só a equipe dona da FF (config/teams.json) ou a plataforma altera a FF; transferir FF entre equipes é da plataforma.
 # A origem do merge vem da mensagem do commit ("Merged in <branch> (pull request #N)").
 # Merge sem origem identificável (fast-forward, push direto) não publica nada.
 #
@@ -59,6 +60,13 @@ pipelines:
           script:
             - git fetch origin main:refs/remotes/origin/main
             - node scripts/check-scope.js "$BITBUCKET_BRANCH" origin/main
+      # Permissão por equipe: só a equipe dona da FF (ou a plataforma) cria, altera, remove ou leva a FF para PROD;
+      # transferir FF entre equipes é só da plataforma. Lê equipes e membros de config/teams.json na main (o PR não se autoriza).
+      - step:
+          name: Permissão por equipe (só a equipe dona ou a plataforma altera a FF)
+          script:
+            - git fetch origin main:refs/remotes/origin/main
+            - node scripts/check-ownership.js "$BITBUCKET_BRANCH" origin/main
       # Nome de FF nunca se repete: feature/* só cria FF nova (consulta o Firebase NÃO PROD);
       # alterar FF existente exige branch update/*. Precisa de FIREBASE_SA_KEY_NONPROD como variável
       # de REPOSITÓRIO (secured), pois PR pipelines não recebem variáveis de Deployment (a mesma serve para os deploys).

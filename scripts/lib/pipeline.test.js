@@ -50,3 +50,10 @@ test('só feature/update/remove/release rodam pipeline de PR (chore/* não roda)
   const feature = doc.pipelines['pull-requests']['feature/**'];
   for (const k of ['update/**', 'remove/**', 'release/**']) assert.deepStrictEqual(doc.pipelines['pull-requests'][k], feature);
 });
+
+test('a pipeline de PR confere a permissão por equipe, em todos os tipos de branch de FF', () => {
+  for (const [key, steps] of Object.entries(doc.pipelines['pull-requests'])) {
+    const cmds = steps.flatMap((s) => s.step.script).join('\n');
+    assert.match(cmds, /node scripts\/check-ownership\.js "\$BITBUCKET_BRANCH" origin\/main/, key);
+  }
+});
