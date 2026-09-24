@@ -56,7 +56,7 @@
       "valueType": "BOOLEAN",
       "criticality": "baixa",
       "owner": "squad-poc",
-      "description": "Teste de plataforma: ligada só no Android (v2)",
+      "description": "Teste de plataforma: ligada só no Android",
       "environments": {
         "nonprod": {
           "default": "false",
