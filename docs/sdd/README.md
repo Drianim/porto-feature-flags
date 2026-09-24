@@ -28,8 +28,10 @@ dois. `chore/*` não publica nada, então depois do merge rode a pipeline `sync-
    passar, commit. Não implemente nada que não esteja na spec; se descobrir que falta algo, volte à spec e atualize.
 5. **Verificar.** `npm test`, `npm run validate`, `npm run specs` e os comandos da seção *Verificação*. Marque os
    critérios de aceite (`- [x] CA-n`) conforme provar cada um.
-6. **Documentar.** Atualize `README.md`, `CLAUDE.md`, skills e o template de PR quando o comportamento mudar. Spec
-   vai para `status: implementada` (o `npm run specs` exige todos os CAs marcados).
+6. **Documentar.** Atualize `README.md`, `CLAUDE.md`, skills e o template de PR quando o comportamento mudar. Um
+   **processo novo** entra no "Mapa dos processos" do `CLAUDE.md` e na lista de `scripts/processos.test.js` (o teste falha
+   se um processo sumir do README, do mapa ou da skill dona). Spec vai para `status: implementada` (o `npm run specs`
+   exige todos os CAs marcados).
 7. **PR `chore/*`.** Descreva no PR o número da spec. O admin mescla; a pipeline da `main` reconfere e não publica.
 
 ## Checklist de revisão da spec

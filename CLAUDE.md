@@ -16,6 +16,38 @@ resume o que um Claude Code precisa saber antes de mexer.
 Se o pedido for de script e não houver spec aprovada, **escreva a spec primeiro** (`docs/sdd/README.md`) e peça a
 aprovação. Não escreva código de produção antes disso.
 
+## Mapa dos processos
+
+Onde cada processo está e como acioná-lo (`README.md` traz o detalhe; a skill `feature-flag` opera as FFs, `ff-status` consulta, `sdd-scripts` evolui os scripts). **Processo novo entra aqui e em `scripts/processos.test.js`.**
+
+| Processo | Onde está | Comando ou skill |
+|---|---|---|
+| Criar FF nova | README, *Processo* | `feature/*`; `npm run new:flag`; skill `feature-flag` |
+| Alterar FF existente | README, *Processo* | `update/*`; skill `feature-flag` |
+| Remover FF | README, *Processo* | `remove/*`; `remove-flags.js`; app primeiro |
+| Levar para PROD (RM) | README, *PROD, RM e criticidade* | `release/*`; `npm run new:rm`; `validate:prod` |
+| Aprovação na pipeline (Run) | README, *Pipelines* | clicar em **Run** no passo manual da `main` |
+| Preflight e npm run pr | README, *Preflight e template de PR* | `npm run preflight`; `npm run pr` |
+| Hook pre-push | README, *Preflight e template de PR* | `npm run hooks` (uma vez) |
+| Template de PR | `.bitbucket/pull_request_template.md` | seção por tipo de branch |
+| Criar branch pela interface do Bitbucket | README, *Processo* | Feature, Release ou Other (`update/`, `remove/`, `chore/`) |
+| Plataforma e versão mínima | README, *Modelo de uma FF* | `platforms` e `minVersion` em `flags/` |
+| Equipe e permissão | README, *Permissão por equipe* | `config/teams.json`; `check-ownership` |
+| Reconferência e reversão automática | README, *Proteções* | `recheck-merge.sh`; `revert/*` |
+| Sincronia main = Firebase | README, *Pipelines* | `sync-nonprod`; `verify-sync`; `npm run status -- sync` |
+| Teste real de plataforma | README, *Proteções* | `node scripts/test-platforms.js nonprod` |
+| Validar template no Firebase (sem publicar) | README, *Pipelines* | `node scripts/deploy.js nonprod --validate` |
+| chore/* (sem pipeline, só admin) | README, *Processo* | branch `chore/*`; só admin mescla |
+| SDD nos scripts | `docs/sdd/README.md` | spec em `docs/specs/`; skill `sdd-scripts` |
+| Consultar o status | README, *Scripts* | `npm run status`; skill `ff-status` |
+| Código do app (templates) | `docs/templates/codigo-app/` | `android.md` (Kotlin); `ios.md` (Swift) |
+| Catálogo de chaves | README, *Mapa de pastas* | `npm run catalog` |
+| Escopo da PoC e credenciais | README, *Configuração no Bitbucket* | só NÃO PROD; `FIREBASE_SA_KEY_NONPROD` |
+| Rollback | README, *PROD, RM e criticidade* | voltar a FF para desligada em `update/*` |
+| Criticidade e rollout por estágio | README, *PROD, RM e criticidade* | `rolloutPlan` do RM |
+| Campanha de teste do processo | `docs/testes-do-processo.md` | PRs positivos e negativos, em fases |
+| PR vermelho (nunca mesclar) | README, *Decisões, limites e armadilhas* | o plano do Bitbucket não bloqueia; reverter com `revert/*` |
+
 ## Comandos
 
 ```bash

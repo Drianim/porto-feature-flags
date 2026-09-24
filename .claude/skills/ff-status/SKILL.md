@@ -95,7 +95,7 @@ Sugira um próximo passo relevante: de `list` → "quer o detalhe ou o rollout d
 ## O que esta skill não responde
 
 O Remote Config não guarda métricas por FF. Para uso, adoção, erro ou impacto no app, aponte o Firebase Analytics / Crashlytics.
-Para **criar, alterar, remover ou levar para PROD**, use a skill `feature-flag`.
+Para **criar, alterar, remover ou levar para PROD**, use a skill `feature-flag`. Para evoluir o próprio comando ou os scripts, `sdd-scripts`. O **Mapa dos processos** (no `CLAUDE.md`) diz onde cada processo está.
 
 ## Erros
 
@@ -123,7 +123,7 @@ Status das FFs — somente leitura (repositório + Firebase NÃO PROD quando há
 
 ## Regras
 
-- **Somente leitura** e **somente** `node scripts/ff-status.js`: nada de `firebase`, `curl`, `git push`, `npm run deploy` ou edição de arquivo.
+- **Somente leitura** e **somente** `node scripts/ff-status.js`: nada de `firebase`, `curl`, `git push`, publicar/deploy ou edição de arquivo.
 - Valide todos os argumentos antes de montar o comando; nunca interpole texto livre.
 - Nunca procure, leia nem exiba credenciais.
 - Mostre porcentagens como `N%` e sempre diga a versão mínima ao falar de plataforma.

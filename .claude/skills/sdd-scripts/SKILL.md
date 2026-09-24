@@ -8,7 +8,7 @@ description: Spec-Driven Development para mudanças nos scripts, pipeline, hooks
 Vale para **scripts e automação** (`scripts/`, `bitbucket-pipelines.yml`, `.githooks/`, regras em `config/`, docs e
 skills). **Não vale para FF** (`flags/`, `env/`, `rm/`): FF segue a skill `feature-flag`, sem spec.
 
-Processo completo e checklist: `docs/sdd/README.md`. Template: `docs/sdd/template.md`. Exemplos: `docs/specs/0001-*` e `0002-*`.
+Processo completo e checklist: `docs/sdd/README.md`. Para operar FFs use `feature-flag`; para só consultar, `ff-status`; o **Mapa dos processos** está no `CLAUDE.md`. Template: `docs/sdd/template.md`. Exemplos: `docs/specs/0001-*` e `0002-*`.
 
 ## Ciclo (siga na ordem, sem pular)
 
@@ -22,7 +22,7 @@ Processo completo e checklist: `docs/sdd/README.md`. Template: `docs/sdd/templat
    volte e atualize a spec.
 5. **Verifique:** `npm test`, `npm run validate`, `npm run specs` e os comandos da seção *Verificação*; marque cada
    `- [x] CA-n` só depois de provar.
-6. **Documente:** README, CLAUDE.md, skills e template de PR quando o comportamento mudar; spec → `implementada`.
+6. **Documente:** README, CLAUDE.md, skills e template de PR quando o comportamento mudar; spec → `implementada`. **Processo novo entra no "Mapa dos processos" do `CLAUDE.md` e na lista de `scripts/processos.test.js`** (o teste falha se um processo sumir do README, do mapa ou da skill dona).
 7. **Entrega:** branch `chore/*`, PR citando o número da spec. **Só faça push ou abra PR se o usuário pedir.** Só admin mescla.
 
 ## Regras de escrita da spec
