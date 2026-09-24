@@ -9,13 +9,14 @@ const { KEY_RE } = require('./flags');
 const NA = { state: 'n/a' };
 const COMMANDS = ['list', 'detail', 'rollout', 'summary', 'sync', 'history', 'stale'];
 const CRITICALITIES = ['baixa', 'media', 'alta', 'critica'];
-const VALUE_FLAGS = ['env', 'platform', 'owner', 'search', 'criticality', 'limit'];
+const VALUE_FLAGS = ['env', 'platform', 'team', 'search', 'criticality', 'limit'];
 const BOOL_FLAGS = ['json', 'offline'];
 
 // Valida os argumentos do comando (nada do que o usuário digita chega a um shell ou a uma URL). Lança Error com a mensagem.
 function parseStatusArgs(args) {
   const [cmd, ...rest] = args._;
   if (!COMMANDS.includes(cmd)) throw new Error(`subcomando inválido "${cmd || ''}". Use: ${COMMANDS.join(', ')}`);
+  if (args.owner !== undefined) throw new Error('--owner foi renomeado para --team (equipe dona da FF)');
   const known = new Set([...VALUE_FLAGS, ...BOOL_FLAGS, '_']);
   for (const k of Object.keys(args)) if (!known.has(k)) throw new Error(`opção desconhecida --${k}`);
   for (const k of VALUE_FLAGS) if (args[k] === true) throw new Error(`--${k} exige um valor`);
@@ -25,13 +26,13 @@ function parseStatusArgs(args) {
   if (needsKey && !KEY_RE.test(rest[0])) throw new Error(`chave inválida "${rest[0]}": use ft_ ou rc_ com letras, números e _`);
   const oneOf = (name, list) => { if (args[name] !== undefined && !list.includes(args[name])) throw new Error(`--${name} deve ser ${list.join(' | ')}`); };
   oneOf('env', ['nonprod', 'prod']); oneOf('platform', PLATFORMS); oneOf('criticality', CRITICALITIES);
-  if (args.owner !== undefined && !/^[A-Za-z0-9_.-]{1,40}$/.test(args.owner)) throw new Error('--owner inválido (letras, números, . _ -; até 40)');
+  if (args.team !== undefined && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(args.team)) throw new Error('--team inválido (minúsculas, números e hífen, ex.: squad-poc)');
   if (args.search !== undefined && !/^[A-Za-z0-9_-]{1,40}$/.test(args.search)) throw new Error('--search inválido (letras, números, _ -; até 40)');
   if (args.limit !== undefined && !(/^\d{1,2}$/.test(args.limit) && Number(args.limit) >= 1 && Number(args.limit) <= 50)) throw new Error('--limit deve ser um número de 1 a 50');
   return {
     cmd, key: needsKey ? rest[0] : null, env: args.env || 'nonprod', json: args.json === true, offline: args.offline === true,
     limit: args.limit ? Number(args.limit) : 10,
-    filters: { platform: args.platform, owner: args.owner, search: args.search, criticality: args.criticality },
+    filters: { platform: args.platform, team: args.team, search: args.search, criticality: args.criticality },
   };
 }
 const minVersionText = (flag) => (typeof flag.minVersion === 'string' ? flag.minVersion : Object.entries(flag.minVersion || {}).map(([p, v]) => `${p} ${v}`).join(' / '));
@@ -41,7 +42,7 @@ function flagRow(flag, env, { rms = [], now = new Date(), timeGated = env === 'p
   const inEnv = Boolean(flag.environments[env]);
   const base = {
     key: flag.key, kind: kindOf(flag.key), valueType: valueTypeOf(flag), platforms: flag.platforms, minVersion: minVersionText(flag),
-    criticality: flag.criticality, owner: flag.owner, group: flag.group || null, description: flag.description, env, inEnv,
+    criticality: flag.criticality, team: flag.team, group: flag.group || null, description: flag.description, env, inEnv,
   };
   const perPlatform = {};
   const toggle = base.kind === 'toggle';
@@ -68,10 +69,10 @@ function flagRow(flag, env, { rms = [], now = new Date(), timeGated = env === 'p
   return { ...base, perPlatform };
 }
 
-function filterRows(rows, { platform, owner, search, criticality } = {}) {
+function filterRows(rows, { platform, team, search, criticality } = {}) {
   const lower = (s) => String(s || '').toLowerCase();
   return rows.filter((r) => (!platform || r.perPlatform[platform].state !== 'n/a')
-    && (!owner || lower(r.owner) === lower(owner))
+    && (!team || lower(r.team) === lower(team))
     && (!criticality || r.criticality === criticality)
     && (!search || lower(r.key).includes(lower(search)) || lower(r.description).includes(lower(search))));
 }
@@ -111,6 +112,7 @@ function summarize(rows) {
     total: rows.length,
     porTipo: { toggle: 0, config: 0, ...count((r) => r.kind) },
     porCriticidade: count((r) => r.criticality),
+    porEquipe: count((r) => r.team),
     porPlataforma,
     parciais: rows.filter((r) => has(r, isPartial)).map((r) => r.key),
     aguardando: rows.filter((r) => has(r, (s) => s.state === 'aguardando')).map((r) => r.key),
@@ -173,14 +175,14 @@ const table = (head, lines) => [`| ${head.join(' | ')} |`, `|${head.map(() => '-
 const NO_FIREBASE = 'Firebase não consultado (sem credencial ou --offline): só o repositório.';
 
 function renderTable(rows, { sync } = {}) {
-  const head = ['FF', 'Tipo', 'Plataformas', 'Versão mín.', 'iOS', 'Android', 'Criticidade', 'Dono', 'Firebase'];
-  const lines = rows.map((r) => [`\`${r.key}\``, typeText(r), r.platforms, r.minVersion, stateText(r.perPlatform.ios), stateText(r.perPlatform.android), r.criticality, r.owner, sync ? (SYNC_TEXT[sync[r.key]] || '—') : '—']);
+  const head = ['FF', 'Tipo', 'Plataformas', 'Versão mín.', 'iOS', 'Android', 'Criticidade', 'Equipe', 'Firebase'];
+  const lines = rows.map((r) => [`\`${r.key}\``, typeText(r), r.platforms, r.minVersion, stateText(r.perPlatform.ios), stateText(r.perPlatform.android), r.criticality, r.team, sync ? (SYNC_TEXT[sync[r.key]] || '—') : '—']);
   return `${table(head, lines)}\n${sync ? '' : `\n> ${NO_FIREBASE}\n`}`;
 }
 
 function renderDetail(row, { flag, env, sync, template } = {}) {
   const out = [`## \`${row.key}\``, '',
-    table(['Campo', 'Valor'], [['Tipo', typeText(row)], ['Plataformas', row.platforms], ['Versão mínima', row.minVersion], ['Criticidade', row.criticality], ['Dono', row.owner], ['Grupo', row.group || '—'], ['Descrição', row.description], ['Ambiente', env || row.env]]), '',
+    table(['Campo', 'Valor'], [['Tipo', typeText(row)], ['Plataformas', row.platforms], ['Versão mínima', row.minVersion], ['Criticidade', row.criticality], ['Equipe', row.team], ['Grupo', row.group || '—'], ['Descrição', row.description], ['Ambiente', env || row.env]]), '',
     '### Estado por plataforma', '',
     table(['Plataforma', 'Estado'], [['iOS', stateText(row.perPlatform.ios)], ['Android', stateText(row.perPlatform.android)]]), '',
     '### O que o app recebe', '',
@@ -204,7 +206,8 @@ function renderSummary(s, { lastVersion } = {}) {
   const pl = (p) => { const x = s.porPlataforma[p]; return [p === 'ios' ? 'iOS' : 'Android', x.ligadas, x.parciais, x.desligadas, x.valores, x.naoAplica]; };
   const out = [`## Resumo das FFs`, '', `**Total: ${s.total}** (${s.porTipo.toggle} toggles, ${s.porTipo.config} configs)`, '',
     table(['Plataforma', 'Ligadas 100%', 'Rollout parcial', 'Desligadas', 'Valores (rc_)', 'Não se aplica'], [pl('ios'), pl('android')]), '',
-    table(['Criticidade', 'FFs'], Object.entries(s.porCriticidade)), ''];
+    table(['Criticidade', 'FFs'], Object.entries(s.porCriticidade)), '',
+    table(['Equipe', 'FFs'], Object.entries(s.porEquipe)), ''];
   if (s.parciais.length) out.push(`Em rollout parcial: ${s.parciais.map((k) => `\`${k}\``).join(', ')}`, '');
   if (s.aguardando.length) out.push(`Aguardando o horário do RM: ${s.aguardando.map((k) => `\`${k}\``).join(', ')}`, '');
   if (lastVersion) out.push(`Última publicação: versão ${lastVersion.versionNumber} em ${lastVersion.updateTime} por ${(lastVersion.updateUser && lastVersion.updateUser.email) || '—'}`);

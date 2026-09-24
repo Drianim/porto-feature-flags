@@ -2,7 +2,7 @@
 // Status das FFs (SOMENTE LEITURA): o que está ligado, em quais plataformas, a partir de qual versão, em que porcentagem
 // e se o Firebase NÃO PROD confere com a main. Sem credencial (ou com --offline) responde só com o repositório.
 // Uso: node scripts/ff-status.js <list|detail|rollout|summary|sync|history|stale> [chave]
-//        [--env nonprod|prod] [--platform ios|android] [--owner <squad>] [--search <termo>] [--criticality <nível>]
+//        [--env nonprod|prod] [--platform ios|android] [--team <equipe>] [--search <termo>] [--criticality <nível>]
 //        [--limit N] [--json] [--offline]
 // Env: FIREBASE_SA_KEY_NONPROD (opcional). Usa só getTemplate e listVersions: nenhuma escrita no Firebase.
 const { loadFlags, loadRms, environments, parseArgs } = require('./lib/common');
@@ -16,7 +16,7 @@ const USAGE = `Uso: node scripts/ff-status.js <${'list|detail|rollout|summary|sy
   sync                 main x Firebase por FF e chaves que só existem no Firebase (exige Firebase)
   history [--limit N]  últimas versões publicadas no Firebase (exige Firebase)
   stale                candidatas a limpeza
-Opções: --env nonprod|prod  --platform ios|android  --owner <squad>  --search <termo>  --criticality <nível>  --json  --offline`;
+Opções: --env nonprod|prod  --platform ios|android  --team <equipe>  --search <termo>  --criticality <nível>  --json  --offline`;
 
 async function connectRemote(cfgEnv) {
   const { connect } = require('./lib/remote-config');

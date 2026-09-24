@@ -4,9 +4,9 @@ const { build, apply, diff, removeKeys, findRemote } = require('./remote-config'
 const { expectedAt, justBelow } = require('./flags');
 
 const flags = [
-  { key: 'ft_a', description: 'A', owner: 'x', criticality: 'baixa', valueType: 'STRING', group: 'Grupo', platforms: 'ambas', minVersion: '2.61.0',
+  { key: 'ft_a', description: 'A', team: 'squad-a', criticality: 'baixa', valueType: 'STRING', group: 'Grupo', platforms: 'ambas', minVersion: '2.61.0',
     environments: { nonprod: { default: 'false', ios: { value: 'true' }, android: { value: 'true' } } } },
-  { key: 'rc_url', description: 'URL', owner: 'x', criticality: 'baixa', valueType: 'STRING', platforms: 'ambas', minVersion: '2.61.0',
+  { key: 'rc_url', description: 'URL', team: 'squad-a', criticality: 'baixa', valueType: 'STRING', platforms: 'ambas', minVersion: '2.61.0',
     environments: { nonprod: { default: 'https://x' } } },
 ];
 const cfg = { timeGated: false };
@@ -80,7 +80,7 @@ test('tipo vem dos valores: true/false = BOOLEAN; URL/texto = STRING', () => {
   const p = build(flags, [], 'nonprod', cfg);
   assert.strictEqual(p.items.find((i) => i.key === 'ft_a').param.valueType, 'BOOLEAN');
   assert.strictEqual(p.items.find((i) => i.key === 'rc_url').param.valueType, 'STRING');
-  const b = build([{ key: 'rc_flag', description: 'd', owner: 'x', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0', environments: { nonprod: { default: 'true' } } }], [], 'nonprod', cfg);
+  const b = build([{ key: 'rc_flag', description: 'd', team: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0', environments: { nonprod: { default: 'true' } } }], [], 'nonprod', cfg);
   assert.strictEqual(b.items[0].param.valueType, 'BOOLEAN', 'rc_ com true/false também é BOOLEAN');
 });
 test('diff acusa toggle publicado como STRING (tipo esperado BOOLEAN)', () => {
@@ -89,7 +89,7 @@ test('diff acusa toggle publicado como STRING (tipo esperado BOOLEAN)', () => {
 });
 
 test('rollout em % usa semente com o nome da FF', () => {
-  const f = [{ key: 'ft_z', description: 'd', owner: 'x', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 25 }, android: { value: 'true' } } } }];
+  const f = [{ key: 'ft_z', description: 'd', team: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 25 }, android: { value: 'true' } } } }];
   const p = build(f, [], 'nonprod', cfg);
   assert.strictEqual(p.conditions.find((c) => c.name === 'ft_z_ios').expression, "device.os == 'ios' && app.version >= '2.61.0' && percent('ft_z') <= 25");
   assert.strictEqual(p.conditions.find((c) => c.name === 'ft_z_android').expression, "device.os == 'android' && app.version >= '2.61.0'");
@@ -112,7 +112,7 @@ function serve(flag, ctx) {
   for (const c of p.conditions) if (c.name in item.conditionalValues && matches(c.expression, ctx)) return item.conditionalValues[c.name].value;
   return item.defaultValue.useInAppDefault ? undefined : item.defaultValue.value;
 }
-const F = (over) => ({ key: 'ft_v', description: 'd', owner: 'x', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0', ...over });
+const F = (over) => ({ key: 'ft_v', description: 'd', team: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0', ...over });
 const on = { nonprod: { default: 'false', ios: { value: 'true' }, android: { value: 'true' } } };
 
 test('toggle liga a partir da versão mínima e nunca abaixo dela', () => {
@@ -204,4 +204,17 @@ test('o que test-platforms espera (expectedAt) é exatamente o que as condiçõe
     }
   }
   assert.ok(checked > 100);
+});
+
+test('a descrição publicada leva a equipe como prefixo e o repositório não muda', () => {
+  const p = plan();
+  assert.strictEqual(p.items.find((i) => i.key === 'ft_a').param.description, '[squad-a] A');
+  assert.strictEqual(flags[0].description, 'A');
+});
+test('descrição sem a equipe, ou com outra equipe, é divergência', () => {
+  const t = fresh();
+  t.parameterGroups.Grupo.parameters.ft_a.description = 'A';
+  assert.match(diff(t, plan()).problems.join('|'), /ft_a: descrição diferente/);
+  t.parameterGroups.Grupo.parameters.ft_a.description = '[squad-b] A';
+  assert.match(diff(t, plan()).problems.join('|'), /ft_a: descrição diferente/);
 });

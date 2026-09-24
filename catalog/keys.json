@@ -10,7 +10,7 @@
       "criticality": "baixa",
       "platforms": "ambas",
       "minVersion": "2.61.0",
-      "owner": "squad-poc",
+      "team": "squad-poc",
       "description": "Exemplo: novo fluxo de checkout (PoC)",
       "environments": {
         "nonprod": {
@@ -36,7 +36,7 @@
       "criticality": "baixa",
       "platforms": "ambas",
       "minVersion": "2.61.0",
-      "owner": "squad-poc",
+      "team": "squad-poc",
       "description": "Teste de plataforma: ligada em iOS e Android (v2)",
       "environments": {
         "nonprod": {
@@ -61,7 +61,7 @@
       "criticality": "baixa",
       "platforms": "android",
       "minVersion": "2.61.0",
-      "owner": "squad-poc",
+      "team": "squad-poc",
       "description": "Teste de plataforma: ligada só no Android",
       "environments": {
         "nonprod": {
@@ -83,7 +83,7 @@
       "criticality": "baixa",
       "platforms": "ios",
       "minVersion": "2.61.0",
-      "owner": "squad-poc",
+      "team": "squad-poc",
       "description": "Teste de plataforma: ligada só no iOS (v2)",
       "environments": {
         "nonprod": {
@@ -105,7 +105,7 @@
       "criticality": "baixa",
       "platforms": "ios",
       "minVersion": "2.61.0",
-      "owner": "squad-poc",
+      "team": "squad-poc",
       "description": "Teste de plataforma: iOS em 50% dos usuários, Android desligado",
       "environments": {
         "nonprod": {

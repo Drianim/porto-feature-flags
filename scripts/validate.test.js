@@ -8,12 +8,13 @@ const path = require('node:path');
 const repoRoot = path.join(__dirname, '..');
 
 // Repo mínimo em pasta temporária com uma FF; devolve o resultado do validate.
-function validate(flag, nonprod = { nonprod: { default: 'false' } }) {
+function validate(flag, nonprod = { nonprod: { default: 'false' } }, teams) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'val-'));
   fs.cpSync(path.join(repoRoot, 'scripts'), path.join(dir, 'scripts'), { recursive: true });
   fs.cpSync(path.join(repoRoot, 'config'), path.join(dir, 'config'), { recursive: true });
   for (const d of ['flags', 'env/nonprod', 'env/prod', 'rm']) fs.mkdirSync(path.join(dir, d), { recursive: true });
-  const base = { key: 'ft_v', description: 'd', owner: 'o', criticality: 'baixa' };
+  fs.writeFileSync(path.join(dir, 'config/teams.json'), JSON.stringify(teams !== undefined ? teams : { platform: ['p@x.com'], teams: { 'squad-poc': { members: [] } } }));
+  const base = { key: 'ft_v', description: 'd', team: 'squad-poc', criticality: 'baixa' };
   fs.writeFileSync(path.join(dir, 'flags/ft_v.json'), JSON.stringify({ ...base, ...flag }));
   fs.writeFileSync(path.join(dir, 'env/nonprod/ft_v.json'), JSON.stringify(nonprod));
   const r = spawnSync('node', ['scripts/validate.js'], { cwd: dir, encoding: 'utf8' });
@@ -41,4 +42,28 @@ test('bloco de plataforma que a FF não cobre é reprovado', () => {
 });
 test('bloco de plataforma dentro do escopo da FF passa', () => {
   assert.strictEqual(validate({ platforms: 'ios', minVersion: '2.61.0' }, { nonprod: { default: 'false', ios: { value: 'true' } } }).ok, true);
+});
+
+test('FF sem equipe é reprovada e a mensagem lista as equipes válidas', () => {
+  const r = validate({ platforms: 'ambas', minVersion: '2.61.0', team: undefined });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /team obrigatório.*squad-poc/);
+});
+test('equipe fora de config/teams.json é reprovada', () => {
+  const r = validate({ platforms: 'ambas', minVersion: '2.61.0', team: 'outra-equipe' });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /"outra-equipe" não está em config\/teams\.json/);
+});
+test('campo antigo owner é reprovado com a instrução de migrar', () => {
+  const r = validate({ platforms: 'ambas', minVersion: '2.61.0', owner: 'squad-poc' });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /owner foi renomeado para team/);
+});
+test('config/teams.json inválido (plataforma vazia, e-mail ruim, equipe fora do formato) é reprovado', () => {
+  const f = { platforms: 'ambas', minVersion: '2.61.0' };
+  const cfg = (over) => ({ platform: ['p@x.com'], teams: { 'squad-poc': { members: [] } }, ...over });
+  assert.match(validate(f, undefined, cfg({ platform: [] })).out, /"platform" precisa de ao menos um e-mail/);
+  assert.match(validate(f, undefined, cfg({ teams: {} })).out, /lista de equipes vazia/);
+  assert.match(validate(f, undefined, cfg({ teams: { 'Squad POC': { members: [] } } })).out, /fora do formato/);
+  assert.match(validate(f, undefined, cfg({ teams: { 'squad-poc': { members: ['x'] } } })).out, /e-mail inválido/);
 });

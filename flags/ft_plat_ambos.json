@@ -1,7 +1,7 @@
 {
   "key": "ft_plat_ambos",
   "description": "Teste de plataforma: ligada em iOS e Android (v2)",
-  "owner": "squad-poc",
+  "team": "squad-poc",
   "criticality": "baixa",
   "platforms": "ambas",
   "minVersion": "2.61.0"

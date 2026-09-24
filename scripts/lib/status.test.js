@@ -3,9 +3,9 @@ const assert = require('node:assert');
 const { build, apply } = require('./remote-config');
 const { flagRow, filterRows, syncOf, extras, summarize, staleCandidates, servedFor, remoteInfo, renderTable, renderDetail, renderSummary, renderHistory, renderSync } = require('./status');
 
-const base = { description: 'd', owner: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0' };
+const base = { description: 'd', team: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0' };
 const ambos = { ...base, key: 'ft_ambos', group: 'G', environments: { nonprod: { default: 'false', ios: { value: 'true' }, android: { value: 'true' } } } };
-const ios50 = { ...base, key: 'ft_ios50', platforms: 'ios', owner: 'squad-b', criticality: 'alta', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 50 } } } };
+const ios50 = { ...base, key: 'ft_ios50', platforms: 'ios', team: 'squad-b', criticality: 'alta', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 50 } } } };
 const off = { ...base, key: 'ft_off', environments: { nonprod: { default: 'false' } } };
 const allOn = { ...base, key: 'ft_todas', environments: { nonprod: { default: 'true' } } };
 const url = { ...base, key: 'rc_url', platforms: 'android', minVersion: { android: '2.58.3' }, environments: { nonprod: { default: 'https://x' } } };
@@ -54,10 +54,10 @@ test('filtros por plataforma, dono, busca e criticidade', () => {
   const keys = (f) => filterRows(rows, f).map((r) => r.key);
   assert.deepStrictEqual(keys({ platform: 'ios' }), ['ft_ambos', 'ft_ios50', 'ft_off', 'ft_todas']);
   assert.deepStrictEqual(keys({ platform: 'android' }), ['ft_ambos', 'ft_off', 'ft_todas', 'rc_url']);
-  assert.deepStrictEqual(keys({ owner: 'SQUAD-B' }), ['ft_ios50']);
+  assert.deepStrictEqual(keys({ team: 'SQUAD-B' }), ['ft_ios50']);
   assert.deepStrictEqual(keys({ search: 'IOS' }), ['ft_ios50']);
   assert.deepStrictEqual(keys({ criticality: 'alta' }), ['ft_ios50']);
-  assert.deepStrictEqual(keys({ platform: 'ios', owner: 'squad-a', search: 'todas' }), ['ft_todas']);
+  assert.deepStrictEqual(keys({ platform: 'ios', team: 'squad-a', search: 'todas' }), ['ft_todas']);
   assert.strictEqual(keys({}).length, 5);
 });
 
@@ -94,6 +94,7 @@ test('resumo: contagens por tipo, criticidade, plataforma e rollout parcial', ()
   assert.deepStrictEqual(s.porPlataforma.ios, { ligadas: 2, parciais: 1, desligadas: 1, valores: 0, naoAplica: 1 });
   assert.deepStrictEqual(s.porPlataforma.android, { ligadas: 2, parciais: 0, desligadas: 1, valores: 1, naoAplica: 1 });
   assert.deepStrictEqual(s.parciais, ['ft_ios50']);
+  assert.deepStrictEqual(s.porEquipe, { 'squad-a': 4, 'squad-b': 1 });
 });
 test('obsoletas: toggle ligado em 100% em todas as plataformas + chaves fora do repositório', () => {
   assert.deepStrictEqual(staleCandidates(rows, ['legado']), { ligadasEm100: ['ft_ambos', 'ft_todas'], foraDoRepositorio: ['legado'] });
@@ -119,7 +120,7 @@ test('dados publicados de uma FF no Firebase', () => {
 });
 test('tabela em Markdown com sincronia; sem Firebase mostra —', () => {
   const md = renderTable(rows, { sync: { ft_ambos: 'ok', ft_ios50: 'diverge', ft_off: 'ausente' } });
-  assert.match(md, /\| FF \| Tipo \| Plataformas \| Versão mín\. \| iOS \| Android \| Criticidade \| Dono \| Firebase \|/);
+  assert.match(md, /\| FF \| Tipo \| Plataformas \| Versão mín\. \| iOS \| Android \| Criticidade \| Equipe \| Firebase \|/);
   assert.match(md, /\| `ft_ambos` \| toggle \(Boolean\) \| ambas \| 2\.61\.0 \| ligada 100% \| ligada 100% \| baixa \| squad-a \| ✓ ok \|/);
   assert.match(md, /ft_ios50.*ligada 50% \| n\/a .*✗ diverge/);
   assert.match(md, /ft_todas.* — \|$/m);
@@ -135,6 +136,7 @@ test('ficha da FF, resumo, histórico e sincronia', () => {
   assert.match(renderDetail(rows[1], { flag: ios50, env: 'nonprod', sync: null, template: null }), /Firebase não consultado/);
   const sm = renderSummary(summarize(rows), { lastVersion: { versionNumber: '24', updateTime: '2026-09-24T12:00:00Z', updateUser: { email: 'a@b.com' } } });
   assert.match(sm, /Total: 5/);
+  assert.match(sm, /\| squad-a \| 4 \|/);
   assert.match(sm, /Última publicação: versão 24 em 2026-09-24T12:00:00Z por a@b\.com/);
   assert.match(renderSummary(summarize(rows), { lastVersion: null }), /Firebase não consultado/);
   const h = renderHistory([{ versionNumber: '24', updateTime: '2026-09-24T12:00:00Z', updateUser: { email: 'a@b.com' }, description: 'deploy', updateOrigin: 'REST_API' }]);
@@ -151,9 +153,9 @@ const parse = (line) => parseStatusArgs(parseArgs(line.split(' ').filter(Boolean
 const { parseStatusArgs, renderRollout, renderStale } = require('./status');
 
 test('argumentos válidos viram consulta', () => {
-  assert.deepStrictEqual(parse('list --platform ios --owner squad-a --search home --criticality alta --json'), {
+  assert.deepStrictEqual(parse('list --platform ios --team squad-a --search home --criticality alta --json'), {
     cmd: 'list', key: null, env: 'nonprod', json: true, offline: false, limit: 10,
-    filters: { platform: 'ios', owner: 'squad-a', search: 'home', criticality: 'alta' },
+    filters: { platform: 'ios', team: 'squad-a', search: 'home', criticality: 'alta' },
   });
   assert.strictEqual(parse('detail ft_ambos --offline').key, 'ft_ambos');
   assert.strictEqual(parse('history --limit 5').limit, 5);
@@ -163,7 +165,7 @@ test('argumentos inválidos são recusados com mensagem (nada chega a shell ou U
   for (const [line, re] of [
     ['', /subcomando inválido/], ['apagar', /subcomando inválido/], ['detail', /exige a chave/], ['detail ft_x;rm', /chave inválida/],
     ['detail nome_sem_prefixo', /chave inválida/], ['list ft_x', /não recebe argumento posicional/], ['list --platform web', /--platform deve ser/],
-    ['list --criticality urgente', /--criticality deve ser/], ['list --env staging', /--env deve ser/], ['list --owner a;b', /--owner inválido/],
+    ['list --criticality urgente', /--criticality deve ser/], ['list --env staging', /--env deve ser/], ['list --team a;b', /--team inválido/], ['list --owner squad-a', /--owner foi renomeado para --team/],
     ['list --search $(ls)', /--search inválido/], ['list --search', /exige um valor/], ['history --limit 0', /--limit deve ser/], ['history --limit 99', /--limit deve ser/],
     ['list --xpto 1', /opção desconhecida/], ['list --json sim', /não recebe valor/],
   ]) assert.throws(() => parse(line), re, line);

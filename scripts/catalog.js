@@ -18,7 +18,7 @@ const catalog = {
     criticality: f.criticality,
     platforms: f.platforms,
     minVersion: f.minVersion,
-    owner: f.owner,
+    team: f.team,
     description: f.description,
     environments: f.environments,
   })),

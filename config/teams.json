@@ -1,0 +1,7 @@
+{
+  "_comment": "platform: e-mails (os dos commits) da equipe de plataforma, a única que altera FF de outra equipe e transfere FF entre equipes. teams: equipes válidas para o campo team das FFs (minúsculas, números e hífen), com os e-mails dos membros. Equipe nova ou mudança de membro entra por uma chore/* (só admin mescla).",
+  "platform": ["drianim.oliveira@gmail.com", "adrianoo@ciandt.com"],
+  "teams": {
+    "squad-poc": { "members": [] }
+  }
+}

@@ -20,11 +20,13 @@ function build(flags, rms, env, cfgEnv, now = new Date()) {
       stagePercent = stage.percent;
     }
     const bad = targetingErrors(flag);
+    if (!flag.team) bad.push('team obrigatório (equipe dona da FF)');
     if (bad.length) throw new Error(`${flag.key}: ${bad.join('; ')}`);
     // Toggle: padrão explícito "false" (o override "true" só vale nas plataformas/versões da FF).
     // Config (rc_): sem valor padrão (usa o do app); o valor só é servido nas plataformas da FF a partir da versão mínima.
     const param = {
-      description: flag.description,
+      // A equipe vai no prefixo da descrição: o Remote Config não tem rótulo por parâmetro e assim ela aparece no console.
+      description: `[${flag.team}] ${flag.description}`,
       valueType: valueTypeOf(flag),
       defaultValue: toggle ? { value: defaultValue } : { useInAppDefault: true },
       conditionalValues: {},

@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const repoRoot = path.join(__dirname, '..', '..');
-const meta = (key) => JSON.stringify({ key, description: 'd', owner: 'o', criticality: 'baixa', valueType: 'STRING' });
+const meta = (key) => JSON.stringify({ key, description: 'd', team: 'squad-poc', criticality: 'baixa', valueType: 'STRING' });
 const np = (v) => JSON.stringify({ nonprod: { default: v } });
 
 // Monta um repo com main, aplica `change` numa branch e faz o merge --no-ff como o Bitbucket ("Merged in <branch> (pull request #N)").

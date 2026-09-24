@@ -6,10 +6,10 @@ const { spawnSync } = require('node:child_process');
 const { build, apply } = require('./lib/remote-config');
 const { run } = require('./ff-status');
 
-const base = { description: 'd', owner: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0' };
+const base = { description: 'd', team: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0' };
 const flags = [
   { ...base, key: 'ft_ambos', environments: { nonprod: { default: 'false', ios: { value: 'true' }, android: { value: 'true' } } } },
-  { ...base, key: 'ft_ios50', platforms: 'ios', owner: 'squad-b', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 50 } } } },
+  { ...base, key: 'ft_ios50', platforms: 'ios', team: 'squad-b', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 50 } } } },
   { ...base, key: 'rc_url', platforms: 'android', environments: { nonprod: { default: 'https://x' } } },
 ];
 const envs = { nonprod: { keyVar: 'K', projectId: 'p', timeGated: false }, prod: { keyVar: 'KP', timeGated: true } };

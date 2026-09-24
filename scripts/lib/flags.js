@@ -38,6 +38,42 @@ function targetingErrors(flag) {
   return errors;
 }
 
+// Equipe dona da FF: obrigatória e da lista oficial (config/teams.json). O campo antigo `owner` foi renomeado para `team`.
+const TEAM_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+function teamErrors(flag, teams) {
+  const list = (teams || []).join(', ');
+  const errors = [];
+  if (flag.owner !== undefined) errors.push('owner foi renomeado para team: troque "owner" por "team" (equipe dona da FF)');
+  if (!flag.team) errors.push(`team obrigatório: nome da equipe dona da FF (uma de: ${list})`);
+  else if (!(teams || []).includes(flag.team)) errors.push(`team "${flag.team}" não está em config/teams.json (equipes: ${list}). Equipe nova entra por uma chore/*`);
+  return errors;
+}
+// Erros do próprio config/teams.json: { platform: [e-mails], teams: { <equipe>: { members: [e-mails] } } }.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function teamsErrors(cfg) {
+  const errors = [];
+  const at = 'config/teams.json';
+  const emails = (list, where) => {
+    if (!Array.isArray(list)) { errors.push(`${at}: ${where} deve ser uma lista de e-mails`); return; }
+    list.forEach((e, i) => {
+      if (typeof e !== 'string' || !EMAIL_RE.test(e)) errors.push(`${at}: ${where} tem e-mail inválido "${e}"`);
+      else if (list.findIndex((x) => String(x).toLowerCase() === e.toLowerCase()) !== i) errors.push(`${at}: ${where} repete o e-mail "${e}"`);
+    });
+  };
+  if (!cfg || typeof cfg !== 'object') return [`${at}: deve ser um objeto com "platform" e "teams"`];
+  if (!Array.isArray(cfg.platform) || !cfg.platform.length) errors.push(`${at}: "platform" precisa de ao menos um e-mail (a equipe de plataforma)`);
+  else emails(cfg.platform, '"platform"');
+  const teams = cfg.teams;
+  if (!teams || typeof teams !== 'object' || Array.isArray(teams)) return [...errors, `${at}: "teams" deve ser um objeto { equipe: { members: [...] } }`];
+  if (!Object.keys(teams).length) errors.push(`${at}: lista de equipes vazia`);
+  for (const [name, t] of Object.entries(teams)) {
+    if (!TEAM_RE.test(name)) errors.push(`${at}: equipe "${name}" fora do formato (minúsculas, números e hífen, ex.: squad-poc)`);
+    if (!t || typeof t !== 'object' || Array.isArray(t)) errors.push(`${at}: equipe "${name}" deve ser { "members": [...] }`);
+    else emails(t.members, `"${name}".members`);
+  }
+  return errors;
+}
+
 // Compara versões x.y.z: negativo, zero ou positivo.
 const compareVersions = (a, b) => {
   const [x, y] = [a, b].map((v) => v.split('.').map(Number));
@@ -101,4 +137,4 @@ function valueTypeOf(flag) {
   return values.length && values.every(isBoolean) ? 'BOOLEAN' : 'STRING';
 }
 
-module.exports = { PLATFORMS, PLATFORM_CHOICES, VERSION_RE, KEY_RE, kindOf, platformsOf, minVersionFor, targetingErrors, compareVersions, justBelow, rules, expectedAt, isActive, valueTypeOf };
+module.exports = { PLATFORMS, PLATFORM_CHOICES, VERSION_RE, KEY_RE, kindOf, platformsOf, minVersionFor, targetingErrors, teamErrors, teamsErrors, TEAM_RE, compareVersions, justBelow, rules, expectedAt, isActive, valueTypeOf };
