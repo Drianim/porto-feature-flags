@@ -15,6 +15,7 @@ const SKILLS = Object.fromEntries(['feature-flag', 'ff-status', 'sdd-scripts'].m
 // [nome (igual ao do mapa), skill dona, pistas no README, pistas na skill dona]
 const PROCESSOS = [
   ['Criar FF nova', 'feature-flag', ['feature/*', 'new:flag'], ['new:flag', 'feature/*']],
+  ['Listar os comandos de FF (new/update/remove)', 'feature-flag', ['flags:help'], ['flags:help']],
   ['Alterar FF existente', 'feature-flag', ['update/*'], ['update/*']],
   ['Remover FF', 'feature-flag', ['remove/*', 'remove-flags'], ['remove/*', 'remove-flags']],
   ['Levar para PROD (RM)', 'feature-flag', ['release/*', 'new:rm'], ['new:rm', 'release/*']],

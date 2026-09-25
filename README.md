@@ -154,6 +154,11 @@ No GitHub (botão de branches, *View all branches → New branch*, ou `git check
 `main` e o nome é **o nome completo com o prefixo**: `feature/ft-checkout-novo`, `update/ft-checkout-50`,
 `remove/ft-checkout`, `release/2026-10-checkout`, `chore/ajuste-deploy`. O prefixo decide o que a pipeline confere.
 
+### Comandos de FF
+
+`npm run flags:help` lista os comandos guiados disponíveis (`new:flag` pronto; `update:flag` e `remove:flag`
+ainda não implementados, ficam para uma spec futura).
+
 ### Criar uma FF (`feature/*`)
 
 1. `npm run new:flag -- ft_minha_flag --team squad-poc --criticality media --description "..." --platforms ambas --min-version 2.61.0`

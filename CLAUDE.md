@@ -23,6 +23,7 @@ Onde cada processo está e como acioná-lo (`README.md` traz o detalhe; a skill 
 | Processo | Onde está | Comando ou skill |
 |---|---|---|
 | Criar FF nova | README, *Processo* | `feature/*`; `npm run new:flag`; skill `feature-flag` |
+| Listar os comandos de FF (new/update/remove) | README, *Processo* | `npm run flags:help` |
 | Alterar FF existente | README, *Processo* | `update/*`; skill `feature-flag` |
 | Remover FF | README, *Processo* | `remove/*`; `remove-flags.js`; app primeiro |
 | Levar para PROD (RM) | README, *PROD, RM e criticidade* | `release/*`; `npm run new:rm`; `validate:prod` |

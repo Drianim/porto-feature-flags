@@ -9,6 +9,7 @@
     "status": "node scripts/ff-status.js",
     "new:flag": "node scripts/new-flag.js",
     "new:rm": "node scripts/new-rm.js",
+    "flags:help": "node scripts/flags-help.js",
     "plan": "node scripts/deploy.js",
     "catalog": "node scripts/catalog.js",
     "preflight": "node scripts/preflight.js",
