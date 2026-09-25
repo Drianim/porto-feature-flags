@@ -134,6 +134,31 @@ Quatro camadas, cada uma com uma responsabilidade:
   `&& percent('<chave>') <= N` durante o rollout. A semente com o nome da FF faz cada FF sortear seu próprio grupo, e
   quem entra em 5% continua dentro quando sobe para 25%. Nas `rc_*` o padrão do parâmetro é "usar o valor do app" e o
   valor padrão vira a condição `<chave>_<plataforma>_base`.
+### Referência de campos: `flags/<key>.json`
+
+| Campo | Obrigatório | Regra | Para que serve |
+|---|---|---|---|
+| `key` | sim | `ft_*` ou `rc_*` (letras, números, `_`); igual ao nome do arquivo | Nome único da FF; `ft_` = toggle, `rc_` = valor de configuração |
+| `description` | sim | texto não vazio | Vai para o Firebase como `[equipe] descrição` |
+| `team` | sim | uma equipe de `config/teams.json` | Dono da FF: só ela (ou `platform`) cria, altera, remove ou leva a PROD |
+| `criticality` | sim | `baixa`\|`media`\|`alta`\|`critica` | Exigência de rollout no RM ao levar para PROD |
+| `platforms` | sim | `"android"`\|`"ios"`\|`"ambas"` | Fora dessas plataformas a FF nunca ativa |
+| `minVersion` | sim | `"x.y.z"` ou `{ "ios": "x.y.z", "android": "x.y.z" }` (exatamente as plataformas de `platforms`) | Abaixo dessa versão do app, a FF nunca ativa naquela plataforma |
+| `group` | não | texto | Agrupa parâmetros no console do Firebase |
+| `owner` | — | **não usar** | Nome antigo de `team`; `validate` reprova se aparecer |
+| `valueType` | não | ignorado | O tipo (Boolean/String) vem dos valores, não é declarado; só gera aviso se presente |
+
+### Referência de campos: `env/<ambiente>/<key>.json`
+
+Arquivo `{ "<nonprod|prod>": { ... } }`, uma chave de topo igual ao ambiente da pasta.
+
+| Campo | Obrigatório | Regra | Para que serve |
+|---|---|---|---|
+| `default` | sim em `nonprod`; em `prod` só depois de promovida | toggle: `"true"`/`"false"`; `rc_`: texto não vazio | Valor servido quando não há override de plataforma ativo |
+| `ios` / `android` | não | objeto `{ value, rolloutPercent? }`; só se a plataforma estiver em `platforms` da FF | Override por plataforma |
+| `ios.value` / `android.value` | sim, se o bloco existir | mesma regra de tipo do `default` | Valor servido nessa plataforma |
+| `ios.rolloutPercent` / `android.rolloutPercent` | não | `0`–`100` | % dos usuários da plataforma que recebem `value`; o resto recebe `default`. Sem o campo = 100% |
+
 - Exemplo (`flags/ft_plat_ios_50.json` + `env/nonprod/ft_plat_ios_50.json`):
 
 ```json
@@ -312,6 +337,23 @@ seguro. Toggles que liberam algo e todas as `rc_*` exigem RM em PROD; desligar u
 | critica | Rollout progressivo + monitoramento intensivo: 5 → 25 → 50 → 100 |
 
 O avanço entre estágios é por **tempo**, não consulta métricas de saúde: monitore e faça rollback se preciso.
+
+### Referência de campos: `rm/RM-*.json`
+
+Veja `rm/TEMPLATE.json` para um exemplo completo.
+
+| Campo | Obrigatório | Regra | Para que serve |
+|---|---|---|---|
+| `id` | sim | livre; convenção `RM-AAAAMMDD-nome-da-flag` | Identifica o RM; vira o nome do arquivo |
+| `flags` | sim | lista de chaves (`ft_*`/`rc_*`) | FFs cobertas por este RM em PROD |
+| `targetEnvironments` | sim | `["prod"]` | Ambiente(s) que este RM autoriza |
+| `criticality` | sim | `baixa`\|`media`\|`alta`\|`critica` | Deve bater com a maior criticidade das FFs listadas |
+| `squad` | sim | texto | Equipe responsável pelo RM |
+| `rollback` | sim | texto não vazio | Como desfazer se algo der errado |
+| `prodSchedule` | sim | data/hora ISO 8601 com fuso | Quando o rollout pode começar (nunca antes) |
+| `rolloutPlan` | sim | lista `{ percent, monitorMinutes }`, `percent` crescente (1–100), último estágio `100`/`0`; `alta`/`critica` exige mais de 1 estágio | Estágios do rollout em PROD, avançados por tempo |
+| `approvals.team.name` / `.date` | sim | pessoa da equipe dona, diferente de `approvals.platform` | Aprovação da equipe |
+| `approvals.platform.name` / `.date` | sim | pessoa da plataforma, diferente de `approvals.team` | Aprovação da plataforma |
 
 ## Configuração no GitHub (uma vez)
 
