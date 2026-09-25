@@ -5,7 +5,7 @@ description: Opera as Feature Flags deste repositório (Firebase Remote Config, 
 
 # Feature Flags — como operar este repositório
 
-Fonte única de verdade das flags: **nada é editado no console do Firebase**; tudo passa por PR e pela pipeline. Repositório **público no GitHub** (`drianimadriano/porto-feature-flags`), pipeline em GitHub Actions. Estado atual: **PoC só com NÃO PROD** (projeto `cursoapp-ac8e4`); PROD está implementado e testado, mas ainda não tem projeto. Visão completa no `README.md`; o **Mapa dos processos** no `CLAUDE.md` diz onde cada processo está.
+Fonte única de verdade das flags: **nada é editado no console do Firebase**; tudo passa por PR e pela pipeline. Repositório **público no GitHub** (`Drianim/porto-feature-flags`), pipeline em GitHub Actions. Estado atual: **PoC só com NÃO PROD** (projeto `cursoapp-ac8e4`); PROD está implementado e testado, mas ainda não tem projeto. Visão completa no `README.md`; o **Mapa dos processos** no `CLAUDE.md` diz onde cada processo está.
 
 Outras skills: `ff-status` só **consulta** o status; `sdd-scripts` **evolui** scripts, pipeline e documentação (com spec).
 

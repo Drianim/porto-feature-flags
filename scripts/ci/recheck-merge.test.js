@@ -16,7 +16,7 @@ const PLATFORM = require('../../config/teams.json').platform[0];
 const ADMIN = require('../../config/approvers.json').adminLogins[0];
 // mergedBy: login de quem mesclou, que no GitHub Actions viria da API (merged_by); aqui entra por MERGED_BY.
 // message: formato do commit de merge (padrão: o do GitHub).
-function mergeAndRecheck(branch, change, mergedBy = ADMIN, authorEmail = PLATFORM, message = `Merge pull request #9 from drianimadriano/${branch}`) {
+function mergeAndRecheck(branch, change, mergedBy = ADMIN, authorEmail = PLATFORM, message = `Merge pull request #9 from Drianim/${branch}`) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rm-'));
   const sh = (c) => execSync(c, { cwd: dir, stdio: 'pipe' });
   const git = (c) => sh(`git -c user.name=t -c user.email=t@t ${c}`);

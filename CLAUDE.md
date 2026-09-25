@@ -1,6 +1,6 @@
 # CLAUDE.md — porto-feature-flags
 
-Repositório **público no GitHub** (`drianimadriano/porto-feature-flags`) que governa as Feature Flags (Firebase Remote Config) por PR e GitHub Actions. **Leia o
+Repositório **público no GitHub** (`Drianim/porto-feature-flags`) que governa as Feature Flags (Firebase Remote Config) por PR e GitHub Actions. **Leia o
 [README.md](README.md)** para o quadro completo (o que faz, arquitetura, processo, configuração). Este arquivo
 resume o que um Claude Code precisa saber antes de mexer.
 

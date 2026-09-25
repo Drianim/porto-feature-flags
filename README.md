@@ -7,7 +7,7 @@ PR, validação automática, aprovação humana e deploy por pipeline (GitHub Ac
 > **Estado: PoC.** Só o ambiente **NÃO PROD** está ativo (projeto Firebase de teste `cursoapp-ac8e4`). PROD está
 > implementado e coberto por testes, mas só entra depois de existir o projeto de PROD.
 >
-> **Repositório público** no GitHub (`drianimadriano/porto-feature-flags`). Segredos ficam só em secrets do GitHub; o
+> **Repositório público** no GitHub (`Drianim/porto-feature-flags`). Segredos ficam só em secrets do GitHub; o
 > histórico foi auditado antes da migração (spec 0010). O histórico anterior veio do Bitbucket (`Drianim/porto-feature-flags`,
 > arquivado).
 

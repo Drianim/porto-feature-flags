@@ -17,10 +17,10 @@ function scenario(branch, { message } = {}) {
   fs.writeFileSync(path.join(dir, 'a.txt'), 'original\n'); git('add -A'); git('commit -q -m base');
   const baseTree = execSync('git rev-parse HEAD^{tree}', { cwd: dir, encoding: 'utf8' }).trim();
   git(`checkout -q -b ${branch}`); fs.writeFileSync(path.join(dir, 'a.txt'), 'alterado\n'); git('add -A'); git('commit -q -m change');
-  git('checkout -q main'); git(`merge -q --no-ff ${branch} -m ${JSON.stringify(message || `Merge pull request #9 from drianimadriano/${branch}`)}`);
+  git('checkout -q main'); git(`merge -q --no-ff ${branch} -m ${JSON.stringify(message || `Merge pull request #9 from Drianim/${branch}`)}`);
   fs.writeFileSync(path.join(dir, 'merge-source.txt'), branch);
   const run = (exitCode, remote = bare) => {
-    const r = spawnSync('sh', [script], { cwd: dir, encoding: 'utf8', env: { ...process.env, RECHECK_EXIT_CODE: exitCode, GITHUB_REPOSITORY: 'drianimadriano/porto-feature-flags', REVERT_REMOTE_URL: remote } });
+    const r = spawnSync('sh', [script], { cwd: dir, encoding: 'utf8', env: { ...process.env, RECHECK_EXIT_CODE: exitCode, GITHUB_REPOSITORY: 'Drianim/porto-feature-flags', REVERT_REMOTE_URL: remote } });
     return { code: r.status, out: r.stdout + r.stderr };
   };
   // o Actions faz um checkout novo no commit do merge a cada execução
@@ -36,7 +36,7 @@ test('reconferência falhou: empurra revert/pr-9-... com a árvore de antes do m
   assert.strictEqual(r.code, 0, r.out);
   assert.deepStrictEqual(s.remoteBranches(), ['revert/pr-9-feature-x']);
   assert.strictEqual(s.treeOf('revert/pr-9-feature-x'), s.baseTree, 'a reversão devolve exatamente o estado anterior');
-  assert.match(r.out, /https:\/\/github\.com\/drianimadriano\/porto-feature-flags\/compare\/main\.\.\.revert\/pr-9-feature-x\?expand=1/);
+  assert.match(r.out, /https:\/\/github\.com\/Drianim\/porto-feature-flags\/compare\/main\.\.\.revert\/pr-9-feature-x\?expand=1/);
   s.cleanup();
 });
 test('reconferência passou (exit 0): não faz nada', () => {

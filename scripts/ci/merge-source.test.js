@@ -27,6 +27,6 @@ test('commit comum não tem origem', () => {
   assert.strictEqual(sourceOf('feat: algo'), '');
 });
 test('merge de PR do GitHub (dono/branch, branch com barra)', () => {
-  assert.strictEqual(sourceOf('Merge pull request #12 from drianimadriano/feature/ft-x\n\nfeat: algo'), 'feature/ft-x');
+  assert.strictEqual(sourceOf('Merge pull request #12 from Drianim/feature/ft-x\n\nfeat: algo'), 'feature/ft-x');
   assert.strictEqual(sourceOf('Merge pull request #7 from outra-pessoa/chore/ajuste-y'), 'chore/ajuste-y');
 });
