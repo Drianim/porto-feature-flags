@@ -49,7 +49,7 @@ async function criarFF(rl) {
   const criticality = await perguntaObrigatoria(rl, 'Criticidade (baixa|media|alta|critica): ');
   const description = await perguntaObrigatoria(rl, 'Descrição: ');
   const platforms = await perguntaObrigatoria(rl, 'Plataformas (android|ios|ambas): ');
-  const minVersion = await perguntaObrigatoria(rl, 'Versão mínima (x.y.z): ');
+  const minVersion = await perguntaObrigatoria(rl, 'Versão do app para ativar (x.y.z): ');
   const group = await pergunta(rl, 'Grupo (opcional, Enter para pular): ');
   const value = kindOf(key) === 'config' ? await perguntaObrigatoria(rl, 'Valor padrão (rc_*): ') : undefined;
 
