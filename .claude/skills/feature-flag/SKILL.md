@@ -33,6 +33,11 @@ Chave (`ft_*` toggle ou `rc_*` valor), descrição, **equipe** (de `config/teams
 
 Nome de FF nunca se repete: `feature/*` só cria (consulta o Firebase); `update/*` só altera existente. A branch sai da `main` com o **nome completo com o prefixo** (ex.: `feature/ft-checkout-novo`, `update/ft-checkout-50`); outro prefixo (`hotfix/`, `bugfix/`) reprova no PR.
 
+## Comandos de FF
+
+`npm run flags:help` lista os comandos guiados disponíveis (`new:flag` pronto; `update:flag` e `remove:flag`
+ainda não implementados).
+
 ## Criar uma FF (`feature/*`)
 
 1. `npm run new:flag -- <chave> --team <equipe> --criticality <baixa|media|alta|critica> --description "..." --platforms <android|ios|ambas> --min-version <x.y.z>` (`rc_*` exige `--value`; `--group "Nome"` agrupa). Isto cria `flags/<chave>.json` e `env/nonprod/<chave>.json` **desligada**.
