@@ -12,11 +12,12 @@ PR, validação automática, aprovação humana e deploy por pipeline (GitHub Ac
 > arquivado).
 
 **Para quem é este README:** quem vai usar o repositório (subir uma FF) e quem vai **evoluir os scripts** (inclusive
-trabalhando com um Claude Code). Comece por *Em uma tela* e vá ao que precisar.
+trabalhando com um Claude Code). Comece por *Em uma tela* e vá ao que precisar. Para uma visão visual do processo,
+veja o [deck de apresentação](docs/processo-de-deploy-de-feature-flags.html).
 
 ## Sumário
 
-1. Em uma tela
+1. Em uma tela ([deck de apresentação](docs/processo-de-deploy-de-feature-flags.html))
 2. Arquitetura
 3. Modelo de uma FF
 4. Processo: como uma FF chega ao Firebase
