@@ -35,9 +35,10 @@ Nome de FF nunca se repete: `feature/*` só cria (consulta o Firebase); `update/
 
 ## Comandos de FF
 
-`npm run flags` abre um menu interativo (1 - Criar FF nova, 2 - Alterar FF existente, 3 - Remover FF): a opção 1
-pergunta os dados, cria a branch `feature/*`, roda `new:flag` e pergunta se já pode enviar (`git push`) e abrir
-o PR com o corpo preenchido; as opções 2 e 3 avisam que ainda não estão implementadas.
+`npm run flags` (ou `npm run flags:help`, sinônimo do mesmo comando) abre um menu interativo (1 - Criar FF nova,
+2 - Alterar FF existente, 3 - Remover FF): a opção 1 pergunta os dados, cria a branch `feature/*`, roda `new:flag`
+e pergunta se já pode enviar (`git push`) e abrir o PR com o corpo preenchido; as opções 2 e 3 avisam que ainda
+não estão implementadas.
 
 ## Criar uma FF (`feature/*`)
 
