@@ -21,4 +21,16 @@ function effectivePercent(cap, rm, now = new Date()) {
   return stage ? Math.min(stage.percent, cap ?? 100) : null;
 }
 
-module.exports = { currentStage, effectivePercent };
+const JANELA = '22:00–06:00';
+const FUSO = 'America/Sao_Paulo';
+
+// Janela de horário exigida por criticidade em PROD: baixa não tem restrição; media/critica só na
+// madrugada (horário de Brasília), fuso IANA resolvido nativamente pelo Intl (sem lib nova).
+function horarioPermitido(criticidade, dataISO) {
+  if (criticidade === 'baixa') return { ok: true };
+  const hora = Number(new Intl.DateTimeFormat('en-US', { timeZone: FUSO, hour: '2-digit', hour12: false }).format(new Date(dataISO)));
+  if (hora >= 22 || hora < 6) return { ok: true };
+  return { ok: false, motivo: `prodSchedule fora da janela exigida para criticidade "${criticidade}": ${JANELA} (horário de Brasília)` };
+}
+
+module.exports = { currentStage, effectivePercent, horarioPermitido };

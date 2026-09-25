@@ -4,10 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const { PLATFORMS, KEY_RE, kindOf, isActive, valueTypeOf, targetingErrors, platformsOf, teamErrors, teamsErrors } = require('./lib/flags');
 const { mergeFlag, loadTeamsConfig } = require('./lib/common');
+const { horarioPermitido } = require('./lib/rollout');
 
 const root = path.join(__dirname, '..');
 const prod = process.argv.includes('--prod');
-const CRIT = ['baixa', 'media', 'alta', 'critica'];
+const CRIT = ['baixa', 'media', 'critica'];
 const ENVS = ['nonprod', 'prod'];
 const errors = [];
 const err = (f, m) => errors.push(`${f}: ${m}`);
@@ -90,6 +91,10 @@ if (prod) {
     const d = rm.data;
     if (!d.rollback) err(rm.file, 'rollback obrigatório');
     if (!d.prodSchedule || Number.isNaN(Date.parse(d.prodSchedule))) err(rm.file, 'prodSchedule (ISO 8601) obrigatório');
+    else {
+      const janela = horarioPermitido(d.criticality, d.prodSchedule);
+      if (!janela.ok) err(rm.file, janela.motivo);
+    }
     if (!Array.isArray(d.rolloutPlan) || !d.rolloutPlan.length) err(rm.file, 'rolloutPlan obrigatório');
     else {
       const p = d.rolloutPlan;
@@ -97,7 +102,7 @@ if (prod) {
         err(rm.file, 'rolloutPlan deve ter percent crescente (1-100) e monitorMinutes >= 0');
       }
       if (p[p.length - 1].percent !== 100 || p[p.length - 1].monitorMinutes !== 0) err(rm.file, 'último estágio do rolloutPlan deve ser 100% com monitorMinutes 0');
-      if (['alta', 'critica'].includes(flag.criticality) && p.length < 2) err(rm.file, `flag ${flag.criticality} exige rollout progressivo (mais de um estágio)`);
+      if (flag.criticality === 'critica' && p.length < 2) err(rm.file, `flag ${flag.criticality} exige rollout progressivo (mais de um estágio)`);
     }
     for (const who of ['team', 'platform']) {
       const a = (d.approvals || {})[who];

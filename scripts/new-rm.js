@@ -12,7 +12,7 @@ if (!a.flags || !a.squad || !a.schedule) {
 }
 const keys = a.flags.split(',');
 const all = loadFlags();
-const order = ['baixa', 'media', 'alta', 'critica'];
+const order = ['baixa', 'media', 'critica'];
 let crit = 'baixa';
 for (const k of keys) {
   const f = all.find((x) => x.key === k);
@@ -22,9 +22,8 @@ for (const k of keys) {
 const plans = {
   baixa: [{ percent: 100, monitorMinutes: 0 }],
   media: [{ percent: 25, monitorMinutes: 60 }, { percent: 100, monitorMinutes: 0 }],
-  alta: [{ percent: 5, monitorMinutes: 30 }, { percent: 25, monitorMinutes: 60 }, { percent: 50, monitorMinutes: 120 }, { percent: 100, monitorMinutes: 0 }],
+  critica: [{ percent: 5, monitorMinutes: 30 }, { percent: 25, monitorMinutes: 60 }, { percent: 50, monitorMinutes: 120 }, { percent: 100, monitorMinutes: 0 }],
 };
-plans.critica = plans.alta;
 
 const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 const id = `RM-${date}-${keys[0]}`;

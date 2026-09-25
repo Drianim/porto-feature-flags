@@ -46,7 +46,7 @@ async function criarFF(rl) {
   const key = await perguntaObrigatoria(rl, 'Chave da FF (ft_ toggle ou rc_ config): ');
   if (!KEY_RE.test(key)) { console.log(`✗ chave "${key}" inválida: precisa começar com ft_ ou rc_`); return; }
   const team = await perguntaObrigatoria(rl, `Equipe dona (${equipes.join(', ')}): `);
-  const criticality = await perguntaObrigatoria(rl, 'Criticidade (baixa|media|alta|critica): ');
+  const criticality = await perguntaObrigatoria(rl, 'Criticidade (baixa|media|critica): ');
   const description = await perguntaObrigatoria(rl, 'Descrição: ');
   const platforms = await perguntaObrigatoria(rl, 'Plataformas (android|ios|ambas): ');
   const minVersion = await perguntaObrigatoria(rl, 'Versão do app para ativar (x.y.z): ');

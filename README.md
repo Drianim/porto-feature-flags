@@ -103,7 +103,7 @@ veja o [deck de apresentação](docs/processo-de-deploy-de-feature-flags.html).
 | `key` | sim | `ft_*` ou `rc_*` (letras, números, `_`); igual ao nome do arquivo | Nome único da FF; `ft_` = toggle, `rc_` = valor de configuração |
 | `description` | sim | texto não vazio | Vai para o Firebase como `[equipe] descrição` |
 | `team` | sim | uma equipe de `config/teams.json` | Dono da FF: só ela (ou `platform`) cria, altera, remove ou leva a PROD |
-| `criticality` | sim | `baixa`\|`media`\|`alta`\|`critica` | Exigência de rollout no RM ao levar para PROD |
+| `criticality` | sim | `baixa`\|`media`\|`critica` | Exigência de rollout no RM ao levar para PROD |
 | `platforms` | sim | `"android"`\|`"ios"`\|`"ambas"` | Fora dessas plataformas a FF nunca ativa |
 | `minVersion` | sim | `"x.y.z"` ou `{ "ios": "x.y.z", "android": "x.y.z" }` (exatamente as plataformas de `platforms`) | Abaixo dessa versão do app, a FF nunca ativa naquela plataforma |
 | `group` | não | texto | Agrupa parâmetros no console do Firebase |
@@ -300,10 +300,9 @@ seguro. Toggles que liberam algo e todas as `rc_*` exigem RM em PROD; desligar u
 
 | Criticidade | Exigência |
 |---|---|
-| baixa | Aprovação padrão; plano padrão 100% |
-| media | Aprovação padrão + teste em não produtivo; 25% (60 min) → 100% |
-| alta | Rollout progressivo obrigatório (mais de um estágio): 5 → 25 → 50 → 100 |
-| critica | Rollout progressivo + monitoramento intensivo: 5 → 25 → 50 → 100 |
+| baixa | Aprovação padrão; plano padrão 100%; `prodSchedule` em qualquer horário |
+| media | Aprovação padrão + teste em não produtivo; 25% (60 min) → 100%; `prodSchedule` só entre 22:00–06:00 (horário de Brasília) |
+| critica | Rollout progressivo obrigatório (mais de um estágio) + monitoramento intensivo: 5 → 25 → 50 → 100; `prodSchedule` só entre 22:00–06:00 (horário de Brasília) |
 
 O avanço entre estágios é por **tempo**, não consulta métricas de saúde: monitore e faça rollback se preciso.
 
@@ -316,11 +315,11 @@ Veja `rm/TEMPLATE.json` para um exemplo completo.
 | `id` | sim | livre; convenção `RM-AAAAMMDD-nome-da-flag` | Identifica o RM; vira o nome do arquivo |
 | `flags` | sim | lista de chaves (`ft_*`/`rc_*`) | FFs cobertas por este RM em PROD |
 | `targetEnvironments` | sim | `["prod"]` | Ambiente(s) que este RM autoriza |
-| `criticality` | sim | `baixa`\|`media`\|`alta`\|`critica` | Deve bater com a maior criticidade das FFs listadas |
+| `criticality` | sim | `baixa`\|`media`\|`critica` | Deve bater com a maior criticidade das FFs listadas |
 | `squad` | sim | texto | Equipe responsável pelo RM |
 | `rollback` | sim | texto não vazio | Como desfazer se algo der errado |
-| `prodSchedule` | sim | data/hora ISO 8601 com fuso | Quando o rollout pode começar (nunca antes) |
-| `rolloutPlan` | sim | lista `{ percent, monitorMinutes }`, `percent` crescente (1–100), último estágio `100`/`0`; `alta`/`critica` exige mais de 1 estágio | Estágios do rollout em PROD, avançados por tempo |
+| `prodSchedule` | sim | data/hora ISO 8601 com fuso; `media`/`critica` só entre 22:00–06:00 (horário de Brasília, `America/Sao_Paulo`); `baixa` sem restrição | Quando o rollout pode começar (nunca antes) |
+| `rolloutPlan` | sim | lista `{ percent, monitorMinutes }`, `percent` crescente (1–100), último estágio `100`/`0`; `critica` exige mais de 1 estágio | Estágios do rollout em PROD, avançados por tempo |
 | `approvals.team.name` / `.date` | sim | pessoa da equipe dona, diferente de `approvals.platform` | Aprovação da equipe |
 | `approvals.platform.name` / `.date` | sim | pessoa da plataforma, diferente de `approvals.team` | Aprovação da plataforma |
 
