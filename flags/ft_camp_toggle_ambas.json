@@ -1,0 +1,8 @@
+{
+  "key": "ft_camp_toggle_ambas",
+  "description": "Campanha: toggle ligado em iOS e Android (100%)",
+  "team": "squad-poc",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": "2.61.0"
+}

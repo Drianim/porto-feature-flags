@@ -1,5 +1,95 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 0,
-  "keys": []
+  "total": 4,
+  "keys": [
+    {
+      "key": "ft_camp_minver_plataforma",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ambas",
+      "minVersion": {
+        "ios": "2.61.0",
+        "android": "2.63.0"
+      },
+      "team": "squad-poc",
+      "description": "Campanha: minVersion por plataforma (iOS e Android diferentes)",
+      "environments": {
+        "nonprod": {
+          "default": "false"
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_camp_toggle_ambas",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ambas",
+      "minVersion": "2.61.0",
+      "team": "squad-poc",
+      "description": "Campanha: toggle ligado em iOS e Android (100%)",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_camp_toggle_ios_50",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ios",
+      "minVersion": "2.61.0",
+      "team": "squad-poc",
+      "description": "Campanha: toggle só no iOS, rollout 50%",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true",
+            "rolloutPercent": 50
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "rc_camp_url_override",
+      "kind": "config",
+      "group": null,
+      "valueType": "STRING",
+      "criticality": "baixa",
+      "platforms": "ambas",
+      "minVersion": "2.61.0",
+      "team": "squad-poc",
+      "description": "Campanha: rc_ com override por plataforma",
+      "environments": {
+        "nonprod": {
+          "default": "https://exemplo.com/default",
+          "ios": {
+            "value": "https://exemplo.com/ios"
+          }
+        }
+      }
+    }
+  ]
 }
