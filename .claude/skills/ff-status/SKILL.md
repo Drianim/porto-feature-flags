@@ -29,7 +29,7 @@ node scripts/ff-status.js <list|detail|rollout|summary|sync|history|stale> [chav
 | `--platform` | `ios` ou `android` |
 | `--team` | `^[a-z0-9]+(-[a-z0-9]+)*$` (equipe de `config/teams.json`, ex.: `squad-poc`) |
 | `--search` | `^[A-Za-z0-9_-]{1,40}$` |
-| `--criticality` | `baixa`, `media`, `alta` ou `critica` |
+| `--criticality` | `baixa`, `media` ou `critica` |
 | `--limit` (history) | número de 1 a 50 |
 | `--env` | `nonprod` (padrão) ou `prod` (só o repositório: não há projeto de PROD no Firebase ainda) |
 | `--offline` | não consulta o Firebase |

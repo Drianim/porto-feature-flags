@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { currentStage, effectivePercent } = require('./rollout');
+const { currentStage, effectivePercent, horarioPermitido } = require('./rollout');
 const { rules, isActive, kindOf, valueTypeOf } = require('./flags');
 
 const rm = {
@@ -32,6 +32,20 @@ test('sem RM ou antes da hora => null', () => {
 });
 test('teto da flag limita o estágio', () => {
   assert.strictEqual(effectivePercent(10, rm, at('2026-10-01T18:30:00Z')), 10);
+});
+
+test('horarioPermitido: baixa passa em qualquer horário', () => {
+  assert.strictEqual(horarioPermitido('baixa', '2026-10-01T14:00:00-03:00').ok, true);
+  assert.strictEqual(horarioPermitido('baixa', '2026-10-01T23:00:00-03:00').ok, true);
+});
+test('horarioPermitido: media/critica só entre 22:00–06:00 (horário de Brasília)', () => {
+  const fora = horarioPermitido('critica', '2026-10-01T14:00:00-03:00');
+  assert.strictEqual(fora.ok, false);
+  assert.match(fora.motivo, /22:00–06:00/);
+  assert.strictEqual(horarioPermitido('media', '2026-10-01T23:00:00-03:00').ok, true);
+  assert.strictEqual(horarioPermitido('critica', '2026-10-01T05:59:00-03:00').ok, true);
+  assert.strictEqual(horarioPermitido('media', '2026-10-01T06:00:00-03:00').ok, false);
+  assert.strictEqual(horarioPermitido('critica', '2026-10-01T22:00:00-03:00').ok, true);
 });
 
 test('prefixo define o tipo', () => {

@@ -5,7 +5,7 @@ const { flagRow, filterRows, syncOf, extras, summarize, staleCandidates, servedF
 
 const base = { description: 'd', team: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0' };
 const ambos = { ...base, key: 'ft_ambos', group: 'G', environments: { nonprod: { default: 'false', ios: { value: 'true' }, android: { value: 'true' } } } };
-const ios50 = { ...base, key: 'ft_ios50', platforms: 'ios', team: 'squad-b', criticality: 'alta', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 50 } } } };
+const ios50 = { ...base, key: 'ft_ios50', platforms: 'ios', team: 'squad-b', criticality: 'critica', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 50 } } } };
 const off = { ...base, key: 'ft_off', environments: { nonprod: { default: 'false' } } };
 const allOn = { ...base, key: 'ft_todas', environments: { nonprod: { default: 'true' } } };
 const url = { ...base, key: 'rc_url', platforms: 'android', minVersion: { android: '2.58.3' }, environments: { nonprod: { default: 'https://x' } } };
@@ -56,7 +56,7 @@ test('filtros por plataforma, dono, busca e criticidade', () => {
   assert.deepStrictEqual(keys({ platform: 'android' }), ['ft_ambos', 'ft_off', 'ft_todas', 'rc_url']);
   assert.deepStrictEqual(keys({ team: 'SQUAD-B' }), ['ft_ios50']);
   assert.deepStrictEqual(keys({ search: 'IOS' }), ['ft_ios50']);
-  assert.deepStrictEqual(keys({ criticality: 'alta' }), ['ft_ios50']);
+  assert.deepStrictEqual(keys({ criticality: 'critica' }), ['ft_ios50']);
   assert.deepStrictEqual(keys({ platform: 'ios', team: 'squad-a', search: 'todas' }), ['ft_todas']);
   assert.strictEqual(keys({}).length, 5);
 });
@@ -90,7 +90,7 @@ test('resumo: contagens por tipo, criticidade, plataforma e rollout parcial', ()
   const s = summarize(rows);
   assert.strictEqual(s.total, 5);
   assert.deepStrictEqual(s.porTipo, { toggle: 4, config: 1 });
-  assert.deepStrictEqual(s.porCriticidade, { baixa: 4, alta: 1 });
+  assert.deepStrictEqual(s.porCriticidade, { baixa: 4, critica: 1 });
   assert.deepStrictEqual(s.porPlataforma.ios, { ligadas: 2, parciais: 1, desligadas: 1, valores: 0, naoAplica: 1 });
   assert.deepStrictEqual(s.porPlataforma.android, { ligadas: 2, parciais: 0, desligadas: 1, valores: 1, naoAplica: 1 });
   assert.deepStrictEqual(s.parciais, ['ft_ios50']);
@@ -153,9 +153,9 @@ const parse = (line) => parseStatusArgs(parseArgs(line.split(' ').filter(Boolean
 const { parseStatusArgs, renderRollout, renderStale } = require('./status');
 
 test('argumentos válidos viram consulta', () => {
-  assert.deepStrictEqual(parse('list --platform ios --team squad-a --search home --criticality alta --json'), {
+  assert.deepStrictEqual(parse('list --platform ios --team squad-a --search home --criticality critica --json'), {
     cmd: 'list', key: null, env: 'nonprod', json: true, offline: false, limit: 10,
-    filters: { platform: 'ios', team: 'squad-a', search: 'home', criticality: 'alta' },
+    filters: { platform: 'ios', team: 'squad-a', search: 'home', criticality: 'critica' },
   });
   assert.strictEqual(parse('detail ft_ambos --offline').key, 'ft_ambos');
   assert.strictEqual(parse('history --limit 5').limit, 5);

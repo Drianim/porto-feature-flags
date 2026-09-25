@@ -22,7 +22,7 @@ Antes de abrir: npm run preflight (ou npm run pr).
 ## feature/* — FF nova
 - **Chave(s):** `ft_...` / `rc_...`
 - **Equipe dona** (de `config/teams.json`; só a equipe ou a plataforma altera):
-- **Criticidade:** baixa | média | alta | crítica
+- **Criticidade:** baixa | média | crítica
 - **Plataformas:** Android | iOS | ambas
 - **PR do app** (link do PR com o código atrás da FF; templates em `docs/templates/codigo-app/`; ligue a FF só depois do app publicado):
 - **Versão mínima do app:** `x.y.z` (a partir de qual versão o código da FF existe; por plataforma, se forem diferentes)

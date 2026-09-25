@@ -8,7 +8,7 @@ const { build, diff, findRemote } = require('./remote-config');
 const { KEY_RE } = require('./flags');
 const NA = { state: 'n/a' };
 const COMMANDS = ['list', 'detail', 'rollout', 'summary', 'sync', 'history', 'stale'];
-const CRITICALITIES = ['baixa', 'media', 'alta', 'critica'];
+const CRITICALITIES = ['baixa', 'media', 'critica'];
 const VALUE_FLAGS = ['env', 'platform', 'team', 'search', 'criticality', 'limit'];
 const BOOL_FLAGS = ['json', 'offline'];
 

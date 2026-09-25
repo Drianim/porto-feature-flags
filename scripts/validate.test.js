@@ -68,6 +68,43 @@ test('config/teams.json inválido (plataforma vazia, e-mail ruim, equipe fora do
   assert.match(validate(f, undefined, cfg({ teams: { 'squad-poc': { members: ['x'] } } })).out, /e-mail inválido/);
 });
 
+// Repo mínimo com uma FF ativa em PROD + RM; devolve o resultado de "validate.js --prod".
+function validateProd({ criticality = 'critica', prodSchedule, rolloutPlan } = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'val-prod-'));
+  fs.cpSync(path.join(repoRoot, 'scripts'), path.join(dir, 'scripts'), { recursive: true });
+  fs.cpSync(path.join(repoRoot, 'config'), path.join(dir, 'config'), { recursive: true });
+  for (const d of ['flags', 'env/nonprod', 'env/prod', 'rm']) fs.mkdirSync(path.join(dir, d), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'config/teams.json'), JSON.stringify({ platform: ['p@x.com'], teams: { 'squad-poc': { members: [] } } }));
+  const flag = { key: 'ft_v', description: 'd', team: 'squad-poc', criticality, platforms: 'ambas', minVersion: '2.61.0' };
+  fs.writeFileSync(path.join(dir, 'flags/ft_v.json'), JSON.stringify(flag));
+  fs.writeFileSync(path.join(dir, 'env/nonprod/ft_v.json'), JSON.stringify({ nonprod: { default: 'false' } }));
+  fs.writeFileSync(path.join(dir, 'env/prod/ft_v.json'), JSON.stringify({ prod: { default: 'false', ios: { value: 'true' }, android: { value: 'true' } } }));
+  const rm = {
+    id: 'RM-teste', flags: ['ft_v'], targetEnvironments: ['prod'], criticality, squad: 'squad-poc',
+    rollback: 'Voltar o toggle para false', prodSchedule,
+    rolloutPlan: rolloutPlan || [{ percent: 5, monitorMinutes: 30 }, { percent: 100, monitorMinutes: 0 }],
+    approvals: { team: { name: 'a', date: '2026-09-25' }, platform: { name: 'b', date: '2026-09-25' } },
+  };
+  fs.writeFileSync(path.join(dir, 'rm/RM-teste.json'), JSON.stringify(rm));
+  const r = spawnSync('node', ['scripts/validate.js', '--prod'], { cwd: dir, encoding: 'utf8' });
+  fs.rmSync(dir, { recursive: true, force: true });
+  return { ok: r.status === 0, out: r.stdout + r.stderr };
+}
+
+test('PROD: RM crítico com prodSchedule de manhã (horário de Brasília) é reprovado', () => {
+  const r = validateProd({ criticality: 'critica', prodSchedule: '2026-10-01T14:00:00-03:00' });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /22:00–06:00/);
+});
+test('PROD: o mesmo RM crítico com prodSchedule de madrugada passa', () => {
+  const r = validateProd({ criticality: 'critica', prodSchedule: '2026-10-01T23:00:00-03:00' });
+  assert.strictEqual(r.ok, true, r.out);
+});
+test('PROD: RM só com flag baixa passa em qualquer horário', () => {
+  const r = validateProd({ criticality: 'baixa', prodSchedule: '2026-10-01T14:00:00-03:00', rolloutPlan: [{ percent: 100, monitorMinutes: 0 }] });
+  assert.strictEqual(r.ok, true, r.out);
+});
+
 test('config/approvers.json inválido é reprovado pelo validate', () => {
   const f = { platforms: 'ambas', minVersion: '2.61.0' };
   const dir = require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'apr-'));

@@ -42,7 +42,7 @@ não estão implementadas.
 
 ## Criar uma FF (`feature/*`)
 
-1. `npm run new:flag -- <chave> --team <equipe> --criticality <baixa|media|alta|critica> --description "..." --platforms <android|ios|ambas> --min-version <x.y.z>` (`rc_*` exige `--value`; `--group "Nome"` agrupa). Isto cria `flags/<chave>.json` e `env/nonprod/<chave>.json` **desligada**.
+1. `npm run new:flag -- <chave> --team <equipe> --criticality <baixa|media|critica> --description "..." --platforms <android|ios|ambas> --min-version <x.y.z>` (`rc_*` exige `--value`; `--group "Nome"` agrupa). Isto cria `flags/<chave>.json` e `env/nonprod/<chave>.json` **desligada**.
 2. Ligue em `env/nonprod/<chave>.json`, ex.: `{"nonprod": {"default": "false", "ios": {"value": "true", "rolloutPercent": 50}, "android": {"value": "true"}}}` (`default: "true"` liga em todas as plataformas da FF).
 3. `npm run catalog && npm run validate`, e simule: `node scripts/deploy.js nonprod --dry-run`. Com a chave, valide no Firebase **sem publicar**: `node scripts/deploy.js nonprod --validate`.
 4. `npm run preflight` (mesmas checagens do PR); se passar, `npm run pr` empurra a branch e imprime o link do PR. Só rode o push se o usuário pedir. O hook de pre-push (`npm run hooks`, uma vez) roda o preflight ao empurrar.
@@ -80,7 +80,7 @@ PROD só muda numa `release/*` (`env/prod/<chave>.json` e `rm/`), por horário e
 
 ## Criticidade, rollout e rollback
 
-- `rolloutPlan` por criticidade: baixa 100%; media 25% (60 min) → 100%; alta e crítica 5% → 25% → 50% → 100% (mais de um estágio é obrigatório). O avanço é por tempo, não por métricas de saúde.
+- `rolloutPlan` por criticidade: baixa 100%; media 25% (60 min) → 100%; crítica 5% → 25% → 50% → 100% (mais de um estágio é obrigatório). O avanço é por tempo, não por métricas de saúde. `prodSchedule` de `media`/`critica` só é aceito entre 22:00–06:00 (horário de Brasília); `baixa` não tem restrição de horário.
 - **Rollback:** volte o valor da FF para desligada (ou reduza `rolloutPercent`) numa `update/*`; o app volta ao caminho antigo sem publicar app novo. Se a chave sumir do Firebase, vale o padrão do app (comportamento antigo).
 
 ## Equipe e permissão
