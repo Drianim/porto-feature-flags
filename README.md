@@ -214,8 +214,25 @@ Quem pode mexer em qual FF é decidido por `config/teams.json`: `platform` (e-ma
 - `npm run preflight`: formato, catálogo em dia, escopo da branch, permissão por equipe, nome único, template aceito pelo Firebase (com `FIREBASE_SA_KEY_NONPROD`) e, em `release/*`, regras de PROD.
 - `npm run pr`: preflight e, se passar, empurra a branch e imprime o link que abre o PR no GitHub.
 - `npm run hooks` (uma vez): o `pre-push` roda o preflight ao empurrar branches de FF (`git push --no-verify` ignora).
-- `.github/pull_request_template.md` traz uma seção por tipo; apague as que não são do seu PR.
+- `.github/pull_request_template.md` traz uma seção por tipo; apague as que não são do seu PR. O GitHub já preenche a
+  descrição do PR com este arquivo ao abrir pelo link do `npm run pr` ou pelo botão "New pull request".
 - Sem `FIREBASE_SA_KEY_NONPROD` a consulta de nome ao Firebase é pulada; a pipeline do PR faz essa checagem.
+
+**O que preencher em cada campo do template, por tipo de branch:**
+
+- **`feature/*`:** a(s) chave(s) nova(s) (`ft_...`/`rc_...`, igual a `flags/<chave>.json`); a **equipe dona** é uma
+  das chaves de `config/teams.json` (só ela ou a `platform` poderão alterar essa FF depois); criticidade,
+  plataformas e versão mínima do app são os mesmos campos de `flags/<chave>.json`; os valores por plataforma são o
+  que vai em `env/nonprod/<chave>.json` (default e, se houver, override de iOS/Android com `rolloutPercent`).
+- **`update/*`:** a chave que já existe; "o que mudou" e "valor antes → depois" descrevem a diferença real entre o
+  `env/nonprod/<chave>.json` (ou `flags/<chave>.json`) antigo e o novo; não crie chave nenhuma aqui.
+- **`remove/*`:** a chave a apagar e o motivo; os checkboxes confirmam que nada foi criado ou alterado, só apagado
+  (`flags/`, `env/nonprod/`, `env/prod/` e `rm/` da FF).
+- **`release/*`:** o **RM** é o `rm/RM-AAAAMMDD-nome-da-flag.json` criado com `npm run new:rm` (veja `rm/TEMPLATE.json`);
+  data/hora e plano de rollout vêm de `rolloutPlan`/`prodSchedule` desse arquivo; aprovação de equipe e de
+  plataforma são pessoas diferentes (`approvals.team`/`approvals.platform` no RM), nunca inventadas.
+- **`chore/*`:** o campo **Spec** aponta para `docs/specs/NNNN-slug.md`, já aprovada antes do código; "o que muda no
+  comportamento" resume o efeito da mudança de script, pipeline ou documentação (não é FF).
 
 ## Pipelines (GitHub Actions)
 
