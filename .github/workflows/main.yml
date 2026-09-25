@@ -25,10 +25,10 @@ jobs:
       nonprod: ${{ steps.mudancas.outputs.nonprod }}
       prod: ${{ steps.mudancas.outputs.prod }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -66,10 +66,10 @@ jobs:
       FIREBASE_SA_KEY_NONPROD: ${{ secrets.FIREBASE_SA_KEY_NONPROD }}
       SOURCE: ${{ needs.reconferir.outputs.source }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -86,10 +86,10 @@ jobs:
     if: needs.reconferir.outputs.prod == 'true' && startsWith(needs.reconferir.outputs.source, 'release/')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -107,7 +107,7 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - run: node scripts/check-approvals.js
@@ -122,10 +122,10 @@ jobs:
       FIREBASE_PROJECT_PROD: ${{ vars.FIREBASE_PROJECT_PROD }}
       SOURCE: ${{ needs.reconferir.outputs.source }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
