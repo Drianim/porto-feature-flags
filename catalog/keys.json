@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 3,
+  "total": 4,
   "keys": [
     {
       "key": "ft_teste_01_ambas",
@@ -65,6 +65,33 @@
           "default": "false",
           "android": {
             "value": "true"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_teste_04_ambas_25",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ambas",
+      "minVersion": "2.61.0",
+      "team": "squad-poc",
+      "description": "Teste 04: toggle em iOS e Android em 25% (primeiro PR no GitHub)",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true",
+            "rolloutPercent": 25
+          },
+          "android": {
+            "value": "true",
+            "rolloutPercent": 25
           }
         },
         "prod": {
