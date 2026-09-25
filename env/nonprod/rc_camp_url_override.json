@@ -1,8 +1,0 @@
-{
-  "nonprod": {
-    "default": "https://exemplo.com/default",
-    "ios": {
-      "value": "https://exemplo.com/ios"
-    }
-  }
-}
