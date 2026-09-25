@@ -1,0 +1,8 @@
+{
+  "key": "rc_camp_url_override",
+  "description": "Campanha: rc_ com override por plataforma",
+  "team": "squad-poc",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": "2.61.0"
+}

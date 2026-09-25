@@ -1,0 +1,11 @@
+{
+  "key": "ft_camp_minver_plataforma",
+  "description": "Campanha: minVersion por plataforma (iOS e Android diferentes)",
+  "team": "squad-poc",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": {
+    "ios": "2.61.0",
+    "android": "2.63.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "key": "ft_camp_toggle_ios_50",
+  "description": "Campanha: toggle só no iOS, rollout 50%",
+  "team": "squad-poc",
+  "criticality": "baixa",
+  "platforms": "ios",
+  "minVersion": "2.61.0"
+}
