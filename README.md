@@ -1,35 +1,8 @@
 # porto-feature-flags
 
-Repositório que governa as **Feature Flags (FFs) do app** no **Firebase Remote Config**. Toda mudança de FF passa por
-PR, validação automática, aprovação humana e deploy por pipeline (GitHub Actions). Ninguém edita o console do Firebase
-à mão: o repositório é a fonte única de verdade.
-
-> **Estado: PoC.** Só o ambiente **NÃO PROD** está ativo (projeto Firebase de teste `cursoapp-ac8e4`). PROD está
-> implementado e coberto por testes, mas só entra depois de existir o projeto de PROD.
->
-> **Repositório público** no GitHub (`Drianim/porto-feature-flags`). Segredos ficam só em secrets do GitHub; o
-> histórico foi auditado antes da migração (spec 0010). O histórico anterior veio do Bitbucket (`Drianim/porto-feature-flags`,
-> arquivado).
-
 **Para quem é este README:** quem vai usar o repositório (subir uma FF) e quem vai **evoluir os scripts** (inclusive
 trabalhando com um Claude Code). Comece por *Em uma tela* e vá ao que precisar. Para uma visão visual do processo,
 veja o [deck de apresentação](docs/processo-de-deploy-de-feature-flags.html).
-
-## Sumário
-
-1. Em uma tela ([deck de apresentação](docs/processo-de-deploy-de-feature-flags.html))
-2. Arquitetura
-3. Modelo de uma FF
-4. Processo: como uma FF chega ao Firebase
-5. Pipelines (GitHub Actions)
-6. Proteções
-7. PROD, RM e criticidade
-8. Configuração no GitHub (uma vez)
-9. Trabalhando com o Claude Code e o SDD
-10. Testes e convenções
-11. Decisões, limites e armadilhas
-
----
 
 ## Em uma tela
 
@@ -55,17 +28,6 @@ veja o [deck de apresentação](docs/processo-de-deploy-de-feature-flags.html).
 | levar para **PROD** | `release/*` | PROD (por horário, em estágios) | PROD |
 | mudar **script, pipeline, docs** | `chore/*` (com **spec**; só admin) | nenhum (não publica) | SDD |
 | desfazer um merge | `revert/*` (só admin) | nenhum (a `main` volta) | Proteções |
-
-## Arquitetura
-
-Quatro camadas, cada uma com uma responsabilidade:
-
-| Camada | Onde | Papel |
-|---|---|---|
-| **Dados** | `flags/`, `env/nonprod/`, `env/prod/`, `rm/`, `catalog/` | O que as FFs são e valem em cada ambiente |
-| **Lógica** | `scripts/lib/` | Regras puras e testadas: modelo da FF, montagem do Remote Config, escopo, nome único, aprovação, rollout |
-| **CLIs** | `scripts/*.js`, `scripts/ci/*` | Comandos finos que leem argumentos, chamam a lógica, imprimem e saem com código |
-| **Orquestração** | `.github/workflows/`, `.githooks/` | Só encadeia os comandos; nenhuma regra mora aqui |
 
 ### Mapa de pastas e arquivos
 
