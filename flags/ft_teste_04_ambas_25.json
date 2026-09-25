@@ -1,8 +1,0 @@
-{
-  "key": "ft_teste_04_ambas_25",
-  "description": "Teste 04: toggle em iOS e Android em 25% (primeiro PR no GitHub)",
-  "team": "squad-poc",
-  "criticality": "baixa",
-  "platforms": "ambas",
-  "minVersion": "2.61.0"
-}
