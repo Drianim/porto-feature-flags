@@ -24,6 +24,17 @@ async function perguntaObrigatoria(rl, texto) {
   return r;
 }
 
+// Mostra as equipes numeradas e só aceita um número da lista; número inválido repete a lista.
+async function perguntaEquipe(rl, equipes) {
+  for (;;) {
+    equipes.forEach((e, i) => console.log(`${i + 1} - ${e}`));
+    const r = await pergunta(rl, 'Escolha o número da equipe: ');
+    const n = Number(r);
+    if (Number.isInteger(n) && n >= 1 && n <= equipes.length) return equipes[n - 1];
+    console.log(`✗ "${r}" não é um número válido (1 a ${equipes.length})`);
+  }
+}
+
 function corpoTemplateFeature({ key, team, criticality, platforms, minVersion, group, value }) {
   const linhas = [
     '## Tipo do PR',
@@ -45,7 +56,7 @@ async function criarFF(rl) {
   const equipes = loadTeams();
   const key = await perguntaObrigatoria(rl, 'Chave da FF (ft_ toggle ou rc_ config): ');
   if (!KEY_RE.test(key)) { console.log(`✗ chave "${key}" inválida: precisa começar com ft_ ou rc_`); return; }
-  const team = await perguntaObrigatoria(rl, `Equipe dona (${equipes.join(', ')}): `);
+  const team = await perguntaEquipe(rl, equipes);
   const criticality = await perguntaObrigatoria(rl, 'Criticidade (baixa|media|critica): ');
   const description = await perguntaObrigatoria(rl, 'Descrição: ');
   const platforms = await perguntaObrigatoria(rl, 'Plataformas (android|ios|ambas): ');
