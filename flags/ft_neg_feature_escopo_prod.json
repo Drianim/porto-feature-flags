@@ -1,0 +1,8 @@
+{
+  "key": "ft_neg_feature_escopo_prod",
+  "description": "Negativo: feature/* tocando env/prod (deve reprovar em Escopo da branch)",
+  "team": "squad-poc",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": "2.61.0"
+}

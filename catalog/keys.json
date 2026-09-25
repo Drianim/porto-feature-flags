@@ -1,5 +1,25 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 0,
-  "keys": []
+  "total": 1,
+  "keys": [
+    {
+      "key": "ft_neg_feature_escopo_prod",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ambas",
+      "minVersion": "2.61.0",
+      "team": "squad-poc",
+      "description": "Negativo: feature/* tocando env/prod (deve reprovar em Escopo da branch)",
+      "environments": {
+        "nonprod": {
+          "default": "false"
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    }
+  ]
 }
