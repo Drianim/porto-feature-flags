@@ -1,8 +1,0 @@
-{
-  "key": "ft_teste_02_ios_50",
-  "description": "Teste 02: toggle só no iOS em 50%",
-  "team": "squad-poc",
-  "criticality": "baixa",
-  "platforms": "ios",
-  "minVersion": "2.61.0"
-}

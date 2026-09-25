@@ -1,8 +1,0 @@
-{
-  "key": "ft_teste_03_android",
-  "description": "Teste 03: toggle só no Android",
-  "team": "squad-poc",
-  "criticality": "baixa",
-  "platforms": "android",
-  "minVersion": "2.61.0"
-}
