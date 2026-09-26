@@ -123,6 +123,16 @@ async function criarFF(rl) {
   const criado = sh('node', args, { stdio: 'inherit' });
   if (criado.status !== 0) { console.log('\n✗ new-flag.js recusou os dados acima; corrija e rode "npm run flags" de novo.'); return; }
 
+  const catalogo = sh('node', ['scripts/catalog.js']);
+  if (catalogo.status !== 0) { console.log(catalogo.stderr || catalogo.stdout); return; }
+  console.log(catalogo.stdout.trim());
+  const catalogFile = `catalog/${team}/keys.json`;
+  const add = sh('git', ['add', `flags/${key}.json`, `env/nonprod/${key}.json`, catalogFile]);
+  if (add.status !== 0) { console.log(add.stderr || add.stdout); return; }
+  const commit = sh('git', ['commit', '-q', '-m', `feat: cria FF ${key}`]);
+  if (commit.status !== 0) { console.log(commit.stderr || commit.stdout); return; }
+  console.log(`✓ commit criado (feat: cria FF ${key})`);
+
   const enviar = await pergunta(rl, '\nEnviar (git push) e abrir o PR agora? (s/N) ');
   if (!/^s(im)?$/i.test(enviar)) {
     console.log(`Branch pronta localmente. Para enviar depois: git push -u origin ${branch}`);

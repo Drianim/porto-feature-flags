@@ -16,8 +16,14 @@ function menu(respostas, { teams = TEAMS_UMA, key = 'ft_menu_teste' } = {}) {
   fs.cpSync(path.join(repoRoot, 'config'), path.join(dir, 'config'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'config/teams.json'), JSON.stringify(teams));
   fs.mkdirSync(path.join(dir, 'flags'), { recursive: true });
+  const remoteDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fm-remote-'));
+  spawnSync('git', ['init', '-q', '--bare'], { cwd: remoteDir });
   spawnSync('git', ['init', '-q'], { cwd: dir });
-  spawnSync('git', ['-c', 'user.email=t@t.com', '-c', 'user.name=t', 'commit', '--allow-empty', '-q', '-m', 'init'], { cwd: dir });
+  spawnSync('git', ['config', 'user.email', 't@t.com'], { cwd: dir });
+  spawnSync('git', ['config', 'user.name', 't'], { cwd: dir });
+  spawnSync('git', ['remote', 'add', 'origin', remoteDir], { cwd: dir });
+  spawnSync('git', ['commit', '--allow-empty', '-q', '-m', 'init'], { cwd: dir });
+  spawnSync('git', ['push', '-q', 'origin', 'HEAD:main'], { cwd: dir });
   const r = spawnSync('node', ['scripts/flags-menu.js'], { cwd: dir, encoding: 'utf8', input: respostas.join('\n') + '\n' });
   const file = path.join(dir, `flags/${key}.json`);
   const flag = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
@@ -25,8 +31,35 @@ function menu(respostas, { teams = TEAMS_UMA, key = 'ft_menu_teste' } = {}) {
   const env = fs.existsSync(envPath) ? JSON.parse(fs.readFileSync(envPath, 'utf8')) : null;
   const branchName = `feature/${key.replace(/_/g, '-')}`;
   const branchCriada = spawnSync('git', ['rev-parse', '--verify', '--quiet', branchName], { cwd: dir }).status === 0;
+  const commitFiles = spawnSync('git', ['show', '--name-only', '--format=', 'HEAD'], { cwd: dir, encoding: 'utf8' }).stdout.trim().split('\n').filter(Boolean);
+  const catalogDir = path.join(dir, 'catalog');
+  const catalogs = {};
+  if (fs.existsSync(catalogDir)) {
+    for (const t of fs.readdirSync(catalogDir)) catalogs[t] = JSON.parse(fs.readFileSync(path.join(catalogDir, t, 'keys.json'), 'utf8'));
+  }
   fs.rmSync(dir, { recursive: true, force: true });
-  return { code: r.status, out: r.stdout + r.stderr, flag, env, branchCriada };
+  fs.rmSync(remoteDir, { recursive: true, force: true });
+  return { code: r.status, out: r.stdout + r.stderr, flag, env, branchCriada, commitFiles, catalogs };
+}
+
+// Repositório sem identidade de git configurada (local ou global) para provar que o menu para e mostra o erro
+// quando o commit automático falha, em vez de seguir perguntando sobre enviar.
+function menuSemIdentidade(respostas, { teams = TEAMS_UMA } = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fm-noid-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'fm-home-'));
+  fs.cpSync(path.join(repoRoot, 'scripts'), path.join(dir, 'scripts'), { recursive: true });
+  fs.cpSync(path.join(repoRoot, 'config'), path.join(dir, 'config'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'config/teams.json'), JSON.stringify(teams));
+  fs.mkdirSync(path.join(dir, 'flags'), { recursive: true });
+  const env = { ...process.env, HOME: home, XDG_CONFIG_HOME: path.join(home, '.config') };
+  delete env.GIT_AUTHOR_NAME; delete env.GIT_AUTHOR_EMAIL; delete env.GIT_COMMITTER_NAME; delete env.GIT_COMMITTER_EMAIL;
+  spawnSync('git', ['init', '-q'], { cwd: dir, env });
+  spawnSync('git', ['-c', 'user.email=t@t.com', '-c', 'user.name=t', 'commit', '--allow-empty', '-q', '-m', 'init'], { cwd: dir, env });
+  spawnSync('git', ['config', 'user.useConfigOnly', 'true'], { cwd: dir, env });
+  const r = spawnSync('node', ['scripts/flags-menu.js'], { cwd: dir, encoding: 'utf8', input: respostas.join('\n') + '\n', env });
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.rmSync(home, { recursive: true, force: true });
+  return { code: r.status, out: r.stdout + r.stderr };
 }
 
 test('opção 1: pergunta a equipe como lista numerada e cria a FF, a branch feature/*, e sem "s" não empurra', () => {
@@ -38,6 +71,26 @@ test('opção 1: pergunta a equipe como lista numerada e cria a FF, a branch fea
   assert.match(r.out, /1 - squad-b/);
   assert.match(r.out, /Branch pronta localmente/);
   assert.doesNotMatch(r.out, /Abra o PR/);
+});
+
+test('CA-4: mesmo respondendo "N" ao final, o catálogo já foi gerado e committado (só o push é que não roda)', () => {
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
+  assert.strictEqual(r.code, 0, r.out);
+  assert.deepStrictEqual(r.commitFiles.sort(), ['catalog/squad-b/keys.json', 'env/nonprod/ft_menu_teste.json', 'flags/ft_menu_teste.json']);
+  assert.strictEqual(r.catalogs['squad-b'].keys[0].key, 'ft_menu_teste');
+});
+
+test('CA-1/CA-2: com resposta "s", o commit levado já existe antes do push e o catálogo bate com o gerado', () => {
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 's']);
+  assert.strictEqual(r.code, 0, r.out);
+  assert.deepStrictEqual(r.commitFiles.sort(), ['catalog/squad-b/keys.json', 'env/nonprod/ft_menu_teste.json', 'flags/ft_menu_teste.json']);
+  assert.strictEqual(r.catalogs['squad-b'].total, 1);
+});
+
+test('CA-5: sem identidade de git configurada, o commit falha, o menu mostra o erro e não pergunta sobre enviar', () => {
+  const r = menuSemIdentidade(['1', 'ft_menu_teste', '1', 'baixa', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '']);
+  assert.match(r.out, /Please tell me who you are|no email was given/);
+  assert.doesNotMatch(r.out, /Enviar \(git push\)/);
 });
 
 test('opção 1: com mais de uma equipe cadastrada, o número escolhe a equipe certa', () => {
