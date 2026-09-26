@@ -157,9 +157,10 @@ No GitHub (botão de branches, *View all branches → New branch*, ou `git check
 ### Comandos de FF
 
 `npm run flags` (ou `npm run flags:help`, sinônimo do mesmo comando) abre um menu interativo (1 - Criar FF nova,
-2 - Alterar FF existente, 3 - Remover FF): a opção 1 pergunta os dados, cria a branch `feature/*`, roda `new:flag`
-e, no final, pergunta se já pode enviar (`git push`) e dá o link do PR com a descrição já preenchida; as opções 2
-e 3 avisam que ainda não estão implementadas (ficam para uma spec futura).
+2 - Alterar FF existente, 3 - Remover FF): a opção 1 pergunta os dados, cria a branch `feature/*`, roda `new:flag`,
+regenera `catalog/<equipe>/keys.json` e já deixa tudo commitado na branch; no final, pergunta se já pode enviar
+(`git push`) e dá o link do PR com a descrição já preenchida; as opções 2 e 3 avisam que ainda não estão
+implementadas (ficam para uma spec futura).
 
 ### Criar uma FF (`feature/*`)
 
