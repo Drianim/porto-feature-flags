@@ -37,7 +37,7 @@ veja o [deck de apresentação](docs/processo-de-deploy-de-feature-flags.html).
 | `env/nonprod/<key>.json` | Valores em NÃO PROD: `{"nonprod": {default, ios, android}}` |
 | `env/prod/<key>.json` | Valores em PROD: `{"prod": {...}}` |
 | `rm/RM-*.json` | Arquivo de RM de PROD: flags, criticidade, rollback, data/hora, plano de rollout, aprovações |
-| `catalog/keys.json` | Catálogo gerado de todas as chaves (`npm run catalog`); a pipeline falha se estiver desatualizado |
+| `catalog/<equipe>/keys.json` | Catálogo gerado das chaves da equipe (`npm run catalog`); um arquivo por equipe, para PRs de equipes diferentes nunca disputarem o mesmo arquivo; a pipeline falha se algum estiver desatualizado |
 | `config/environments.json` | Projeto e variável de credencial por ambiente; PROD é *time-gated* |
 | `config/teams.json` | Equipes válidas (`teams`), os e-mails dos **membros** de cada uma e a **equipe de plataforma** (`platform`) |
 | `config/approvers.json` | `adminLogins` (logins do GitHub que abrem e mesclam `chore/*` e `revert/*`) e `platformLogins` (aprovadores de PROD) |
@@ -55,7 +55,7 @@ veja o [deck de apresentação](docs/processo-de-deploy-de-feature-flags.html).
 |---|---|
 | `new-flag.js`, `new-rm.js` | Geram a definição/valores de uma FF e o RM de PROD |
 | `validate.js` | Valida FFs, RMs e a configuração (`--prod` aplica as regras de PROD) |
-| `catalog.js` | Gera/confere `catalog/keys.json` (`--check`) |
+| `catalog.js` | Gera/confere um `catalog/<equipe>/keys.json` por equipe (`--check`); `--all` imprime o agregado no stdout, sem gravar |
 | `check-scope.js` | Cada tipo de branch só mexe nas suas pastas |
 | `check-new-flags.js` | Nome único: `feature` cria, `update` altera, `remove` apaga; consulta o Firebase |
 | `check-ownership.js` | **Permissão por equipe:** só a equipe dona da FF (ou a plataforma) a altera; transferir FF entre equipes é da plataforma |
@@ -135,10 +135,10 @@ Arquivo `{ "<nonprod|prod>": { ... } }`, uma chave de topo igual ao ambiente da 
 
 | Branch | Para quê | Pode alterar | Ao mergear em `main` |
 |---|---|---|---|
-| `feature/*` | criar FF **nova** | `flags/`, `env/nonprod/`, `catalog/` (não PROD) | NÃO PROD, depois da aprovação no ambiente |
-| `update/*` | alterar FF que **já existe** | `flags/`, `env/nonprod/`, `catalog/` (não PROD) | NÃO PROD, depois da aprovação no ambiente |
+| `feature/*` | criar FF **nova** | `flags/`, `env/nonprod/`, `catalog/<equipe>/` (não PROD) | NÃO PROD, depois da aprovação no ambiente |
+| `update/*` | alterar FF que **já existe** | `flags/`, `env/nonprod/`, `catalog/<equipe>/` (não PROD) | NÃO PROD, depois da aprovação no ambiente |
 | `remove/*` | **apagar** FF | só **apaga** arquivos de `flags/`, `env/*`, `rm/` (catálogo regenerado) | remove do Firebase, depois da aprovação |
-| `release/*` | levar para PROD | somente `env/prod/`, `rm/`, `catalog/` | PROD por horário do RM, depois da aprovação |
+| `release/*` | levar para PROD | somente `env/prod/`, `rm/`, `catalog/<equipe>/` | PROD por horário do RM, depois da aprovação |
 | `chore/*` | script, pipeline, docs | não restrito | **não publica**; só admin abre e mescla |
 | `revert/*` | desfazer um merge da `main` | só reverts de merge (`git revert -m 1`) | não publica; só admin abre e mescla |
 
@@ -395,7 +395,7 @@ pedir (está no `CLAUDE.md`); para FF use a skill `feature-flag` e os comandos `
   Por isso essas mudanças vão em `chore/*` (só admin abre) e passam por revisão; a reconferência na `main` é a segunda barreira.
 - **Nome do check na proteção:** a proteção exige **`Tudo verde`**; renomear esse job sem atualizar a proteção trava os merges.
 - **PR de fork não recebe secrets:** as checagens que consultam o Firebase falham; só PRs de branches do próprio repositório passam.
-- **`catalog/keys.json` desatualizado** quebra a pipeline; rode `npm run catalog`.
+- **`catalog/<equipe>/keys.json` desatualizado** quebra a pipeline; rode `npm run catalog`.
 - **Mudança de plataforma/versão mínima em FF existente** altera as condições publicadas: depois do merge, rode `sync-nonprod`.
 - A aprovação real dos dois aprovadores de PROD é a do PR no GitHub; o RM só registra presença e pessoas distintas.
 - Fora do escopo por ora: PROD ativo, versão máxima de FF, métricas de saúde no rollout, iOS em aparelho real (o teste

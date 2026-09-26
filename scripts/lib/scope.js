@@ -1,6 +1,6 @@
 // Escopo por tipo de branch:
 //   feature/* e update/* -> só ambientes NÃO produtivos (não podem tocar em env/prod/ nem rm/)
-//   release/* -> só PROD (pode tocar apenas em env/prod/, rm/ e catalog/)
+//   release/* -> só PROD (pode tocar apenas em env/prod/, rm/ e catalog/<equipe>/)
 //   remove/*  -> só APAGA FFs (ver checkScopeChanges)
 // Outros prefixos (chore/, hotfix/...) não são restringidos aqui e também não disparam deploy.
 const PROD_PATHS = ['env/prod/', 'rm/'];

@@ -5,7 +5,7 @@ const { parseNameStatus, classify, evaluate } = require('./new-flags');
 const diff = (s) => classify(parseNameStatus(s));
 
 test('flags/ adicionado é FF nova; env/nonprod junto não conta como alteração', () => {
-  const r = diff('A\tflags/ft_a.json\nA\tenv/nonprod/ft_a.json\nM\tcatalog/keys.json');
+  const r = diff('A\tflags/ft_a.json\nA\tenv/nonprod/ft_a.json\nM\tcatalog/home/keys.json');
   assert.deepStrictEqual(r, { newKeys: ['ft_a'], changedKeys: [], removedKeys: [] });
 });
 test('modificar flags/ ou env/nonprod de FF existente é alteração', () => {
@@ -46,7 +46,7 @@ test('update: alterar FF existente passa; criar FF nova é bloqueado', () => {
 });
 
 test('flags/ apagado é FF removida', () => {
-  const r = diff('D\tflags/ft_x.json\nD\tenv/nonprod/ft_x.json\nM\tcatalog/keys.json');
+  const r = diff('D\tflags/ft_x.json\nD\tenv/nonprod/ft_x.json\nM\tcatalog/home/keys.json');
   assert.deepStrictEqual(r, { newKeys: [], changedKeys: [], removedKeys: ['ft_x'] });
 });
 test('remove: só remoção passa; criar ou alterar é bloqueado', () => {

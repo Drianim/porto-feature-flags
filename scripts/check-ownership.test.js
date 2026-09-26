@@ -99,5 +99,5 @@ test('na main: vale o autor dos commits, não quem fez o merge', () => {
   assert.strictEqual(scenario('update/x', 'ana@x.com', editA, { merge: true }).ok, true);
 });
 test('mudança sem FF (catálogo, docs) passa para qualquer autor', () => {
-  assert.strictEqual(scenario('update/x', 'bia@x.com', ({ write }) => write('catalog/keys.json', '{}')).ok, true);
+  assert.strictEqual(scenario('update/x', 'bia@x.com', ({ write }) => write('catalog/home/keys.json', '{}')).ok, true);
 });
