@@ -17,10 +17,13 @@ function newFlag(args, branch = 'feature/nova') {
   spawnSync('git', ['-c', 'user.email=t@t.com', '-c', 'user.name=t', 'commit', '--allow-empty', '-q', '-m', 'init'], { cwd: dir });
   spawnSync('git', ['checkout', '-q', '-b', branch], { cwd: dir });
   const r = spawnSync('node', ['scripts/new-flag.js', ...args], { cwd: dir, encoding: 'utf8' });
-  const file = path.join(dir, 'flags/ft_novo.json');
+  const key = args[0];
+  const file = path.join(dir, `flags/${key}.json`);
   const flag = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
+  const envPath = path.join(dir, `env/nonprod/${key}.json`);
+  const env = fs.existsSync(envPath) ? JSON.parse(fs.readFileSync(envPath, 'utf8')) : null;
   fs.rmSync(dir, { recursive: true, force: true });
-  return { code: r.status, out: r.stdout + r.stderr, flag };
+  return { code: r.status, out: r.stdout + r.stderr, flag, env };
 }
 const ok = ['ft_novo', '--criticality', 'baixa', '--description', 'Teste', '--platforms', 'ambas', '--min-version', '2.61.0'];
 
@@ -55,5 +58,40 @@ test('branch update/* também é bloqueada (só feature/* cria FF)', () => {
   const r = newFlag([...ok, '--team', 'squad-b'], 'update/algo');
   assert.strictEqual(r.code, 1);
   assert.match(r.out, /branch "update\/algo" não é feature\/\*/);
+  assert.strictEqual(r.flag, null);
+});
+
+test('--ios true grava o bloco ios além do default', () => {
+  const r = newFlag([...ok, '--team', 'squad-b', '--ios', 'true']);
+  assert.strictEqual(r.code, 0, r.out);
+  assert.deepStrictEqual(r.env, { nonprod: { default: 'false', ios: { value: 'true' } } });
+});
+
+test('--ios true --android false grava os dois blocos', () => {
+  const r = newFlag([...ok, '--team', 'squad-b', '--ios', 'true', '--android', 'false']);
+  assert.strictEqual(r.code, 0, r.out);
+  assert.deepStrictEqual(r.env, { nonprod: { default: 'false', ios: { value: 'true' }, android: { value: 'false' } } });
+});
+
+test('--ios numa chave rc_ é erro', () => {
+  const rc = ['rc_novo', '--criticality', 'baixa', '--description', 'Teste', '--platforms', 'ambas', '--min-version', '2.61.0', '--value', 'x'];
+  const r = newFlag([...rc, '--team', 'squad-b', '--ios', 'true']);
+  assert.strictEqual(r.code, 1);
+  assert.match(r.out, /--ios\/--android só valem para chaves ft_ \(toggle\)/);
+  assert.strictEqual(r.flag, null);
+});
+
+test('--android informado com --platforms ios (fora da lista) é erro', () => {
+  const iosOnly = ['ft_novo', '--criticality', 'baixa', '--description', 'Teste', '--platforms', 'ios', '--min-version', '2.61.0'];
+  const r = newFlag([...iosOnly, '--team', 'squad-b', '--android', 'true']);
+  assert.strictEqual(r.code, 1);
+  assert.match(r.out, /--android informado, mas platforms é "ios"/);
+  assert.strictEqual(r.flag, null);
+});
+
+test('--ios com valor inválido é erro', () => {
+  const r = newFlag([...ok, '--team', 'squad-b', '--ios', 'talvez']);
+  assert.strictEqual(r.code, 1);
+  assert.match(r.out, /--ios "talvez" inválido: use "true" ou "false"/);
   assert.strictEqual(r.flag, null);
 });

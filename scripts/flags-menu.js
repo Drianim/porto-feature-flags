@@ -6,7 +6,7 @@
 const readline = require('readline');
 const { spawnSync } = require('child_process');
 const { root, loadTeams } = require('./lib/common');
-const { KEY_RE, kindOf } = require('./lib/flags');
+const { KEY_RE, kindOf, PLATFORM_CHOICES, platformsOf } = require('./lib/flags');
 const { prLink } = require('./lib/preflight');
 
 const NAO_IMPLEMENTADO = 'ainda não implementado';
@@ -35,6 +35,25 @@ async function perguntaEquipe(rl, equipes) {
   }
 }
 
+// Só aceita android|ios|ambas; qualquer outra resposta repete a pergunta.
+async function perguntaPlataformas(rl) {
+  for (;;) {
+    const r = await pergunta(rl, 'Plataformas (android|ios|ambas): ');
+    if (PLATFORM_CHOICES.includes(r)) return r;
+    console.log(`✗ "${r}" não é uma plataforma válida (use android, ios ou ambas)`);
+  }
+}
+
+// Só para ft_: pergunta "Ativar em <plataforma>? (s/N)" para cada plataforma da lista escolhida.
+async function perguntaValoresPorPlataforma(rl, platforms) {
+  const valores = {};
+  for (const p of platformsOf({ platforms })) {
+    const r = await pergunta(rl, `Ativar em ${p}? (s/N) `);
+    valores[p] = /^s(im)?$/i.test(r) ? 'true' : 'false';
+  }
+  return valores;
+}
+
 function corpoTemplateFeature({ key, team, criticality, platforms, minVersion, group, value }) {
   const linhas = [
     '## Tipo do PR',
@@ -59,7 +78,8 @@ async function criarFF(rl) {
   const team = await perguntaEquipe(rl, equipes);
   const criticality = await perguntaObrigatoria(rl, 'Criticidade (baixa|media|critica): ');
   const description = await perguntaObrigatoria(rl, 'Descrição: ');
-  const platforms = await perguntaObrigatoria(rl, 'Plataformas (android|ios|ambas): ');
+  const platforms = await perguntaPlataformas(rl);
+  const valoresPorPlataforma = kindOf(key) === 'toggle' ? await perguntaValoresPorPlataforma(rl, platforms) : {};
   const minVersion = await perguntaObrigatoria(rl, 'Versão do app para ativar (x.y.z): ');
   const group = await pergunta(rl, 'Grupo (opcional, Enter para pular): ');
   const value = kindOf(key) === 'config' ? await perguntaObrigatoria(rl, 'Valor padrão (rc_*): ') : undefined;
@@ -78,6 +98,8 @@ async function criarFF(rl) {
     '--platforms', platforms, '--min-version', minVersion,
     ...(group ? ['--group', group] : []),
     ...(value !== undefined ? ['--value', value] : []),
+    ...(valoresPorPlataforma.ios !== undefined ? ['--ios', valoresPorPlataforma.ios] : []),
+    ...(valoresPorPlataforma.android !== undefined ? ['--android', valoresPorPlataforma.android] : []),
   ];
   const criado = sh('node', args, { stdio: 'inherit' });
   if (criado.status !== 0) { console.log('\n✗ new-flag.js recusou os dados acima; corrija e rode "npm run flags" de novo.'); return; }
