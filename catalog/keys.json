@@ -10,7 +10,7 @@
       "criticality": "baixa",
       "platforms": "ambas",
       "minVersion": "2.61.0",
-      "team": "squad-poc",
+      "team": "home",
       "description": "teste v3",
       "environments": {
         "nonprod": {
@@ -32,7 +32,7 @@
         "ios": "2.60.0",
         "android": "2.61.0"
       },
-      "team": "squad-poc",
+      "team": "servicos",
       "description": "v8",
       "environments": {
         "nonprod": {
