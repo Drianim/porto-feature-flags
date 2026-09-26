@@ -1,0 +1,8 @@
+{
+  "key": "ft_v10",
+  "description": "aa",
+  "team": "plataforma",
+  "criticality": "baixa",
+  "platforms": "ios",
+  "minVersion": "2.10.0"
+}
