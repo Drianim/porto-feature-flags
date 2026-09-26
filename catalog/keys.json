@@ -32,7 +32,7 @@
         "ios": "2.60.0",
         "android": "2.61.0"
       },
-      "team": "servicos",
+      "team": "home",
       "description": "v8",
       "environments": {
         "nonprod": {
