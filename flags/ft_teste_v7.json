@@ -1,0 +1,11 @@
+{
+  "key": "ft_teste_v7",
+  "description": "teste v7",
+  "team": "home",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": {
+    "ios": "2.60.0",
+    "android": "2.61.0"
+  }
+}
