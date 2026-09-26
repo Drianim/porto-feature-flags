@@ -3,27 +3,18 @@
   "total": 1,
   "keys": [
     {
-      "key": "ft_teste_v7",
+      "key": "ft_teste_v3",
       "kind": "toggle",
       "group": null,
       "valueType": "BOOLEAN",
       "criticality": "baixa",
       "platforms": "ambas",
-      "minVersion": {
-        "ios": "2.60.0",
-        "android": "2.61.0"
-      },
-      "team": "home",
-      "description": "teste v7",
+      "minVersion": "2.61.0",
+      "team": "squad-poc",
+      "description": "teste v3",
       "environments": {
         "nonprod": {
-          "default": "false",
-          "ios": {
-            "value": "true"
-          },
-          "android": {
-            "value": "true"
-          }
+          "default": "false"
         },
         "prod": {
           "default": "false"
