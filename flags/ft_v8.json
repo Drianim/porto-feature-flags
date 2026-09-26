@@ -1,0 +1,11 @@
+{
+  "key": "ft_v8",
+  "description": "v8",
+  "team": "squad-poc",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": {
+    "ios": "2.60.0",
+    "android": "2.61.0"
+  }
+}
