@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Cria flags/<key>.json.
 // Cria a definição (flags/) e os ambientes não produtivos (env/nonprod/). PROD fica para a release/*.
-// Toda FF exige --platforms (android | ios | ambas) e --min-version (x.y.z: versão mínima do app com o código da FF).
+// Toda FF exige --platforms (android | ios | ambas) e a versão mínima do app com o código da FF: --min-version
+// (x.y.z, vale para as plataformas) ou, quando platforms é "ambas", --min-version-ios/--min-version-android (uma
+// para cada plataforma, sem misturar com --min-version).
 // Toggle: node scripts/new-flag.js ft_minha_flag --team <equipe> --criticality <nivel> --description "..." --platforms ambas --min-version 2.61.0 [--group "Vitrine Hub"]
 // Config: node scripts/new-flag.js rc_url_x --team <equipe> --criticality <nivel> --description "..." --platforms ios --min-version 2.61.0 --value "https://..."
 const fs = require('fs');
@@ -14,9 +16,25 @@ const { branchKind } = require('./lib/preflight');
 const a = parseArgs(process.argv.slice(2));
 const key = a._[0];
 if (a.owner !== undefined) { console.error('✗ --owner foi renomeado para --team (equipe dona da FF, da lista de config/teams.json)'); process.exit(1); }
-if (!key || !KEY_RE.test(key) || !a.team || !a.criticality || !a.description || !a.platforms || !a['min-version']) {
-  console.error('Uso: node scripts/new-flag.js <ft_|rc_chave> --team <equipe> --criticality <baixa|media|critica> --description "..." --platforms <android|ios|ambas> --min-version <x.y.z> [--group "Nome"] [--value "..." (rc_)]');
+const minVersionPorPlataforma = a['min-version-ios'] !== undefined || a['min-version-android'] !== undefined;
+if (!key || !KEY_RE.test(key) || !a.team || !a.criticality || !a.description || !a.platforms || !(a['min-version'] || minVersionPorPlataforma)) {
+  console.error('Uso: node scripts/new-flag.js <ft_|rc_chave> --team <equipe> --criticality <baixa|media|critica> --description "..." --platforms <android|ios|ambas> --min-version <x.y.z> (ou --min-version-ios/--min-version-android) [--group "Nome"] [--value "..." (rc_)]');
   process.exit(1);
+}
+let minVersion = a['min-version'];
+if (minVersionPorPlataforma) {
+  if (a['min-version']) { console.error('✗ não misture --min-version com --min-version-ios/--min-version-android'); process.exit(1); }
+  const wanted = platformsOf({ platforms: a.platforms });
+  for (const p of ['ios', 'android']) {
+    const flagArg = `min-version-${p}`;
+    if (a[flagArg] === undefined) continue;
+    if (!wanted.includes(p)) { console.error(`✗ --${flagArg} informado, mas platforms é "${a.platforms}": remova o argumento ou ajuste --platforms`); process.exit(1); }
+  }
+  for (const p of wanted) {
+    if (a[`min-version-${p}`] === undefined) { console.error(`✗ faltou --min-version-${p} (platforms "${a.platforms}" exige uma versão para cada plataforma)`); process.exit(1); }
+  }
+  minVersion = {};
+  for (const p of wanted) minVersion[p] = a[`min-version-${p}`];
 }
 const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: root, encoding: 'utf8' }).trim();
 if (branchKind(branch) !== 'feature') {
@@ -25,7 +43,7 @@ if (branchKind(branch) !== 'feature') {
 }
 const teamProblems = teamErrors({ team: a.team }, loadTeams());
 if (teamProblems.length) { teamProblems.forEach((m) => console.error(`✗ ${m}`)); process.exit(1); }
-const targetingProblems = targetingErrors({ platforms: a.platforms, minVersion: a['min-version'] });
+const targetingProblems = targetingErrors({ platforms: a.platforms, minVersion });
 if (targetingProblems.length) { targetingProblems.forEach((m) => console.error(`✗ ${m}`)); process.exit(1); }
 const toggle = kindOf(key) === 'toggle';
 if (!toggle && !a.value) { console.error('✗ chaves rc_ exigem --value'); process.exit(1); }
@@ -48,7 +66,7 @@ const flag = {
   team: a.team,
   criticality: a.criticality,
   platforms: a.platforms,
-  minVersion: a['min-version'],
+  minVersion,
 };
 const envFile = path.join(root, 'env', 'nonprod', `${key}.json`);
 fs.mkdirSync(path.dirname(envFile), { recursive: true });

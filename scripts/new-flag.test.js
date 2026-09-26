@@ -95,3 +95,33 @@ test('--ios com valor inválido é erro', () => {
   assert.match(r.out, /--ios "talvez" inválido: use "true" ou "false"/);
   assert.strictEqual(r.flag, null);
 });
+
+const semVersaoUnica = ['ft_novo', '--criticality', 'baixa', '--description', 'Teste', '--platforms', 'ambas'];
+
+test('--min-version-ios e --min-version-android (ambas) gravam minVersion como objeto', () => {
+  const r = newFlag([...semVersaoUnica, '--team', 'squad-b', '--min-version-ios', '2.61.0', '--min-version-android', '2.63.0']);
+  assert.strictEqual(r.code, 0, r.out);
+  assert.deepStrictEqual(r.flag.minVersion, { ios: '2.61.0', android: '2.63.0' });
+});
+
+test('--min-version junto com --min-version-ios é erro', () => {
+  const r = newFlag([...ok, '--team', 'squad-b', '--min-version-ios', '2.61.0']);
+  assert.strictEqual(r.code, 1);
+  assert.match(r.out, /não misture --min-version com --min-version-ios\/--min-version-android/);
+  assert.strictEqual(r.flag, null);
+});
+
+test('faltar --min-version-android quando platforms é ambas é erro', () => {
+  const r = newFlag([...semVersaoUnica, '--team', 'squad-b', '--min-version-ios', '2.61.0']);
+  assert.strictEqual(r.code, 1);
+  assert.match(r.out, /faltou --min-version-android/);
+  assert.strictEqual(r.flag, null);
+});
+
+test('--min-version-android com --platforms ios (fora da lista) é erro', () => {
+  const iosOnly = ['ft_novo', '--criticality', 'baixa', '--description', 'Teste', '--platforms', 'ios'];
+  const r = newFlag([...iosOnly, '--team', 'squad-b', '--min-version-ios', '2.61.0', '--min-version-android', '2.63.0']);
+  assert.strictEqual(r.code, 1);
+  assert.match(r.out, /--min-version-android informado, mas platforms é "ios"/);
+  assert.strictEqual(r.flag, null);
+});

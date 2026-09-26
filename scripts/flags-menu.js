@@ -6,7 +6,7 @@
 const readline = require('readline');
 const { spawnSync } = require('child_process');
 const { root, loadTeams } = require('./lib/common');
-const { KEY_RE, kindOf, PLATFORM_CHOICES, platformsOf } = require('./lib/flags');
+const { KEY_RE, kindOf, PLATFORM_CHOICES, platformsOf, VERSION_RE } = require('./lib/flags');
 const { prLink } = require('./lib/preflight');
 
 const NAO_IMPLEMENTADO = 'ainda não implementado';
@@ -54,6 +54,22 @@ async function perguntaValoresPorPlataforma(rl, platforms) {
   return valores;
 }
 
+// Uma plataforma só: pergunta única (sem mudar o texto de hoje). "ambas": pergunta a versão de cada
+// plataforma, validando x.y.z e repetindo até um valor válido.
+async function perguntaVersaoMinima(rl, platforms) {
+  const wanted = platformsOf({ platforms });
+  const versoes = {};
+  for (const p of wanted) {
+    const texto = wanted.length > 1 ? `Versão mínima do app para ${p} (x.y.z): ` : 'Versão do app para ativar (x.y.z): ';
+    for (;;) {
+      const r = await pergunta(rl, texto);
+      if (VERSION_RE.test(r)) { versoes[p] = r; break; }
+      console.log(`✗ "${r}" não é uma versão válida (use x.y.z, ex.: 2.61.0)`);
+    }
+  }
+  return versoes;
+}
+
 function corpoTemplateFeature({ key, team, criticality, platforms, minVersion, group, value }) {
   const linhas = [
     '## Tipo do PR',
@@ -64,7 +80,7 @@ function corpoTemplateFeature({ key, team, criticality, platforms, minVersion, g
     `- **Equipe dona:** ${team}`,
     `- **Criticidade:** ${criticality}`,
     `- **Plataformas:** ${platforms}`,
-    `- **Versão mínima do app:** \`${minVersion}\``,
+    `- **Versão mínima do app:** \`${typeof minVersion === 'string' ? minVersion : JSON.stringify(minVersion)}\``,
     `- **Valores por plataforma:** default \`${kindOf(key) === 'toggle' ? 'false' : value}\``,
     ...(group ? [`- **Grupo:** ${group}`] : []),
   ];
@@ -80,7 +96,7 @@ async function criarFF(rl) {
   const description = await perguntaObrigatoria(rl, 'Descrição: ');
   const platforms = await perguntaPlataformas(rl);
   const valoresPorPlataforma = kindOf(key) === 'toggle' ? await perguntaValoresPorPlataforma(rl, platforms) : {};
-  const minVersion = await perguntaObrigatoria(rl, 'Versão do app para ativar (x.y.z): ');
+  const versoesPorPlataforma = await perguntaVersaoMinima(rl, platforms);
   const group = await pergunta(rl, 'Grupo (opcional, Enter para pular): ');
   const value = kindOf(key) === 'config' ? await perguntaObrigatoria(rl, 'Valor padrão (rc_*): ') : undefined;
 
@@ -92,10 +108,13 @@ async function criarFF(rl) {
   if (checkout.status !== 0) { console.log(checkout.stderr || checkout.stdout); return; }
   console.log(`✓ branch ${branch} criada`);
 
+  const minVersionArgs = versoesPorPlataforma.ios !== undefined && versoesPorPlataforma.android !== undefined
+    ? ['--min-version-ios', versoesPorPlataforma.ios, '--min-version-android', versoesPorPlataforma.android]
+    : ['--min-version', versoesPorPlataforma.ios ?? versoesPorPlataforma.android];
   const args = [
     'scripts/new-flag.js', key,
     '--team', team, '--criticality', criticality, '--description', description,
-    '--platforms', platforms, '--min-version', minVersion,
+    '--platforms', platforms, ...minVersionArgs,
     ...(group ? ['--group', group] : []),
     ...(value !== undefined ? ['--value', value] : []),
     ...(valoresPorPlataforma.ios !== undefined ? ['--ios', valoresPorPlataforma.ios] : []),
@@ -113,6 +132,9 @@ async function criarFF(rl) {
   if (push.status !== 0) { console.log('✗ o push falhou.'); return; }
   const remote = sh('git', ['remote', 'get-url', 'origin']).stdout.trim();
   const link = prLink(remote, branch);
+  const minVersion = versoesPorPlataforma.ios !== undefined && versoesPorPlataforma.android !== undefined
+    ? versoesPorPlataforma
+    : (versoesPorPlataforma.ios ?? versoesPorPlataforma.android);
   const corpo = corpoTemplateFeature({ key, team, criticality, platforms, minVersion, group, value });
   if (link) console.log(`\nAbra o PR com o corpo já preenchido:\n${link}&body=${encodeURIComponent(corpo)}`);
   else console.log('\nBranch enviada. Abra o PR no GitHub.');
