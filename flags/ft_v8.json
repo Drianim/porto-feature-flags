@@ -1,7 +1,7 @@
 {
   "key": "ft_v8",
   "description": "v8",
-  "team": "squad-poc",
+  "team": "home",
   "criticality": "baixa",
   "platforms": "ambas",
   "minVersion": {
