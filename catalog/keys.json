@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 1,
+  "total": 2,
   "keys": [
     {
       "key": "ft_teste_v3",
@@ -15,6 +15,34 @@
       "environments": {
         "nonprod": {
           "default": "false"
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_v8",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ambas",
+      "minVersion": {
+        "ios": "2.60.0",
+        "android": "2.61.0"
+      },
+      "team": "squad-poc",
+      "description": "v8",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true"
+          },
+          "android": {
+            "value": "true"
+          }
         },
         "prod": {
           "default": "false"
