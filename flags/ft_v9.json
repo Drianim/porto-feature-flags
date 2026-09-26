@@ -1,0 +1,8 @@
+{
+  "key": "ft_v9",
+  "description": "v9 teste",
+  "team": "plataforma",
+  "criticality": "baixa",
+  "platforms": "android",
+  "minVersion": "2.62.0"
+}
