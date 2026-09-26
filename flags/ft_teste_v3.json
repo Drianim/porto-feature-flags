@@ -1,0 +1,8 @@
+{
+  "key": "ft_teste_v3",
+  "description": "teste v3",
+  "team": "squad-poc",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": "2.61.0"
+}
