@@ -56,7 +56,7 @@ Onde cada processo está e como acioná-lo (`README.md` traz o detalhe; a skill 
 npm test                 # todos os testes (node:test); inclui o formato das specs
 npm run validate         # FFs, RMs e catálogo em dia
 npm run specs            # formato das specs de docs/specs/
-npm run catalog          # regenera catalog/keys.json (rode ao mexer em flags/)
+npm run catalog          # regenera catalog/<equipe>/keys.json (rode ao mexer em flags/)
 npm run preflight        # as checagens do PR, antes de abrir o PR (npm run pr também empurra a branch)
 node scripts/deploy.js nonprod --dry-run   # o que seria publicado, sem publicar
 npm run status -- list                     # status das FFs (somente leitura; skill ff-status)
@@ -77,7 +77,7 @@ npm run status -- list                     # status das FFs (somente leitura; sk
 
 ## Arquitetura em uma tela
 
-- **Dados:** `flags/` (definição), `env/nonprod|prod/` (valores), `rm/` (RM de PROD), `catalog/keys.json` (gerado).
+- **Dados:** `flags/` (definição), `env/nonprod|prod/` (valores), `rm/` (RM de PROD), `catalog/<equipe>/keys.json` (gerado, um por equipe).
 - **Lógica pura:** `scripts/lib/` (flags, remote-config, escopo, nome único, aprovações, rollout, merger, specs) com
   testes `*.test.js` ao lado.
 - **CLIs finas:** `scripts/*.js` (validate, deploy, verify-sync, remove-flags, check-*, preflight, test-platforms).
@@ -99,6 +99,6 @@ npm run status -- list                     # status das FFs (somente leitura; sk
 - **A proteção da `main` exige o job `Tudo verde`:** renomear o job sem atualizar a proteção trava os merges.
 - **Merge só por merge commit** (squash e rebase desligados): a reconferência e a reversão usam o commit de merge e a
   mensagem `Merge pull request #N from <dono>/<branch>`.
-- `catalog/keys.json` desatualizado quebra a pipeline: rode `npm run catalog`.
+- `catalog/<equipe>/keys.json` desatualizado quebra a pipeline: rode `npm run catalog`.
 - No Bitbucket (histórico até a spec 0010) o merge check do plano **não bloqueava** o botão: os PRs #37, #39 e #47 entraram
   sem validação. Foi o motivo da migração para o GitHub.

@@ -70,7 +70,7 @@ test('equipe que não existe mais na config: só a plataforma altera', () => {
 test('chaves tocadas: flags/, env/ e as FFs de um RM; catálogo e outros arquivos não contam', () => {
   const ns = [
     { status: 'M', file: 'flags/ft_a.json' }, { status: 'A', file: 'env/nonprod/ft_b.json' }, { status: 'M', file: 'env/prod/ft_c.json' },
-    { status: 'M', file: 'catalog/keys.json' }, { status: 'M', file: 'README.md' }, { status: 'A', file: 'rm/RM-1.json' },
+    { status: 'M', file: 'catalog/home/keys.json' }, { status: 'M', file: 'README.md' }, { status: 'A', file: 'rm/RM-1.json' },
   ];
   assert.deepStrictEqual(changedKeys(ns, (f) => (f === 'rm/RM-1.json' ? ['ft_d', 'ft_a'] : [])), ['ft_a', 'ft_b', 'ft_c', 'ft_d']);
 });
