@@ -15,3 +15,17 @@ test('commit que não é revert de merge é recusado', () => {
 test('branch sem commits é recusada', () => {
   assert.match(revertOnlyProblems([])[0], /nenhum commit/);
 });
+
+test('revert de merge no formato do GitHub ("Merge pull request #N from ...") passa', () => {
+  assert.deepStrictEqual(revertOnlyProblems(['Revert "Merge pull request #20 from Drianim/feature/ft-teste-v7"']), []);
+  assert.deepStrictEqual(revertOnlyProblems([
+    'Revert "Merge pull request #20 from Drianim/feature/ft-teste-v7"',
+    'Revert "Merged in feature/x (pull request #37)"',
+  ]), []);
+});
+
+test('commit que não é revert de nenhum dos dois formatos continua recusado', () => {
+  const p = revertOnlyProblems(['Revert "Merge pull request #20 from Drianim/feature/ft-teste-v7"', 'feat: outra coisa']);
+  assert.strictEqual(p.length, 1);
+  assert.match(p[0], /"feat: outra coisa" não é um revert/);
+});
