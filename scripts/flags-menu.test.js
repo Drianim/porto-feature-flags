@@ -7,12 +7,14 @@ const path = require('node:path');
 
 const repoRoot = path.join(__dirname, '..');
 
+const TEAMS_UMA = { platform: ['p@x.com'], teams: { 'squad-b': { members: [] } } };
+
 // Repositório temporário (scripts + config), com git de verdade, para rodar o menu sem sujar o real nem empurrar nada.
-function menu(respostas) {
+function menu(respostas, teams = TEAMS_UMA) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fm-'));
   fs.cpSync(path.join(repoRoot, 'scripts'), path.join(dir, 'scripts'), { recursive: true });
   fs.cpSync(path.join(repoRoot, 'config'), path.join(dir, 'config'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'config/teams.json'), JSON.stringify({ platform: ['p@x.com'], teams: { 'squad-b': { members: [] } } }));
+  fs.writeFileSync(path.join(dir, 'config/teams.json'), JSON.stringify(teams));
   fs.mkdirSync(path.join(dir, 'flags'), { recursive: true });
   spawnSync('git', ['init', '-q'], { cwd: dir });
   spawnSync('git', ['-c', 'user.email=t@t.com', '-c', 'user.name=t', 'commit', '--allow-empty', '-q', '-m', 'init'], { cwd: dir });
@@ -24,21 +26,30 @@ function menu(respostas) {
   return { code: r.status, out: r.stdout + r.stderr, flag, branchCriada };
 }
 
-test('opção 1: cria a FF, cria a branch feature/*, e sem "s" não empurra', () => {
-  const r = menu(['1', 'ft_menu_teste', 'squad-b', 'baixa', 'Teste do menu', 'ambas', '2.61.0', '', 'N']);
+test('opção 1: pergunta a equipe como lista numerada e cria a FF, a branch feature/*, e sem "s" não empurra', () => {
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste do menu', 'ambas', '2.61.0', '', 'N']);
   assert.strictEqual(r.code, 0, r.out);
   assert.ok(r.branchCriada, 'branch feature/ft-menu-teste não foi criada');
   assert.ok(r.flag, 'flags/ft_menu_teste.json não foi criado');
   assert.strictEqual(r.flag.team, 'squad-b');
+  assert.match(r.out, /1 - squad-b/);
   assert.match(r.out, /Branch pronta localmente/);
   assert.doesNotMatch(r.out, /Abra o PR/);
 });
 
-test('opção 1: equipe inválida faz new-flag.js recusar; menu não pergunta sobre push', () => {
-  const r = menu(['1', 'ft_menu_teste', 'squad-fora', 'baixa', 'Teste', 'ambas', '2.61.0', '']);
-  assert.strictEqual(r.flag, null);
-  assert.match(r.out, /não está em config\/teams\.json/);
-  assert.doesNotMatch(r.out, /Enviar \(git push\)/);
+test('opção 1: com mais de uma equipe cadastrada, o número escolhe a equipe certa', () => {
+  const teams = { platform: ['p@x.com'], teams: { 'squad-a': { members: [] }, 'squad-b': { members: [] } } };
+  const r = menu(['1', 'ft_menu_teste', '2', 'baixa', 'Teste', 'ambas', '2.61.0', '', 'N'], teams);
+  assert.strictEqual(r.flag.team, 'squad-b');
+  assert.match(r.out, /1 - squad-a/);
+  assert.match(r.out, /2 - squad-b/);
+});
+
+test('opção 1: número de equipe inválido (fora do intervalo) repete a lista até um número válido', () => {
+  const r = menu(['1', 'ft_menu_teste', '9', '1', 'baixa', 'Teste', 'ambas', '2.61.0', '', 'N']);
+  assert.strictEqual(r.flag.team, 'squad-b');
+  const ocorrencias = (r.out.match(/Escolha o número da equipe/g) || []).length;
+  assert.strictEqual(ocorrencias, 2, r.out);
 });
 
 test('opção 2: mostra que update:flag ainda não está implementado', () => {
