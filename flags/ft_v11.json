@@ -1,0 +1,11 @@
+{
+  "key": "ft_v11",
+  "description": "v11",
+  "team": "plataforma",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": {
+    "ios": "2.11.0",
+    "android": "2.12.0"
+  }
+}
