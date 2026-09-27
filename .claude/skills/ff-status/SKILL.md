@@ -74,6 +74,7 @@ Aceite português e inglês.
 ## Como ler o status
 
 - **Estado por plataforma** vem do repositório, com as mesmas regras do deploy: `ligada N%`, `desligada`, `valor` (chaves `rc_`), `n/a` (a FF não existe naquela plataforma) ou `aguardando horário` (PROD antes do RM).
+- **Rollout automático em NÃO PROD (spec 0028/0029):** para uma FF `media`/`critica` já em rollout, `rollout X` mostra, por plataforma, o percentual atual e — quando ainda não chegou a 100% — "Próximo estágio: N% às <data/hora>" (calculado na hora a partir de `rolloutStartedAt`, sem estado gravado). No último estágio, mostra "Já no estágio final (100%)". Se `nonprod-scheduler.yml` falhar numa execução, o próprio workflow abre/atualiza uma GitHub Issue — não é algo que esta skill precisa checar, mas explica por que o percentual pode ficar parado até a próxima tentativa (15 min).
 - **Versão mínima:** abaixo dela a FF nunca ativa (toggle recebe `false`; `rc_` não é enviada). O detalhe mostra o que o app recebe **na versão mínima**, **logo abaixo** e **fora da plataforma**.
 - **Porcentagem:** o sorteio usa o nome da FF como semente; não dá para saber em qual grupo um usuário específico cai.
 - **Firebase (coluna/sincronia):** `✓ ok` = idêntico ao que a `main` manda publicar; `✗ diverge` = há diferença (o comando diz qual); `✗ ausente` = ainda não publicada; `✗ inválida` = FF sem plataforma/versão mínima. Divergência costuma ser um deploy que ainda não foi aprovado no ambiente `nonprod` ou que falhou: a correção é a pipeline `sync-nonprod`.

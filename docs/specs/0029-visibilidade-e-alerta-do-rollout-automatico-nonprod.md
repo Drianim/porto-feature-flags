@@ -1,7 +1,7 @@
 ---
 spec: 0029
 titulo: visibilidade do próximo estágio do rollout automático em NÃO PROD e alerta de falha no scheduler
-status: aprovada
+status: implementada
 criado: 2026-09-27
 atualizado: 2026-09-27
 ---
@@ -102,10 +102,16 @@ para quem lê fechar; ver Decisões).
       esse título, comenta nela em vez de abrir outra (sem duplicar). Evidência: `scripts/lib/workflows.test.js`
       ("CA-5: ...") mais `scripts/ci/alertar-falha-scheduler.js` com `scripts/ci/alertar-falha-scheduler.test.js`
       (4 casos: cria, comenta, ignora título diferente/PR, erro da API propaga).
-- [ ] CA-6: README (*Rollout automático em NÃO PROD por criticidade*), CLAUDE.md (*Mapa dos processos*) e a skill
+- [x] CA-6: README (*Rollout automático em NÃO PROD por criticidade*), CLAUDE.md (*Mapa dos processos*) e a skill
       `ff-status` documentam a visibilidade de próximo estágio; a skill/README do scheduler documenta o alerta de
       falha; `scripts/processos.test.js` continua verde (nenhum processo passa a faltar no README/mapa/skill).
-- [ ] CA-7: `npm test`, `npm run validate` e `npm run specs` passam.
+      Evidência: README.md (parágrafos "Visibilidade" e "Alerta de falha" na seção *Rollout automático em NÃO PROD
+      por criticidade*), CLAUDE.md (linha do Mapa dos processos estendida), `.claude/skills/ff-status/SKILL.md`
+      ("Como ler o status" com o novo item "Rollout automático em NÃO PROD"); `npm test` roda
+      `scripts/processos.test.js` sem falha.
+- [x] CA-7: `npm test`, `npm run validate` e `npm run specs` passam. Evidência: `npm test` → 323/323; `npm run
+      validate` → "7 flag(s) e 0 RM(s) válidos" + "catálogo em dia para 3 equipe(s)"; `npm run specs` → "29 spec(s)
+      no formato".
 
 ## Desenho
 
