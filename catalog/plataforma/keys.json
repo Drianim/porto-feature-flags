@@ -1,7 +1,34 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 4,
+  "total": 5,
   "keys": [
+    {
+      "key": "ft_teste_rollout_auto",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "critica",
+      "platforms": "ambas",
+      "minVersion": "2.61.0",
+      "team": "plataforma",
+      "description": "Teste do rollout automatico em nao prod (spec 0028)",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true",
+            "rolloutStartedAt": "2026-09-27T11:21:23.398Z"
+          },
+          "android": {
+            "value": "true",
+            "rolloutStartedAt": "2026-09-27T11:21:23.398Z"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
     {
       "key": "ft_v10",
       "kind": "toggle",
