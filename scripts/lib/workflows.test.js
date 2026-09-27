@@ -12,9 +12,20 @@ const text = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(d
 const runs = (job) => (job.steps || []).map((s) => s.run || '').join('\n');
 const on = (w) => w.on || w[true]; // js-yaml lê a chave "on" como true
 
-test('os sete workflows existem e o bitbucket-pipelines.yml saiu', () => {
-  assert.deepStrictEqual(files.sort(), ['main.yml', 'nonprod-scheduler.yml', 'plan-prod.yml', 'pr.yml', 'prod-scheduler.yml', 'sync-nonprod.yml', 'verify-nonprod.yml']);
+test('os oito workflows existem e o bitbucket-pipelines.yml saiu', () => {
+  assert.deepStrictEqual(files.sort(), ['main.yml', 'nonprod-scheduler.yml', 'plan-prod.yml', 'pr.yml', 'prod-scheduler.yml', 'sync-nonprod.yml', 'teste-cron.yml', 'verify-nonprod.yml']);
   assert.ok(!fs.existsSync(path.join(__dirname, '..', '..', 'bitbucket-pipelines.yml')));
+});
+
+test('teste-cron: só workflow_dispatch e schedule, não publica e não usa credencial do Firebase', () => {
+  const w = wf['teste-cron.yml'];
+  const spec = on(w);
+  assert.ok('workflow_dispatch' in spec, 'workflow_dispatch');
+  assert.ok(Array.isArray(spec.schedule) && spec.schedule.length === 1, 'schedule único');
+  const job = Object.values(w.jobs)[0];
+  assert.strictEqual(job.environment, undefined, 'sem environment: não publica');
+  assert.doesNotMatch(JSON.stringify(job.env || {}), /FIREBASE_SA_KEY/, 'não usa credencial do Firebase');
+  assert.doesNotMatch(runs(job), /deploy\.js|verify-sync\.js/, 'não publica nem verifica sincronia');
 });
 
 test('segurança: nenhum pull_request_target, permissões mínimas no topo, nada do PR interpolado em run', () => {

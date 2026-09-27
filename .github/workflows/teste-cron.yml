@@ -1,0 +1,35 @@
+name: teste-cron
+# Teste pontual: confirmar se o schedule do GitHub Actions dispara neste repositório no horário configurado
+# (11:30 de 27/set/2026, -03 = 14:30 UTC). Não publica nada; só registra o horário real de execução numa Issue,
+# para comparar com o horário esperado. Remover depois de servir ao propósito.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 14 27 9 *'
+
+permissions:
+  contents: read
+
+jobs:
+  registrar-horario:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Registrar horário real de disparo
+        uses: actions/github-script@v7
+        env:
+          EVENTO: ${{ github.event_name }}
+        with:
+          script: |
+            const agora = new Date().toISOString();
+            const esperado = '2026-09-27T14:30:00.000Z';
+            const corpo = `Disparo real: ${agora}\nEsperado (cron): ${esperado}\nEvento: ${process.env.EVENTO}`;
+            core.info(corpo);
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Teste: horário real do disparo do schedule (27/set 11:30)',
+              body: corpo,
+            });
