@@ -95,13 +95,13 @@ para quem lê fechar; ver Decisões).
       at } | null }` nos dados retornados (sem quebrar o formato hoje consumido por quem já lê `--json`, só
       acrescentando o campo). Evidência: `scripts/ff-status.test.js` ("CA-4: ...") — o campo já vinha propagado
       automaticamente por `flagRow`, sem precisar mexer em `ff-status.js`.
-- [ ] CA-5: `.github/workflows/nonprod-scheduler.yml`: se `node scripts/deploy.js nonprod` ou `node
+- [x] CA-5: `.github/workflows/nonprod-scheduler.yml`: se `node scripts/deploy.js nonprod` ou `node
       scripts/verify-sync.js nonprod` falhar, um passo seguinte (`if: failure()`) abre uma GitHub Issue com título
       fixo reconhecível (ex. `nonprod-scheduler: falha na publicação automática`) e corpo linkando o run
       (`$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID`); se já existir uma Issue aberta com
       esse título, comenta nela em vez de abrir outra (sem duplicar). Evidência: `scripts/lib/workflows.test.js`
-      (novo caso) mais um script testável (`scripts/ci/alertar-falha-scheduler.js` ou equivalente, com teste
-      unitário simulando a API do GitHub).
+      ("CA-5: ...") mais `scripts/ci/alertar-falha-scheduler.js` com `scripts/ci/alertar-falha-scheduler.test.js`
+      (4 casos: cria, comenta, ignora título diferente/PR, erro da API propaga).
 - [ ] CA-6: README (*Rollout automático em NÃO PROD por criticidade*), CLAUDE.md (*Mapa dos processos*) e a skill
       `ff-status` documentam a visibilidade de próximo estágio; a skill/README do scheduler documenta o alerta de
       falha; `scripts/processos.test.js` continua verde (nenhum processo passa a faltar no README/mapa/skill).
