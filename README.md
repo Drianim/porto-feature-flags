@@ -307,6 +307,27 @@ seguro. Toggles que liberam algo e todas as `rc_*` exigem RM em PROD; desligar u
 
 O avanço entre estágios é por **tempo**, não consulta métricas de saúde: monitore e faça rollback se preciso.
 
+## Rollout automático em NÃO PROD por criticidade
+
+NÃO PROD também segue estágios automáticos, sem depender de PROD ou de um RM — mais simples porque não passa por
+aprovação: quando `npm run new:flag`/`npm run flags` ativa (`--ios true`/`--android true`) uma plataforma de uma FF
+toggle (`ft_*`) com `criticality: "media"` ou `"critica"`, o override em `env/nonprod/<key>.json` ganha
+`rolloutStartedAt` (data/hora ISO 8601 de quando o rollout começou). A partir daí, o percentual servido para
+aquela plataforma sobe sozinho com o tempo, sem exigir um novo merge para cada estágio:
+
+| Criticidade | Estágios (60 min cada) |
+|---|---|
+| baixa | sem estágio: vai direto a 100% (ou o `rolloutPercent` do override), como sempre foi |
+| media | 25% → 100% |
+| critica | 5% → 25% → 50% → 100% |
+
+O workflow `.github/workflows/nonprod-scheduler.yml` roda `node scripts/deploy.js nonprod` a cada 15 minutos
+(cron, sem aprovação manual — não tem `environment: nonprod`, diferente do deploy do `main.yml`) para que o
+Firebase acompanhe a passagem do tempo entre um merge e o outro. O cálculo é o mesmo padrão de PROD: sem estado
+guardado, só a diferença entre `rolloutStartedAt` e o agora (`scripts/lib/rollout.js`,
+`nonprodEffectivePercent`) — rodar o deploy várias vezes é seguro. `rolloutStartedAt` só existe em `nonprod`
+(`npm run validate` reprova se aparecer em `env/prod/`).
+
 ### Referência de campos: `rm/RM-*.json`
 
 Veja `rm/TEMPLATE.json` para um exemplo completo.

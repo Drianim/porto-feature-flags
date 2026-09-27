@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { currentStage, effectivePercent, horarioPermitido } = require('./rollout');
+const { currentStage, effectivePercent, horarioPermitido, nonprodEffectivePercent } = require('./rollout');
 const { rules, isActive, kindOf, valueTypeOf } = require('./flags');
 
 const rm = {
@@ -46,6 +46,36 @@ test('horarioPermitido: media/critica só entre 22:00–06:00 (horário de Bras�
   assert.strictEqual(horarioPermitido('critica', '2026-10-01T05:59:00-03:00').ok, true);
   assert.strictEqual(horarioPermitido('media', '2026-10-01T06:00:00-03:00').ok, false);
   assert.strictEqual(horarioPermitido('critica', '2026-10-01T22:00:00-03:00').ok, true);
+});
+
+test('nonprodEffectivePercent: critica sobe 5 -> 25 -> 50 -> 100 a cada 60 min', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T15:00:00Z')), 5);
+  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T16:01:00Z')), 25);
+  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T17:01:00Z')), 50);
+  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T18:01:00Z')), 100);
+});
+test('nonprodEffectivePercent: media sobe 25 -> 100 em 60 min', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  assert.strictEqual(nonprodEffectivePercent('media', inicio, undefined, at('2026-10-01T15:00:00Z')), 25);
+  assert.strictEqual(nonprodEffectivePercent('media', inicio, undefined, at('2026-10-01T16:01:00Z')), 100);
+});
+test('nonprodEffectivePercent: baixa ignora rolloutStartedAt e serve o teto (ou 100) direto', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  assert.strictEqual(nonprodEffectivePercent('baixa', inicio, undefined, at('2026-10-01T15:00:00Z')), 100);
+  assert.strictEqual(nonprodEffectivePercent('baixa', inicio, 40, at('2026-10-01T15:00:00Z')), 40);
+});
+test('nonprodEffectivePercent: sem rolloutStartedAt, sem estágio, serve o teto (ou 100) direto', () => {
+  assert.strictEqual(nonprodEffectivePercent('critica', undefined, undefined, at('2026-10-01T15:00:00Z')), 100);
+  assert.strictEqual(nonprodEffectivePercent('critica', undefined, 30, at('2026-10-01T15:00:00Z')), 30);
+});
+test('nonprodEffectivePercent: antes de rolloutStartedAt é 0', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T14:00:00Z')), 0);
+});
+test('nonprodEffectivePercent: teto da flag limita o estágio', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  assert.strictEqual(nonprodEffectivePercent('critica', inicio, 3, at('2026-10-01T15:00:00Z')), 3);
 });
 
 test('prefixo define o tipo', () => {

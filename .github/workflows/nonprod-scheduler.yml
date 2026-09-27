@@ -1,0 +1,31 @@
+name: nonprod-scheduler
+# Avança os estágios do rollout automático de NÃO PROD (spec 0028, media/critica) conforme rolloutStartedAt
+# (idempotente, sem estado). Sem environment: nonprod de propósito -- publica sem aprovação manual a cada
+# execução, só assim o estágio avança sozinho entre um merge e o outro.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '3,18,33,48 * * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  rollout:
+    name: Deploy NÃO PROD (avanço de rollout automático)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SA_KEY_NONPROD: ${{ secrets.FIREBASE_SA_KEY_NONPROD }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: |
+          npm ci --no-audit --no-fund
+          node scripts/deploy.js nonprod
+          node scripts/verify-sync.js nonprod

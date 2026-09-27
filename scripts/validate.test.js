@@ -44,6 +44,30 @@ test('bloco de plataforma dentro do escopo da FF passa', () => {
   assert.strictEqual(validate({ platforms: 'ios', minVersion: '2.61.0' }, { nonprod: { default: 'false', ios: { value: 'true' } } }).ok, true);
 });
 
+test('CA-5: rolloutStartedAt inválido (não ISO 8601) em nonprod é reprovado', () => {
+  const r = validate({ platforms: 'ios', minVersion: '2.61.0' }, { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: 'não-é-data' } } });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /nonprod\.ios\.rolloutStartedAt.*ISO 8601/);
+});
+test('CA-5: rolloutStartedAt válido em nonprod passa', () => {
+  const r = validate({ platforms: 'ios', minVersion: '2.61.0' }, { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: '2026-10-01T12:00:00-03:00' } } });
+  assert.strictEqual(r.ok, true, r.out);
+});
+test('CA-5: rolloutStartedAt em prod é reprovado (campo só existe em nonprod)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'val-prodfield-'));
+  fs.cpSync(path.join(repoRoot, 'scripts'), path.join(dir, 'scripts'), { recursive: true });
+  fs.cpSync(path.join(repoRoot, 'config'), path.join(dir, 'config'), { recursive: true });
+  for (const d of ['flags', 'env/nonprod', 'env/prod', 'rm']) fs.mkdirSync(path.join(dir, d), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'config/teams.json'), JSON.stringify({ platform: ['p@x.com'], teams: { 'squad-poc': { members: [] } } }));
+  fs.writeFileSync(path.join(dir, 'flags/ft_v.json'), JSON.stringify({ key: 'ft_v', description: 'd', team: 'squad-poc', criticality: 'baixa', platforms: 'ios', minVersion: '2.61.0' }));
+  fs.writeFileSync(path.join(dir, 'env/nonprod/ft_v.json'), JSON.stringify({ nonprod: { default: 'false' } }));
+  fs.writeFileSync(path.join(dir, 'env/prod/ft_v.json'), JSON.stringify({ prod: { default: 'false', ios: { value: 'true', rolloutStartedAt: '2026-10-01T12:00:00-03:00' } } }));
+  const r = spawnSync('node', ['scripts/validate.js'], { cwd: dir, encoding: 'utf8' });
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.strictEqual(r.status, 1);
+  assert.match(r.stdout + r.stderr, /prod\.ios\.rolloutStartedAt.*só vale em nonprod/);
+});
+
 test('FF sem equipe é reprovada e a mensagem lista as equipes válidas', () => {
   const r = validate({ platforms: 'ambas', minVersion: '2.61.0', team: undefined });
   assert.strictEqual(r.ok, false);

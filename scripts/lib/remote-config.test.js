@@ -206,6 +206,39 @@ test('o que test-platforms espera (expectedAt) é exatamente o que as condiçõe
   assert.ok(checked > 100);
 });
 
+// ---- rollout automático em NÃO PROD por criticidade (spec 0028) ----
+test('CA-1: critica sobe 5 -> 25 -> 50 -> 100 a cada 60 min a partir de rolloutStartedAt', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  const f = [F({ criticality: 'critica', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: inicio } } } })];
+  const cond = (now) => build(f, [], 'nonprod', cfg, now).conditions.find((c) => c.name === 'ft_v_ios').expression;
+  assert.match(cond(new Date('2026-10-01T15:00:00Z')), /percent\('ft_v'\) <= 5$/);
+  assert.match(cond(new Date('2026-10-01T16:01:00Z')), /percent\('ft_v'\) <= 25$/);
+  assert.match(cond(new Date('2026-10-01T17:01:00Z')), /percent\('ft_v'\) <= 50$/);
+  assert.doesNotMatch(cond(new Date('2026-10-01T18:01:00Z')), /percent\(/);
+});
+test('CA-2: media sobe 25 -> 100 em 60 min a partir de rolloutStartedAt', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  const f = [F({ criticality: 'media', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: inicio } } } })];
+  const cond = (now) => build(f, [], 'nonprod', cfg, now).conditions.find((c) => c.name === 'ft_v_ios').expression;
+  assert.match(cond(new Date('2026-10-01T15:00:00Z')), /percent\('ft_v'\) <= 25$/);
+  assert.doesNotMatch(cond(new Date('2026-10-01T16:01:00Z')), /percent\(/);
+});
+test('CA-3: baixa sem rolloutStartedAt continua sem estágio, como hoje', () => {
+  const f = [F({ criticality: 'baixa', environments: { nonprod: { default: 'false', ios: { value: 'true' } } } })];
+  const cond = build(f, [], 'nonprod', cfg, new Date('2026-10-01T15:00:00Z')).conditions.find((c) => c.name === 'ft_v_ios');
+  assert.strictEqual(cond.expression, "device.os == 'ios' && app.version.>=(['2.61.0'])");
+});
+test('CA-4: rolloutStartedAt no futuro não ativa a plataforma ainda, mas não quebra as demais chaves', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  const f = [
+    F({ criticality: 'critica', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: inicio } } } }),
+    { key: 'rc_url', description: 'URL', team: 'squad-a', criticality: 'baixa', platforms: 'ambas', minVersion: '2.61.0', environments: { nonprod: { default: 'https://x' } } },
+  ];
+  const p = build(f, [], 'nonprod', cfg, new Date('2026-10-01T11:00:00Z'));
+  assert.strictEqual(p.conditions.find((c) => c.name === 'ft_v_ios'), undefined);
+  assert.ok(p.items.find((i) => i.key === 'rc_url'));
+});
+
 test('a descrição publicada leva a equipe como prefixo e o repositório não muda', () => {
   const p = plan();
   assert.strictEqual(p.items.find((i) => i.key === 'ft_a').param.description, '[squad-a] A');

@@ -48,12 +48,14 @@ if (targetingProblems.length) { targetingProblems.forEach((m) => console.error(`
 const toggle = kindOf(key) === 'toggle';
 if (!toggle && !a.value) { console.error('✗ chaves rc_ exigem --value'); process.exit(1); }
 if (!toggle && (a.ios !== undefined || a.android !== undefined)) { console.error('✗ --ios/--android só valem para chaves ft_ (toggle)'); process.exit(1); }
+const estagiada = a.criticality === 'media' || a.criticality === 'critica';
+const rolloutStartedAt = a.now || new Date().toISOString();
 const platformValues = {};
 for (const p of ['ios', 'android']) {
   if (a[p] === undefined) continue;
   if (a[p] !== 'true' && a[p] !== 'false') { console.error(`✗ --${p} "${a[p]}" inválido: use "true" ou "false"`); process.exit(1); }
   if (!platformsOf({ platforms: a.platforms }).includes(p)) { console.error(`✗ --${p} informado, mas platforms é "${a.platforms}": remova o argumento ou ajuste --platforms`); process.exit(1); }
-  platformValues[p] = { value: a[p] };
+  platformValues[p] = { value: a[p], ...(estagiada && a[p] === 'true' ? { rolloutStartedAt } : {}) };
 }
 const file = path.join(root, 'flags', `${key}.json`);
 if (fs.existsSync(file)) { console.error(`✗ flags/${key}.json já existe`); process.exit(1); }
