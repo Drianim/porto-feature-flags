@@ -35,6 +35,25 @@ async function perguntaEquipe(rl, equipes) {
   }
 }
 
+const CRITICALITY_CHOICES = ['baixa', 'media', 'critica'];
+const EXPLICACAO_CRITICIDADE = {
+  baixa: 'baixa: sem estágio, vai direto a 100% (como hoje).',
+  media: 'media: rollout automático em estágios — 25% por 60 min, depois 100%.',
+  critica: 'critica: rollout automático em estágios — 5% → 25% → 50% → 100%, 60 min por estágio.',
+};
+
+// Só aceita baixa|media|critica; explica o processo de rollout e pede confirmação antes de seguir
+// (qualquer resposta que não seja "s"/"sim" volta a perguntar a criticidade, permitindo trocar).
+async function perguntaCriticidade(rl) {
+  for (;;) {
+    const r = await pergunta(rl, 'Criticidade (baixa|media|critica): ');
+    if (!CRITICALITY_CHOICES.includes(r)) { console.log(`✗ "${r}" não é uma criticidade válida (use baixa, media ou critica)`); continue; }
+    console.log(EXPLICACAO_CRITICIDADE[r]);
+    const confirma = await pergunta(rl, 'Confirmar essa criticidade? (s/N) ');
+    if (/^s(im)?$/i.test(confirma)) return r;
+  }
+}
+
 // Só aceita android|ios|ambas; qualquer outra resposta repete a pergunta.
 async function perguntaPlataformas(rl) {
   for (;;) {
@@ -92,7 +111,7 @@ async function criarFF(rl) {
   const key = await perguntaObrigatoria(rl, 'Chave da FF (ft_ toggle ou rc_ config): ');
   if (!KEY_RE.test(key)) { console.log(`✗ chave "${key}" inválida: precisa começar com ft_ ou rc_`); return; }
   const team = await perguntaEquipe(rl, equipes);
-  const criticality = await perguntaObrigatoria(rl, 'Criticidade (baixa|media|critica): ');
+  const criticality = await perguntaCriticidade(rl);
   const description = await perguntaObrigatoria(rl, 'Descrição: ');
   const platforms = await perguntaPlataformas(rl);
   const valoresPorPlataforma = kindOf(key) === 'toggle' ? await perguntaValoresPorPlataforma(rl, platforms) : {};

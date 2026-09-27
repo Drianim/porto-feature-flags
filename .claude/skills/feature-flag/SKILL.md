@@ -80,7 +80,8 @@ PROD só muda numa `release/*` (`env/prod/<chave>.json` e `rm/`), por horário e
 
 ## Criticidade, rollout e rollback
 
-- `rolloutPlan` por criticidade: baixa 100%; media 25% (60 min) → 100%; crítica 5% → 25% → 50% → 100% (mais de um estágio é obrigatório). O avanço é por tempo, não por métricas de saúde. `prodSchedule` de `media`/`critica` só é aceito entre 22:00–06:00 (horário de Brasília); `baixa` não tem restrição de horário.
+- `rolloutPlan` (PROD) por criticidade: baixa 100%; media 25% (60 min) → 100%; crítica 5% → 25% → 50% → 100% (mais de um estágio é obrigatório). O avanço é por tempo, não por métricas de saúde. `prodSchedule` de `media`/`critica` só é aceito entre 22:00–06:00 (horário de Brasília); `baixa` não tem restrição de horário.
+- **NÃO PROD também segue estágios automáticos:** ao ativar (`--ios true`/`--android true`) uma plataforma de FF `media`/`critica`, `env/nonprod/<key>.json` ganha `rolloutStartedAt` (ISO 8601) e o percentual sobe sozinho — media 25% (60 min) → 100%; crítica 5% → 25% → 50% → 100% (60 min por estágio) — sem exigir novo merge. `nonprod-scheduler.yml` publica a cada 15 min, sem aprovação manual. `baixa` continua direto a 100%. `rolloutStartedAt` só vale em `nonprod`.
 - **Rollback:** volte o valor da FF para desligada (ou reduza `rolloutPercent`) numa `update/*`; o app volta ao caminho antigo sem publicar app novo. Se a chave sumir do Firebase, vale o padrão do app (comportamento antigo).
 
 ## Equipe e permissão

@@ -1,6 +1,6 @@
 // Lógica compartilhada entre deploy.js e verify-sync.js: monta o que deve existir no Remote Config,
 // aplica no template e compara com o que existe de fato no Firebase.
-const { currentStage } = require('./rollout');
+const { currentStage, nonprodEffectivePercent } = require('./rollout');
 const { kindOf, rules, isActive, valueTypeOf, platformsOf, minVersionFor, targetingErrors } = require('./flags');
 
 // Condição de versão mínima. O Firebase RECUSA a forma app.version >= '2.61.0' no validateTemplate
@@ -45,6 +45,7 @@ function build(flags, rms, env, cfgEnv, now = new Date()) {
       if (o) {
         let pct = o.rolloutPercent ?? 100;
         if (toggle && stagePercent !== undefined) pct = Math.min(pct, stagePercent);
+        else if (toggle && o.rolloutStartedAt) pct = nonprodEffectivePercent(flag.criticality, o.rolloutStartedAt, o.rolloutPercent, now);
         if (pct > 0) {
           const name = `${flag.key}_${platform}`;
           // Semente = nome da FF: cada FF sorteia o seu próprio grupo de usuários (sem semente, todas as FFs em % pegariam os mesmos)

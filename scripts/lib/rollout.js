@@ -33,4 +33,22 @@ function horarioPermitido(criticidade, dataISO) {
   return { ok: false, motivo: `prodSchedule fora da janela exigida para criticidade "${criticidade}": ${JANELA} (horário de Brasília)` };
 }
 
-module.exports = { currentStage, effectivePercent, horarioPermitido };
+// Planos de estágio para NÃO PROD, por criticidade: mesmos percentuais do README, 60 min por estágio
+// (o README não fixa tempo para os estágios de critica; o valor de PROD, em new-rm.js, é outro, específico
+// de PROD). baixa não tem plano: sem estágio, sempre 100%/teto direto.
+const NONPROD_ROLLOUT_PLANS = {
+  media: [{ percent: 25, monitorMinutes: 60 }, { percent: 100, monitorMinutes: 0 }],
+  critica: [{ percent: 5, monitorMinutes: 60 }, { percent: 25, monitorMinutes: 60 }, { percent: 50, monitorMinutes: 60 }, { percent: 100, monitorMinutes: 0 }],
+};
+
+// Percentual efetivo de um override em NÃO PROD: sem plano ou sem rolloutStartedAt, serve o teto (ou 100)
+// direto, como hoje. Com plano e rolloutStartedAt, reaproveita currentStage trocando o RM por um objeto
+// { prodSchedule, rolloutPlan } montado na hora — sem estado, mesma garantia de idempotência do PROD.
+function nonprodEffectivePercent(criticality, rolloutStartedAt, cap, now = new Date()) {
+  const plan = NONPROD_ROLLOUT_PLANS[criticality];
+  if (!plan || !rolloutStartedAt) return cap ?? 100;
+  const stage = currentStage({ prodSchedule: rolloutStartedAt, rolloutPlan: plan }, now);
+  return stage ? Math.min(stage.percent, cap ?? 100) : 0;
+}
+
+module.exports = { currentStage, effectivePercent, horarioPermitido, NONPROD_ROLLOUT_PLANS, nonprodEffectivePercent };

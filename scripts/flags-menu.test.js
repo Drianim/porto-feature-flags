@@ -63,7 +63,7 @@ function menuSemIdentidade(respostas, { teams = TEAMS_UMA } = {}) {
 }
 
 test('opção 1: pergunta a equipe como lista numerada e cria a FF, a branch feature/*, e sem "s" não empurra', () => {
-  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 's', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
   assert.strictEqual(r.code, 0, r.out);
   assert.ok(r.branchCriada, 'branch feature/ft-menu-teste não foi criada');
   assert.ok(r.flag, 'flags/ft_menu_teste.json não foi criado');
@@ -74,49 +74,65 @@ test('opção 1: pergunta a equipe como lista numerada e cria a FF, a branch fea
 });
 
 test('CA-4: mesmo respondendo "N" ao final, o catálogo já foi gerado e committado (só o push é que não roda)', () => {
-  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 's', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
   assert.strictEqual(r.code, 0, r.out);
   assert.deepStrictEqual(r.commitFiles.sort(), ['catalog/squad-b/keys.json', 'env/nonprod/ft_menu_teste.json', 'flags/ft_menu_teste.json']);
   assert.strictEqual(r.catalogs['squad-b'].keys[0].key, 'ft_menu_teste');
 });
 
 test('CA-1/CA-2: com resposta "s", o commit levado já existe antes do push e o catálogo bate com o gerado', () => {
-  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 's']);
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 's', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 's']);
   assert.strictEqual(r.code, 0, r.out);
   assert.deepStrictEqual(r.commitFiles.sort(), ['catalog/squad-b/keys.json', 'env/nonprod/ft_menu_teste.json', 'flags/ft_menu_teste.json']);
   assert.strictEqual(r.catalogs['squad-b'].total, 1);
 });
 
 test('CA-5: sem identidade de git configurada, o commit falha, o menu mostra o erro e não pergunta sobre enviar', () => {
-  const r = menuSemIdentidade(['1', 'ft_menu_teste', '1', 'baixa', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '']);
+  const r = menuSemIdentidade(['1', 'ft_menu_teste', '1', 'baixa', 's', 'Teste do menu', 'ambas', 's', 'N', '2.61.0', '2.63.0', '']);
   assert.match(r.out, /Please tell me who you are|no email was given/);
   assert.doesNotMatch(r.out, /Enviar \(git push\)/);
 });
 
+test('CA-7: criticidade inválida repete a pergunta até um valor válido', () => {
+  const r = menu(['1', 'ft_menu_teste', '1', 'qualquer', 'baixa', 's', 'Teste', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
+  assert.strictEqual(r.code, 0, r.out);
+  assert.match(r.out, /"qualquer" não é uma criticidade válida/);
+});
+
+test('CA-7: respondendo "N" na confirmação, volta a perguntar a criticidade (mostra as duas explicações)', () => {
+  const r = menu(['1', 'ft_menu_teste', '1', 'critica', 'N', 'baixa', 's', 'Teste', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
+  assert.strictEqual(r.code, 0, r.out);
+  assert.strictEqual(r.flag.criticality, 'baixa');
+  assert.match(r.out, /5% → 25% → 50% → 100%/);
+  assert.match(r.out, /direto a 100%/);
+  const confirmacoes = (r.out.match(/Confirmar essa criticidade\?/g) || []).length;
+  assert.strictEqual(confirmacoes, 2, r.out);
+});
+
 test('opção 1: com mais de uma equipe cadastrada, o número escolhe a equipe certa', () => {
   const teams = { platform: ['p@x.com'], teams: { 'squad-a': { members: [] }, 'squad-b': { members: [] } } };
-  const r = menu(['1', 'ft_menu_teste', '2', 'baixa', 'Teste', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N'], { teams });
+  const r = menu(['1', 'ft_menu_teste', '2', 'baixa', 's', 'Teste', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N'], { teams });
   assert.strictEqual(r.flag.team, 'squad-b');
   assert.match(r.out, /1 - squad-a/);
   assert.match(r.out, /2 - squad-b/);
 });
 
 test('opção 1: número de equipe inválido (fora do intervalo) repete a lista até um número válido', () => {
-  const r = menu(['1', 'ft_menu_teste', '9', '1', 'baixa', 'Teste', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
+  const r = menu(['1', 'ft_menu_teste', '9', '1', 'baixa', 's', 'Teste', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
   assert.strictEqual(r.flag.team, 'squad-b');
   const ocorrencias = (r.out.match(/Escolha o número da equipe/g) || []).length;
   assert.strictEqual(ocorrencias, 2, r.out);
 });
 
 test('opção 1: plataforma inválida repete a pergunta até um valor válido', () => {
-  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste', 'qualquer', 'ambas', 's', 's', '2.61.0', '2.63.0', '', 'N']);
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 's', 'Teste', 'qualquer', 'ambas', 's', 's', '2.61.0', '2.63.0', '', 'N']);
   assert.strictEqual(r.code, 0, r.out);
   assert.ok(r.flag, 'flags/ft_menu_teste.json não foi criado');
   assert.match(r.out, /"qualquer" não é uma plataforma válida/);
 });
 
 test('opção 1: chave ft_ com plataforma "ambas" pergunta ativar em ios e depois android', () => {
-  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 's', 'Teste', 'ambas', 's', 'N', '2.61.0', '2.63.0', '', 'N']);
   assert.strictEqual(r.code, 0, r.out);
   assert.match(r.out, /Ativar em ios\?/);
   assert.match(r.out, /Ativar em android\?/);
@@ -125,7 +141,7 @@ test('opção 1: chave ft_ com plataforma "ambas" pergunta ativar em ios e depoi
 });
 
 test('opção 1: chave ft_ com plataforma única só pergunta ativar naquela plataforma', () => {
-  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste', 'ios', 'N', '2.61.0', '', 'N']);
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 's', 'Teste', 'ios', 'N', '2.61.0', '', 'N']);
   assert.strictEqual(r.code, 0, r.out);
   assert.match(r.out, /Ativar em ios\?/);
   assert.doesNotMatch(r.out, /Ativar em android\?/);
@@ -134,13 +150,13 @@ test('opção 1: chave ft_ com plataforma única só pergunta ativar naquela pla
 });
 
 test('opção 1: chave rc_ não pergunta ativar por plataforma', () => {
-  const r = menu(['1', 'rc_menu_teste', '1', 'baixa', 'Teste', 'ambas', '2.61.0', '2.63.0', '', 'valor-x', 'N'], { key: 'rc_menu_teste' });
+  const r = menu(['1', 'rc_menu_teste', '1', 'baixa', 's', 'Teste', 'ambas', '2.61.0', '2.63.0', '', 'valor-x', 'N'], { key: 'rc_menu_teste' });
   assert.strictEqual(r.code, 0, r.out);
   assert.doesNotMatch(r.out, /Ativar em/);
 });
 
 test('opção 1: plataforma "ambas" pergunta a versão mínima de ios e depois android, repetindo em formato inválido', () => {
-  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste', 'ambas', 's', 'N', 'x.y.z', '2.61.0', '2.63.0', '', 'N']);
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 's', 'Teste', 'ambas', 's', 'N', 'x.y.z', '2.61.0', '2.63.0', '', 'N']);
   assert.strictEqual(r.code, 0, r.out);
   assert.match(r.out, /Versão mínima do app para ios \(x\.y\.z\): /);
   assert.match(r.out, /Versão mínima do app para android \(x\.y\.z\): /);
@@ -149,7 +165,7 @@ test('opção 1: plataforma "ambas" pergunta a versão mínima de ios e depois a
 });
 
 test('opção 1: plataforma única continua com uma única pergunta de versão mínima', () => {
-  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 'Teste', 'android', 'N', '2.61.0', '', 'N']);
+  const r = menu(['1', 'ft_menu_teste', '1', 'baixa', 's', 'Teste', 'android', 'N', '2.61.0', '', 'N']);
   assert.strictEqual(r.code, 0, r.out);
   assert.match(r.out, /Versão do app para ativar \(x\.y\.z\): /);
   assert.doesNotMatch(r.out, /Versão mínima do app para/);

@@ -96,7 +96,7 @@ function rules(flag, env) {
   const toggle = kindOf(flag.key) === 'toggle';
   const overrides = {};
   for (const p of platformsOf(flag)) {
-    if (e[p]) overrides[p] = { value: String(e[p].value), rolloutPercent: e[p].rolloutPercent };
+    if (e[p]) overrides[p] = { value: String(e[p].value), rolloutPercent: e[p].rolloutPercent, rolloutStartedAt: e[p].rolloutStartedAt };
     else if (toggle && e.default === 'true') overrides[p] = { value: 'true' };
   }
   return { defaultValue: toggle && e.default === 'true' ? 'false' : String(e.default), overrides };
