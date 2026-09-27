@@ -2,7 +2,7 @@
 // O estado por plataforma vem do repositório, pelas mesmas regras que o deploy usa (flags.js); o Firebase entra só
 // como comparação (sincronia) e como informação (o que está publicado). Nada aqui escreve em lugar nenhum.
 const { PLATFORMS, kindOf, valueTypeOf, rules, expectedAt, platformsOf, minVersionFor, justBelow } = require('./flags');
-const { currentStage } = require('./rollout');
+const { currentStage, nonprodEffectivePercent, nextNonprodStage } = require('./rollout');
 const { build, diff, findRemote } = require('./remote-config');
 
 const { KEY_RE } = require('./flags');
@@ -55,11 +55,17 @@ function flagRow(flag, env, { rms = [], now = new Date(), timeGated = env === 'p
     if (toggle) {
       if (!(o && o.value === 'true' && o.rolloutPercent !== 0)) { perPlatform[p] = { state: 'desligada', value: 'false' }; continue; }
       let percent = o.rolloutPercent ?? 100;
+      let nextStage = null;
+      const stagedNonprod = !timeGated && Boolean(o.rolloutStartedAt);
       if (timeGated) {
         if (!stage) { perPlatform[p] = { state: 'aguardando', value: 'true' }; continue; }
         percent = Math.min(percent, stage.percent);
       }
-      perPlatform[p] = { state: 'ligada', percent, value: 'true' };
+      if (stagedNonprod) {
+        percent = nonprodEffectivePercent(flag.criticality, o.rolloutStartedAt, o.rolloutPercent, now);
+        nextStage = nextNonprodStage(flag.criticality, o.rolloutStartedAt, now);
+      }
+      perPlatform[p] = { state: 'ligada', percent, value: 'true', nextStage, stagedNonprod };
     } else if (timeGated && !stage) {
       perPlatform[p] = { state: 'aguardando', value: o ? o.value : defaultValue };
     } else {
@@ -169,6 +175,8 @@ const stateText = (s) => {
   return s.state;
 };
 const typeText = (r) => `${r.kind} (${r.valueType === 'BOOLEAN' ? 'Boolean' : 'String'})`;
+// Horário do próximo estágio de NÃO PROD, no fuso usado pelo README/rollout.js (America/Sao_Paulo).
+const fmtBR = (d) => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' }).format(d);
 const SYNC_TEXT = { ok: '✓ ok', diverge: '✗ diverge', ausente: '✗ ausente', aguardando: '… aguardando', invalida: '✗ inválida' };
 const table = (head, lines) => [`| ${head.join(' | ')} |`, `|${head.map(() => '---').join('|')}|`, ...lines.map((l) => `| ${l.map(cell).join(' | ')} |`)].join('\n');
 // a tabela de FFs escapa por célula, mas mantém o `código` da chave
@@ -230,7 +238,19 @@ function renderRollout(row, { flag, env, rm, now = new Date() } = {}) {
       out.push(`RM \`${rm.id || '—'}\`, agendado para ${rm.prodSchedule}. ${stage ? `Estágio atual: ${stage.percent}% (monitorar ${stage.monitorMinutes} min).` : 'Ainda aguardando o horário: nada foi liberado.'}`, '',
         table(['Estágio', 'Percentual', 'Monitorar (min)'], (rm.rolloutPlan || []).map((st, i) => [i + 1, `${st.percent}%`, st.monitorMinutes])));
     }
-  } else out.push('NÃO PROD publica na hora, sem estágios: o percentual é o `rolloutPercent` de `env/nonprod/`.');
+  } else {
+    const staged = PLATFORMS.filter((p) => row.perPlatform[p].state === 'ligada' && row.perPlatform[p].stagedNonprod);
+    if (!staged.length) out.push('NÃO PROD publica na hora, sem estágios: o percentual é o `rolloutPercent` de `env/nonprod/`.');
+    else {
+      out.push('NÃO PROD em rollout automático por criticidade (spec 0028):');
+      for (const p of staged) {
+        const ps = row.perPlatform[p];
+        const label = p === 'ios' ? 'iOS' : 'Android';
+        if (ps.nextStage) out.push(`- ${label}: ${ps.percent}% agora. Próximo estágio: ${ps.nextStage.percent}% às ${fmtBR(ps.nextStage.at)}.`);
+        else out.push(`- ${label}: Já no estágio final (100%).`);
+      }
+    }
+  }
   out.push('', '### O que o app recebe', '', table(['Plataforma', 'Versão', 'Situação', 'Recebe'], servedFor(flag, env).map((x) => [x.platform === 'ios' ? 'iOS' : 'Android', x.version, x.label, x.result])));
   return `${out.join('\n')}\n`;
 }

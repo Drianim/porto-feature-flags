@@ -51,4 +51,24 @@ function nonprodEffectivePercent(criticality, rolloutStartedAt, cap, now = new D
   return stage ? Math.min(stage.percent, cap ?? 100) : 0;
 }
 
-module.exports = { currentStage, effectivePercent, horarioPermitido, NONPROD_ROLLOUT_PLANS, nonprodEffectivePercent };
+// Próximo estágio de NÃO PROD (visibilidade, spec 0029): mesma soma de monitorMinutes que currentStage percorre,
+// mas devolve o estágio SEGUINTE ao atual e o horário em que ele começa. null = sem plano, sem rolloutStartedAt
+// ou já no estágio final (monitorMinutes 0).
+function nextNonprodStage(criticality, rolloutStartedAt, now = new Date()) {
+  const plan = NONPROD_ROLLOUT_PLANS[criticality];
+  if (!plan || !rolloutStartedAt) return null;
+  let t = Date.parse(rolloutStartedAt);
+  for (let i = 0; i < plan.length; i++) {
+    const stage = plan[i];
+    if (stage.monitorMinutes === 0) return null;
+    const end = t + stage.monitorMinutes * 60000;
+    if (now.getTime() < end) {
+      const next = plan[i + 1];
+      return next ? { percent: next.percent, at: new Date(end) } : null;
+    }
+    t = end;
+  }
+  return null;
+}
+
+module.exports = { currentStage, effectivePercent, horarioPermitido, NONPROD_ROLLOUT_PLANS, nonprodEffectivePercent, nextNonprodStage };

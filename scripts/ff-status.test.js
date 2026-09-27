@@ -16,14 +16,14 @@ const envs = { nonprod: { keyVar: 'K', projectId: 'p', timeGated: false }, prod:
 const freshTemplate = () => apply({ parameters: {}, parameterGroups: {}, conditions: [], version: { versionNumber: '24', updateTime: '2026-09-24T12:00:00Z', updateUser: { email: 'a@b.com' } } }, build(flags, [], 'nonprod', envs.nonprod));
 
 // Roda o comando com dependências falsas. `calls` registra o que foi chamado no "Firebase".
-function exec(argv, { hasKey = true, template = freshTemplate(), versions = [{ versionNumber: '24', updateTime: 't', updateUser: { email: 'a@b.com' }, description: 'deploy' }], connectError } = {}) {
+function exec(argv, { hasKey = true, template = freshTemplate(), versions = [{ versionNumber: '24', updateTime: 't', updateUser: { email: 'a@b.com' }, description: 'deploy' }], connectError, flags: flagsOverride } = {}) {
   const out = []; const err = []; const calls = [];
   const rc = new Proxy({
     getTemplate: async () => { calls.push('getTemplate'); return template; },
     listVersions: async (o) => { calls.push('listVersions'); return { versions: versions.slice(0, o.pageSize) }; },
   }, { get: (t, p) => t[p] ?? (() => { throw new Error(`ESCRITA PROIBIDA: ${String(p)}`); }) });
   const deps = {
-    loadFlags: () => flags, loadRms: () => [], environments: () => envs, now: () => new Date('2026-09-24T12:00:00Z'), hasKey: () => hasKey,
+    loadFlags: () => flagsOverride || flags, loadRms: () => [], environments: () => envs, now: () => new Date('2026-09-24T12:00:00Z'), hasKey: () => hasKey,
     connect: async () => { calls.push('connect'); if (connectError) throw new Error(connectError); return { rc, projectId: 'p' }; },
     stdout: (s) => out.push(s), stderr: (s) => err.push(s),
   };
@@ -64,6 +64,13 @@ test('detail e rollout de uma FF; chave inexistente sai com 1', async () => {
   const nf = await exec(['detail', 'ft_nao_existe']);
   assert.strictEqual(nf.code, 1);
   assert.match(nf.err, /não existe no repositório/);
+});
+test('CA-4: rollout --json inclui percent e nextStage por plataforma quando há rolloutStartedAt', async () => {
+  const critica = { ...base, key: 'ft_critica', criticality: 'critica', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: '2026-09-24T09:00:00-03:00' } } } };
+  const r = await exec(['rollout', 'ft_critica', '--offline', '--json'], { flags: [critica] });
+  const j = JSON.parse(r.out);
+  assert.strictEqual(j.flag.perPlatform.ios.percent, 5);
+  assert.deepStrictEqual(j.flag.perPlatform.ios.nextStage, { percent: 25, at: '2026-09-24T13:00:00.000Z' });
 });
 test('summary com a última publicação; history respeita --limit', async () => {
   const s = await exec(['summary']);
