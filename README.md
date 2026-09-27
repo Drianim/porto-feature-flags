@@ -328,6 +328,16 @@ guardado, só a diferença entre `rolloutStartedAt` e o agora (`scripts/lib/roll
 `nonprodEffectivePercent`) — rodar o deploy várias vezes é seguro. `rolloutStartedAt` só existe em `nonprod`
 (`npm run validate` reprova se aparecer em `env/prod/`).
 
+**Visibilidade:** `npm run status -- rollout <chave>` mostra, por plataforma, o percentual atual e — quando a FF
+ainda não chegou a 100% — o próximo estágio e o horário estimado dele (`America/Sao_Paulo`), calculados na hora a
+partir de `rolloutStartedAt` (sem nenhum estado novo gravado). Veja a skill `ff-status`.
+
+**Alerta de falha:** se o deploy ou o `verify-sync` falharem nessa execução agendada, um passo seguinte
+(`if: failure()`) abre uma GitHub Issue com título fixo (`nonprod-scheduler: falha na publicação automática`) —
+ou comenta na já aberta com esse título, para não duplicar a cada 15 minutos — linkando o run que falhou
+(`scripts/ci/alertar-falha-scheduler.js`). O cron tenta de novo sozinho na próxima execução; a Issue é só o
+alerta, ninguém precisa fechá-la automaticamente.
+
 ### Referência de campos: `rm/RM-*.json`
 
 Veja `rm/TEMPLATE.json` para um exemplo completo.

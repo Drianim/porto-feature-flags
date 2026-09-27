@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { currentStage, effectivePercent, horarioPermitido, nonprodEffectivePercent } = require('./rollout');
+const { currentStage, effectivePercent, horarioPermitido, nonprodEffectivePercent, nextNonprodStage } = require('./rollout');
 const { rules, isActive, kindOf, valueTypeOf } = require('./flags');
 
 const rm = {
@@ -76,6 +76,24 @@ test('nonprodEffectivePercent: antes de rolloutStartedAt é 0', () => {
 test('nonprodEffectivePercent: teto da flag limita o estágio', () => {
   const inicio = '2026-10-01T12:00:00-03:00';
   assert.strictEqual(nonprodEffectivePercent('critica', inicio, 3, at('2026-10-01T15:00:00Z')), 3);
+});
+
+test('nextNonprodStage: critica aponta o próximo estágio e o horário em que ele começa', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  assert.deepStrictEqual(nextNonprodStage('critica', inicio, at('2026-10-01T15:00:00Z')), { percent: 25, at: at('2026-10-01T16:00:00Z') });
+  assert.deepStrictEqual(nextNonprodStage('critica', inicio, at('2026-10-01T16:01:00Z')), { percent: 50, at: at('2026-10-01T17:00:00Z') });
+  assert.deepStrictEqual(nextNonprodStage('critica', inicio, at('2026-10-01T17:01:00Z')), { percent: 100, at: at('2026-10-01T18:00:00Z') });
+  assert.strictEqual(nextNonprodStage('critica', inicio, at('2026-10-01T18:01:00Z')), null);
+});
+test('nextNonprodStage: media aponta 100% e depois null', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  assert.deepStrictEqual(nextNonprodStage('media', inicio, at('2026-10-01T15:00:00Z')), { percent: 100, at: at('2026-10-01T16:00:00Z') });
+  assert.strictEqual(nextNonprodStage('media', inicio, at('2026-10-01T16:01:00Z')), null);
+});
+test('nextNonprodStage: baixa, ou sem rolloutStartedAt, é sempre null', () => {
+  const inicio = '2026-10-01T12:00:00-03:00';
+  assert.strictEqual(nextNonprodStage('baixa', inicio, at('2026-10-01T15:00:00Z')), null);
+  assert.strictEqual(nextNonprodStage('critica', undefined, at('2026-10-01T15:00:00Z')), null);
 });
 
 test('prefixo define o tipo', () => {

@@ -46,7 +46,7 @@ Onde cada processo está e como acioná-lo (`README.md` traz o detalhe; a skill 
 | Escopo da PoC e credenciais | README, *Configuração no GitHub* | só NÃO PROD; `FIREBASE_SA_KEY_NONPROD` |
 | Rollback | README, *PROD, RM e criticidade* | voltar a FF para desligada em `update/*` |
 | Criticidade e rollout por estágio | README, *PROD, RM e criticidade* | `rolloutPlan` do RM |
-| Rollout automático em NÃO PROD por criticidade | README, *Rollout automático em NÃO PROD por criticidade* | `rolloutStartedAt`; `nonprod-scheduler.yml` (cron 15 min) |
+| Rollout automático em NÃO PROD por criticidade | README, *Rollout automático em NÃO PROD por criticidade* | `rolloutStartedAt`; `nonprod-scheduler.yml` (cron 15 min); próximo estágio em `npm run status -- rollout`; falha abre Issue (`alertar-falha-scheduler.js`) |
 | Campanha de teste do processo | `docs/testes-do-processo.md` | PRs positivos e negativos, em fases |
 | Merge bloqueado até tudo verde | README, *Merge bloqueado até tudo verde* | proteção da `main` exige o job "Tudo verde" (`.github/workflows/pr.yml`) |
 | PR vermelho (nunca mesclar) | README, *Decisões, limites e armadilhas* | o botão não libera; se algo entrar, reverter com `revert/*` |

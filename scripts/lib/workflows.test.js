@@ -126,3 +126,16 @@ test('CA-8: nonprod-scheduler roda a cada 15 min e workflow_dispatch, só na mai
   assert.match(runs(job), /node scripts\/deploy\.js nonprod\s*$/m);
   assert.match(runs(job), /node scripts\/verify-sync\.js nonprod\s*$/m);
 });
+
+test('CA-5: nonprod-scheduler avisa por Issue quando falha, sem entrada de PR na URL do run', () => {
+  const job = Object.values(wf['nonprod-scheduler.yml'].jobs)[0];
+  assert.deepStrictEqual(job.permissions, { contents: 'read', issues: 'write' }, 'permissão mínima extra só neste job');
+  const alerta = job.steps.find((s) => /github-script/.test(s.uses || ''));
+  assert.ok(alerta, 'passo com actions/github-script');
+  assert.match(String(alerta.uses), /^actions\/github-script@v7/);
+  assert.match(String(alerta.if), /failure\(\)/);
+  assert.match(alerta.with.script, /GITHUB_SERVER_URL/);
+  assert.match(alerta.with.script, /GITHUB_REPOSITORY/);
+  assert.match(alerta.with.script, /GITHUB_RUN_ID/);
+  assert.doesNotMatch(alerta.with.script, /\$\{\{\s*github\.(head_ref|event\.pull_request)/, 'nada do PR interpolado no script');
+});
