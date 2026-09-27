@@ -1,0 +1,11 @@
+{
+  "key": "ft_v12",
+  "description": "teste v12",
+  "team": "plataforma",
+  "criticality": "critica",
+  "platforms": "ambas",
+  "minVersion": {
+    "ios": "2.10.0",
+    "android": "2.12.0"
+  }
+}
