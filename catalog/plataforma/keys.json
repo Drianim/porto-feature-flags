@@ -1,6 +1,6 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 5,
+  "total": 6,
   "keys": [
     {
       "key": "ft_teste_rollout_auto",
@@ -102,6 +102,36 @@
           "android": {
             "value": "true",
             "rolloutStartedAt": "2026-09-27T11:02:02.829Z"
+          }
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
+    {
+      "key": "ft_v13",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "media",
+      "platforms": "ambas",
+      "minVersion": {
+        "ios": "2.10.0",
+        "android": "2.11.0"
+      },
+      "team": "plataforma",
+      "description": "teste v13",
+      "environments": {
+        "nonprod": {
+          "default": "false",
+          "ios": {
+            "value": "true",
+            "rolloutStartedAt": "2026-09-27T14:26:15.690Z"
+          },
+          "android": {
+            "value": "true",
+            "rolloutStartedAt": "2026-09-27T14:26:15.690Z"
           }
         },
         "prod": {
