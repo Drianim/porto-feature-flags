@@ -1,7 +1,7 @@
 ---
 spec: 0030
 titulo: remover o rollout automático por tempo em NÃO PROD; percentual muda só por PR manual
-status: aprovada
+status: implementada
 criado: 2026-09-27
 atualizado: 2026-09-27
 ---
@@ -58,23 +58,23 @@ quem decide o próximo `update/*` manualmente.
 
 ## Critérios de aceite
 
-- [ ] CA-1: `npm run new:flag`/`npm run flags` não grava mais `rolloutStartedAt` em nenhuma criticidade; ativar
+- [x] CA-1: `npm run new:flag`/`npm run flags` não grava mais `rolloutStartedAt` em nenhuma criticidade; ativar
       uma plataforma sem `--rollout-percent` grava o override sem esse campo (100% direto, como `baixa` hoje).
-- [ ] CA-2: `scripts/lib/rollout.js` não exporta mais `nonprodEffectivePercent`, `nextNonprodStage` nem
+- [x] CA-2: `scripts/lib/rollout.js` não exporta mais `nonprodEffectivePercent`, `nextNonprodStage` nem
       `NONPROD_ROLLOUT_PLANS`; `scripts/lib/remote-config.js` (`build`) e `scripts/lib/status.js` (`flagRow`,
       `renderRollout`) calculam o percentual de NÃO PROD só a partir de `rolloutPercent` (sem `now`/tempo).
-- [ ] CA-3: `scripts/validate.js` reprova `rolloutStartedAt` em qualquer ambiente (campo removido, não só
+- [x] CA-3: `scripts/validate.js` reprova `rolloutStartedAt` em qualquer ambiente (campo removido, não só
       "só vale em nonprod").
-- [ ] CA-4: `.github/workflows/nonprod-scheduler.yml` e `scripts/ci/alertar-falha-scheduler.js` (+ teste) não
+- [x] CA-4: `.github/workflows/nonprod-scheduler.yml` e `scripts/ci/alertar-falha-scheduler.js` (+ teste) não
       existem mais; `scripts/lib/workflows.test.js` reflete a lista de workflows sem ele.
-- [ ] CA-5: `env/nonprod/ft_v13.json`, `env/nonprod/ft_v12.json` e `env/nonprod/ft_teste_rollout_auto.json`
+- [x] CA-5: `env/nonprod/ft_v13.json`, `env/nonprod/ft_v12.json` e `env/nonprod/ft_teste_rollout_auto.json`
       migrados: sem `rolloutStartedAt`, com o percentual que já estava efetivamente em vigor (todas já haviam
       alcançado 100% pelo tempo decorrido — a mudança não altera o que o Firebase serve).
-- [ ] CA-6: README.md, `.claude/skills/feature-flag/SKILL.md`, `CLAUDE.md` (Mapa dos processos) e
+- [x] CA-6: README.md, `.claude/skills/feature-flag/SKILL.md`, `CLAUDE.md` (Mapa dos processos) e
       `scripts/processos.test.js` não mencionam mais rollout automático por tempo em NÃO PROD; documentam o novo
       processo (`update/*` altera `rolloutPercent`) e mantêm a progressão sugerida por criticidade como guia, não
       automação.
-- [ ] CA-7: `npm test`, `npm run validate` e `npm run specs` passam.
+- [x] CA-7: `npm test`, `npm run validate` e `npm run specs` passam.
 
 ## Desenho
 

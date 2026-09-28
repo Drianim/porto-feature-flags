@@ -38,7 +38,7 @@ const PROCESSOS = [
   ['Escopo da PoC e credenciais', 'feature-flag', ['FIREBASE_SA_KEY_NONPROD'], ['FIREBASE_SA_KEY_NONPROD', 'NÃO PROD']],
   ['Rollback', 'feature-flag', ['rollback'], ['rollback']],
   ['Criticidade e rollout por estágio', 'feature-flag', ['rolloutPlan'], ['rolloutPlan']],
-  ['Rollout automático em NÃO PROD por criticidade', 'feature-flag', ['rolloutStartedAt', 'nonprod-scheduler'], ['rolloutStartedAt', 'nonprod-scheduler']],
+  ['Rollout por percentual em NÃO PROD', 'feature-flag', ['rolloutPercent'], ['rolloutPercent']],
   ['Validar template no Firebase (sem publicar)', 'feature-flag', ['--validate'], ['--validate']],
   ['Campanha de teste do processo', 'feature-flag', ['testes-do-processo'], ['testes-do-processo']],
   ['PR vermelho (nunca mesclar)', 'feature-flag', ['PR vermelho'], ['PR vermelho']],
