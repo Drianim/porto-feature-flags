@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { currentStage, effectivePercent, horarioPermitido, nonprodEffectivePercent, nextNonprodStage } = require('./rollout');
+const { currentStage, effectivePercent, horarioPermitido } = require('./rollout');
 const { rules, isActive, kindOf, valueTypeOf } = require('./flags');
 
 const rm = {
@@ -46,54 +46,6 @@ test('horarioPermitido: media/critica só entre 22:00–06:00 (horário de Bras�
   assert.strictEqual(horarioPermitido('critica', '2026-10-01T05:59:00-03:00').ok, true);
   assert.strictEqual(horarioPermitido('media', '2026-10-01T06:00:00-03:00').ok, false);
   assert.strictEqual(horarioPermitido('critica', '2026-10-01T22:00:00-03:00').ok, true);
-});
-
-test('nonprodEffectivePercent: critica sobe 5 -> 25 -> 50 -> 100 a cada 60 min', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T15:00:00Z')), 5);
-  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T16:01:00Z')), 25);
-  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T17:01:00Z')), 50);
-  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T18:01:00Z')), 100);
-});
-test('nonprodEffectivePercent: media sobe 25 -> 100 em 60 min', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  assert.strictEqual(nonprodEffectivePercent('media', inicio, undefined, at('2026-10-01T15:00:00Z')), 25);
-  assert.strictEqual(nonprodEffectivePercent('media', inicio, undefined, at('2026-10-01T16:01:00Z')), 100);
-});
-test('nonprodEffectivePercent: baixa ignora rolloutStartedAt e serve o teto (ou 100) direto', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  assert.strictEqual(nonprodEffectivePercent('baixa', inicio, undefined, at('2026-10-01T15:00:00Z')), 100);
-  assert.strictEqual(nonprodEffectivePercent('baixa', inicio, 40, at('2026-10-01T15:00:00Z')), 40);
-});
-test('nonprodEffectivePercent: sem rolloutStartedAt, sem estágio, serve o teto (ou 100) direto', () => {
-  assert.strictEqual(nonprodEffectivePercent('critica', undefined, undefined, at('2026-10-01T15:00:00Z')), 100);
-  assert.strictEqual(nonprodEffectivePercent('critica', undefined, 30, at('2026-10-01T15:00:00Z')), 30);
-});
-test('nonprodEffectivePercent: antes de rolloutStartedAt é 0', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  assert.strictEqual(nonprodEffectivePercent('critica', inicio, undefined, at('2026-10-01T14:00:00Z')), 0);
-});
-test('nonprodEffectivePercent: teto da flag limita o estágio', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  assert.strictEqual(nonprodEffectivePercent('critica', inicio, 3, at('2026-10-01T15:00:00Z')), 3);
-});
-
-test('nextNonprodStage: critica aponta o próximo estágio e o horário em que ele começa', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  assert.deepStrictEqual(nextNonprodStage('critica', inicio, at('2026-10-01T15:00:00Z')), { percent: 25, at: at('2026-10-01T16:00:00Z') });
-  assert.deepStrictEqual(nextNonprodStage('critica', inicio, at('2026-10-01T16:01:00Z')), { percent: 50, at: at('2026-10-01T17:00:00Z') });
-  assert.deepStrictEqual(nextNonprodStage('critica', inicio, at('2026-10-01T17:01:00Z')), { percent: 100, at: at('2026-10-01T18:00:00Z') });
-  assert.strictEqual(nextNonprodStage('critica', inicio, at('2026-10-01T18:01:00Z')), null);
-});
-test('nextNonprodStage: media aponta 100% e depois null', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  assert.deepStrictEqual(nextNonprodStage('media', inicio, at('2026-10-01T15:00:00Z')), { percent: 100, at: at('2026-10-01T16:00:00Z') });
-  assert.strictEqual(nextNonprodStage('media', inicio, at('2026-10-01T16:01:00Z')), null);
-});
-test('nextNonprodStage: baixa, ou sem rolloutStartedAt, é sempre null', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  assert.strictEqual(nextNonprodStage('baixa', inicio, at('2026-10-01T15:00:00Z')), null);
-  assert.strictEqual(nextNonprodStage('critica', undefined, at('2026-10-01T15:00:00Z')), null);
 });
 
 test('prefixo define o tipo', () => {

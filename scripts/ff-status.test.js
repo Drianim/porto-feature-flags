@@ -65,12 +65,12 @@ test('detail e rollout de uma FF; chave inexistente sai com 1', async () => {
   assert.strictEqual(nf.code, 1);
   assert.match(nf.err, /não existe no repositório/);
 });
-test('CA-4: rollout --json inclui percent e nextStage por plataforma quando há rolloutStartedAt', async () => {
-  const critica = { ...base, key: 'ft_critica', criticality: 'critica', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: '2026-09-24T09:00:00-03:00' } } } };
+test('spec 0030: rollout --json usa rolloutPercent direto, sem nextStage', async () => {
+  const critica = { ...base, key: 'ft_critica', criticality: 'critica', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 5 } } } };
   const r = await exec(['rollout', 'ft_critica', '--offline', '--json'], { flags: [critica] });
   const j = JSON.parse(r.out);
   assert.strictEqual(j.flag.perPlatform.ios.percent, 5);
-  assert.deepStrictEqual(j.flag.perPlatform.ios.nextStage, { percent: 25, at: '2026-09-24T13:00:00.000Z' });
+  assert.strictEqual(j.flag.perPlatform.ios.nextStage, undefined);
 });
 test('summary com a última publicação; history respeita --limit', async () => {
   const s = await exec(['summary']);
