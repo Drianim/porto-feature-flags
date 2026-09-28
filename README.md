@@ -307,36 +307,26 @@ seguro. Toggles que liberam algo e todas as `rc_*` exigem RM em PROD; desligar u
 
 O avanço entre estágios é por **tempo**, não consulta métricas de saúde: monitore e faça rollback se preciso.
 
-## Rollout automático em NÃO PROD por criticidade
+## Rollout por percentual em NÃO PROD
 
-NÃO PROD também segue estágios automáticos, sem depender de PROD ou de um RM — mais simples porque não passa por
-aprovação: quando `npm run new:flag`/`npm run flags` ativa (`--ios true`/`--android true`) uma plataforma de uma FF
-toggle (`ft_*`) com `criticality: "media"` ou `"critica"`, o override em `env/nonprod/<key>.json` ganha
-`rolloutStartedAt` (data/hora ISO 8601 de quando o rollout começou). A partir daí, o percentual servido para
-aquela plataforma sobe sozinho com o tempo, sem exigir um novo merge para cada estágio:
+NÃO PROD **não muda sozinho por tempo** (spec 0030): o percentual servido para uma plataforma é sempre o
+`rolloutPercent` do override em `env/nonprod/<key>.json`, sem nada além do valor gravado. Uma tentativa anterior
+(spec 0028/0029) fazia o percentual subir sozinho com um cron a cada 15 minutos, mas o Issue #38 mostrou que o
+`schedule` do GitHub Actions pode atrasar horas — o rollout ficava parado sem aviso. Por isso o mecanismo foi
+removido: para mudar o percentual de uma FF já ativa, abra um PR `update/*` alterando `rolloutPercent` para o
+valor desejado (skill `feature-flag`).
 
-| Criticidade | Estágios (60 min cada) |
+A tabela abaixo continua valendo como **guia de estágios recomendados por criticidade** — não é automação, é
+o roteiro que quem está subindo o rollout deve seguir manualmente, um PR por estágio:
+
+| Criticidade | Estágios sugeridos |
 |---|---|
-| baixa | sem estágio: vai direto a 100% (ou o `rolloutPercent` do override), como sempre foi |
+| baixa | sem estágio: direto a 100% (ou o `rolloutPercent` desejado) |
 | media | 25% → 100% |
 | critica | 5% → 25% → 50% → 100% |
 
-O workflow `.github/workflows/nonprod-scheduler.yml` roda `node scripts/deploy.js nonprod` a cada 15 minutos
-(cron, sem aprovação manual — não tem `environment: nonprod`, diferente do deploy do `main.yml`) para que o
-Firebase acompanhe a passagem do tempo entre um merge e o outro. O cálculo é o mesmo padrão de PROD: sem estado
-guardado, só a diferença entre `rolloutStartedAt` e o agora (`scripts/lib/rollout.js`,
-`nonprodEffectivePercent`) — rodar o deploy várias vezes é seguro. `rolloutStartedAt` só existe em `nonprod`
-(`npm run validate` reprova se aparecer em `env/prod/`).
-
-**Visibilidade:** `npm run status -- rollout <chave>` mostra, por plataforma, o percentual atual e — quando a FF
-ainda não chegou a 100% — o próximo estágio e o horário estimado dele (`America/Sao_Paulo`), calculados na hora a
-partir de `rolloutStartedAt` (sem nenhum estado novo gravado). Veja a skill `ff-status`.
-
-**Alerta de falha:** se o deploy ou o `verify-sync` falharem nessa execução agendada, um passo seguinte
-(`if: failure()`) abre uma GitHub Issue com título fixo (`nonprod-scheduler: falha na publicação automática`) —
-ou comenta na já aberta com esse título, para não duplicar a cada 15 minutos — linkando o run que falhou
-(`scripts/ci/alertar-falha-scheduler.js`). O cron tenta de novo sozinho na próxima execução; a Issue é só o
-alerta, ninguém precisa fechá-la automaticamente.
+**Visibilidade:** `npm run status -- rollout <chave>` mostra, por plataforma, o percentual atual (o
+`rolloutPercent` do repositório). Veja a skill `ff-status`.
 
 ### Referência de campos: `rm/RM-*.json`
 

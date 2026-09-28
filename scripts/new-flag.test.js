@@ -81,20 +81,18 @@ test('--ios numa chave rc_ é erro', () => {
   assert.strictEqual(r.flag, null);
 });
 
-test('CA-6: criticality media/critica com plataforma ativada grava rolloutStartedAt = --now', () => {
-  const now = '2026-10-01T12:00:00-03:00';
-  const r = newFlag(['ft_novo', '--criticality', 'critica', '--description', 'Teste', '--platforms', 'ambas', '--min-version', '2.61.0', '--team', 'squad-b', '--ios', 'true', '--android', 'false', '--now', now]);
+test('spec 0030: criticality media/critica com plataforma ativada não grava rolloutStartedAt (rollout automático removido)', () => {
+  const r = newFlag(['ft_novo', '--criticality', 'critica', '--description', 'Teste', '--platforms', 'ambas', '--min-version', '2.61.0', '--team', 'squad-b', '--ios', 'true', '--android', 'false']);
   assert.strictEqual(r.code, 0, r.out);
-  assert.strictEqual(r.env.nonprod.ios.rolloutStartedAt, now);
-  assert.strictEqual(r.env.nonprod.android.rolloutStartedAt, undefined);
+  assert.deepStrictEqual(r.env, { nonprod: { default: 'false', ios: { value: 'true' }, android: { value: 'false' } } });
 });
-test('CA-6: criticality baixa não grava rolloutStartedAt, mesmo com plataforma ativada', () => {
-  const r = newFlag([...ok, '--team', 'squad-b', '--ios', 'true', '--now', '2026-10-01T12:00:00-03:00']);
+test('spec 0030: criticality baixa também não grava rolloutStartedAt (nunca gravou)', () => {
+  const r = newFlag([...ok, '--team', 'squad-b', '--ios', 'true']);
   assert.strictEqual(r.code, 0, r.out);
   assert.strictEqual(r.env.nonprod.ios.rolloutStartedAt, undefined);
 });
-test('CA-6: criticality media sem plataforma ativada não grava rolloutStartedAt (não há override)', () => {
-  const r = newFlag(['ft_novo', '--criticality', 'media', '--description', 'Teste', '--platforms', 'ambas', '--min-version', '2.61.0', '--team', 'squad-b', '--now', '2026-10-01T12:00:00-03:00']);
+test('spec 0030: criticality media sem plataforma ativada não cria override (nada muda)', () => {
+  const r = newFlag(['ft_novo', '--criticality', 'media', '--description', 'Teste', '--platforms', 'ambas', '--min-version', '2.61.0', '--team', 'squad-b']);
   assert.strictEqual(r.code, 0, r.out);
   assert.strictEqual(r.env.nonprod.ios, undefined);
   assert.strictEqual(r.env.nonprod.android, undefined);

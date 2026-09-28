@@ -75,10 +75,7 @@ for (const { file, data: d } of flags) {
       if (o === undefined) continue;
       if (!okValue(o.value)) err(file, `${env}.${p}.value inválido`);
       if (o.rolloutPercent !== undefined && !(o.rolloutPercent >= 0 && o.rolloutPercent <= 100)) err(file, `${env}.${p}.rolloutPercent deve estar entre 0 e 100`);
-      if (o.rolloutStartedAt !== undefined) {
-        if (env === 'prod') err(file, `${env}.${p}.rolloutStartedAt só vale em nonprod (rollout progressivo de PROD usa o RM)`);
-        else if (Number.isNaN(Date.parse(o.rolloutStartedAt))) err(file, `${env}.${p}.rolloutStartedAt inválido: use uma data ISO 8601`);
-      }
+      if (o.rolloutStartedAt !== undefined) err(file, `${env}.${p}.rolloutStartedAt não existe mais (spec 0030): use rolloutPercent e um PR update/* para mudar o percentual`);
     }
     for (const k of Object.keys(e)) if (k !== 'default' && !PLATFORMS.includes(k)) err(file, `${env}.${k} desconhecido (use default, ios, android)`);
     if (!targeting.length) {

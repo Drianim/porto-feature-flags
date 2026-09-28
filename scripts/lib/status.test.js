@@ -18,11 +18,11 @@ const template = () => apply({ parameters: {}, parameterGroups: {}, conditions: 
 test('FF ligada nas duas plataformas', () => {
   const r = rows[0];
   assert.deepStrictEqual([r.key, r.kind, r.valueType, r.platforms, r.minVersion], ['ft_ambos', 'toggle', 'BOOLEAN', 'ambas', '2.61.0']);
-  assert.deepStrictEqual(r.perPlatform.ios, { state: 'ligada', percent: 100, value: 'true', nextStage: null, stagedNonprod: false });
-  assert.deepStrictEqual(r.perPlatform.android, { state: 'ligada', percent: 100, value: 'true', nextStage: null, stagedNonprod: false });
+  assert.deepStrictEqual(r.perPlatform.ios, { state: 'ligada', percent: 100, value: 'true' });
+  assert.deepStrictEqual(r.perPlatform.android, { state: 'ligada', percent: 100, value: 'true' });
 });
 test('FF só de iOS em 50%: Android é n/a', () => {
-  assert.deepStrictEqual(rows[1].perPlatform.ios, { state: 'ligada', percent: 50, value: 'true', nextStage: null, stagedNonprod: false });
+  assert.deepStrictEqual(rows[1].perPlatform.ios, { state: 'ligada', percent: 50, value: 'true' });
   assert.strictEqual(rows[1].perPlatform.android.state, 'n/a');
 });
 test('toggle sem override está desligado; default "true" liga em todas as plataformas', () => {
@@ -170,17 +170,13 @@ test('argumentos inválidos são recusados com mensagem (nada chega a shell ou U
     ['list --xpto 1', /opção desconhecida/], ['list --json sim', /não recebe valor/],
   ]) assert.throws(() => parse(line), re, line);
 });
-test('CA-1: flagRow em NÃO PROD usa nonprodEffectivePercent quando o override tem rolloutStartedAt', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  const f = { ...base, key: 'ft_critica', criticality: 'critica', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: inicio } } } };
+test('spec 0030: flagRow em NÃO PROD usa rolloutPercent direto, qualquer criticidade', () => {
+  const f = { ...base, key: 'ft_critica', criticality: 'critica', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 5 } } } };
   const row = flagRow(f, 'nonprod', { now: new Date('2026-10-01T15:00:00Z') });
-  assert.strictEqual(row.perPlatform.ios.percent, 5, 'estágio atual (critica, 3h depois do início em -03:00 = 15:00Z) é 5%, não 100%');
-  assert.deepStrictEqual(row.perPlatform.ios.nextStage, { percent: 25, at: new Date('2026-10-01T16:00:00Z') });
+  assert.strictEqual(row.perPlatform.ios.percent, 5);
 });
-test('CA-1: sem rolloutStartedAt (ou baixa), flagRow mantém o comportamento de hoje e nextStage é null', () => {
-  assert.strictEqual(rows[1].perPlatform.ios.percent, 50, 'sem rolloutStartedAt, rolloutPercent vale direto');
-  assert.strictEqual(rows[1].perPlatform.ios.nextStage, null);
-  assert.strictEqual(rows[0].perPlatform.ios.nextStage, null, 'baixa nunca tem próximo estágio');
+test('spec 0030: sem rolloutPercent, percent é 100', () => {
+  assert.strictEqual(rows[1].perPlatform.ios.percent, 50, 'rolloutPercent vale direto');
 });
 test('rollout: NÃO PROD sem estágios; PROD mostra o estágio do RM ou aguarda o horário', () => {
   const f = { ...base, key: 'ft_p', environments: { nonprod: { default: 'false' }, prod: { default: 'false', ios: { value: 'true' } } } };
@@ -193,16 +189,6 @@ test('rollout: NÃO PROD sem estágios; PROD mostra o estágio do RM ou aguarda 
   assert.match(md, /Estágio atual: 5%/);
   assert.match(md, /\| 2 \| 100% \| 0 \|/);
   assert.match(renderRollout(flagRow(f, 'prod', {}), { flag: f, env: 'prod', rm: undefined }), /sem RM/);
-});
-test('CA-3: renderRollout em NÃO PROD mostra o próximo estágio quando há rolloutStartedAt', () => {
-  const inicio = '2026-10-01T12:00:00-03:00';
-  const f = { ...base, key: 'ft_critica', criticality: 'critica', environments: { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: inicio } } } };
-  const now = new Date('2026-10-01T15:00:00Z');
-  const md = renderRollout(flagRow(f, 'nonprod', { now }), { flag: f, env: 'nonprod', now });
-  assert.match(md, /Próximo estágio: 25% às/);
-  const last = new Date('2026-10-01T18:01:00Z');
-  const mdLast = renderRollout(flagRow(f, 'nonprod', { now: last }), { flag: f, env: 'nonprod', now: last });
-  assert.match(mdLast, /Já no estágio final \(100%\)/);
 });
 test('limpeza em Markdown', () => {
   assert.match(renderStale({ ligadasEm100: ['ft_a'], foraDoRepositorio: ['legado'] }), /- `ft_a`[\s\S]*- `legado`/);

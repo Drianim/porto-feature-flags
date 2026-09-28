@@ -12,8 +12,8 @@ const text = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(d
 const runs = (job) => (job.steps || []).map((s) => s.run || '').join('\n');
 const on = (w) => w.on || w[true]; // js-yaml lê a chave "on" como true
 
-test('os oito workflows existem e o bitbucket-pipelines.yml saiu', () => {
-  assert.deepStrictEqual(files.sort(), ['main.yml', 'nonprod-scheduler.yml', 'plan-prod.yml', 'pr.yml', 'prod-scheduler.yml', 'sync-nonprod.yml', 'teste-cron.yml', 'verify-nonprod.yml']);
+test('os sete workflows existem e o bitbucket-pipelines.yml saiu', () => {
+  assert.deepStrictEqual(files.sort(), ['main.yml', 'plan-prod.yml', 'pr.yml', 'prod-scheduler.yml', 'sync-nonprod.yml', 'teste-cron.yml', 'verify-nonprod.yml']);
   assert.ok(!fs.existsSync(path.join(__dirname, '..', '..', 'bitbucket-pipelines.yml')));
 });
 
@@ -123,30 +123,4 @@ test('workflows manuais: sync e verify NÃO PROD, plano e scheduler de PROD; syn
   assert.match(String(sync.if), /github\.ref == 'refs\/heads\/main'/);
   assert.match(runs(sync), /verify-sync\.js nonprod --fix/);
   assert.match(runs(Object.values(wf['verify-nonprod.yml'].jobs)[0]), /verify-sync\.js nonprod --strict/);
-});
-
-test('CA-8: nonprod-scheduler roda a cada 15 min e workflow_dispatch, só na main, sem environment (publica sem aprovação)', () => {
-  const w = wf['nonprod-scheduler.yml'];
-  const spec = on(w);
-  assert.ok('workflow_dispatch' in spec, 'workflow_dispatch');
-  assert.ok(Array.isArray(spec.schedule) && spec.schedule.length === 1, 'schedule único');
-  assert.match(spec.schedule[0].cron, /^\S+ \* \* \* \*$/);
-  const job = Object.values(w.jobs)[0];
-  assert.match(String(job.if), /github\.ref == 'refs\/heads\/main'/);
-  assert.strictEqual(job.environment, undefined, 'sem environment: publica sem aprovação manual');
-  assert.match(runs(job), /node scripts\/deploy\.js nonprod\s*$/m);
-  assert.match(runs(job), /node scripts\/verify-sync\.js nonprod\s*$/m);
-});
-
-test('CA-5: nonprod-scheduler avisa por Issue quando falha, sem entrada de PR na URL do run', () => {
-  const job = Object.values(wf['nonprod-scheduler.yml'].jobs)[0];
-  assert.deepStrictEqual(job.permissions, { contents: 'read', issues: 'write' }, 'permissão mínima extra só neste job');
-  const alerta = job.steps.find((s) => /github-script/.test(s.uses || ''));
-  assert.ok(alerta, 'passo com actions/github-script');
-  assert.match(String(alerta.uses), /^actions\/github-script@v7/);
-  assert.match(String(alerta.if), /failure\(\)/);
-  assert.match(alerta.with.script, /GITHUB_SERVER_URL/);
-  assert.match(alerta.with.script, /GITHUB_REPOSITORY/);
-  assert.match(alerta.with.script, /GITHUB_RUN_ID/);
-  assert.doesNotMatch(alerta.with.script, /\$\{\{\s*github\.(head_ref|event\.pull_request)/, 'nada do PR interpolado no script');
 });

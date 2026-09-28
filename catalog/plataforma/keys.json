@@ -16,12 +16,10 @@
         "nonprod": {
           "default": "false",
           "ios": {
-            "value": "true",
-            "rolloutStartedAt": "2026-09-27T11:21:23.398Z"
+            "value": "true"
           },
           "android": {
-            "value": "true",
-            "rolloutStartedAt": "2026-09-27T11:21:23.398Z"
+            "value": "true"
           }
         },
         "prod": {
@@ -96,12 +94,10 @@
         "nonprod": {
           "default": "false",
           "ios": {
-            "value": "true",
-            "rolloutStartedAt": "2026-09-27T11:02:02.829Z"
+            "value": "true"
           },
           "android": {
-            "value": "true",
-            "rolloutStartedAt": "2026-09-27T11:02:02.829Z"
+            "value": "true"
           }
         },
         "prod": {
@@ -126,12 +122,10 @@
         "nonprod": {
           "default": "false",
           "ios": {
-            "value": "true",
-            "rolloutStartedAt": "2026-09-27T14:26:15.690Z"
+            "value": "true"
           },
           "android": {
-            "value": "true",
-            "rolloutStartedAt": "2026-09-27T14:26:15.690Z"
+            "value": "true"
           }
         },
         "prod": {

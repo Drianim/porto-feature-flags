@@ -44,16 +44,16 @@ test('bloco de plataforma dentro do escopo da FF passa', () => {
   assert.strictEqual(validate({ platforms: 'ios', minVersion: '2.61.0' }, { nonprod: { default: 'false', ios: { value: 'true' } } }).ok, true);
 });
 
-test('CA-5: rolloutStartedAt inválido (não ISO 8601) em nonprod é reprovado', () => {
-  const r = validate({ platforms: 'ios', minVersion: '2.61.0' }, { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: 'não-é-data' } } });
-  assert.strictEqual(r.ok, false);
-  assert.match(r.out, /nonprod\.ios\.rolloutStartedAt.*ISO 8601/);
-});
-test('CA-5: rolloutStartedAt válido em nonprod passa', () => {
+test('spec 0030: rolloutStartedAt em nonprod é reprovado (removido)', () => {
   const r = validate({ platforms: 'ios', minVersion: '2.61.0' }, { nonprod: { default: 'false', ios: { value: 'true', rolloutStartedAt: '2026-10-01T12:00:00-03:00' } } });
+  assert.strictEqual(r.ok, false);
+  assert.match(r.out, /nonprod\.ios\.rolloutStartedAt não existe mais/);
+});
+test('spec 0030: rolloutPercent sem rolloutStartedAt passa', () => {
+  const r = validate({ platforms: 'ios', minVersion: '2.61.0' }, { nonprod: { default: 'false', ios: { value: 'true', rolloutPercent: 50 } } });
   assert.strictEqual(r.ok, true, r.out);
 });
-test('CA-5: rolloutStartedAt em prod é reprovado (campo só existe em nonprod)', () => {
+test('spec 0030: rolloutStartedAt em prod também é reprovado', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'val-prodfield-'));
   fs.cpSync(path.join(repoRoot, 'scripts'), path.join(dir, 'scripts'), { recursive: true });
   fs.cpSync(path.join(repoRoot, 'config'), path.join(dir, 'config'), { recursive: true });
@@ -65,7 +65,7 @@ test('CA-5: rolloutStartedAt em prod é reprovado (campo só existe em nonprod)'
   const r = spawnSync('node', ['scripts/validate.js'], { cwd: dir, encoding: 'utf8' });
   fs.rmSync(dir, { recursive: true, force: true });
   assert.strictEqual(r.status, 1);
-  assert.match(r.stdout + r.stderr, /prod\.ios\.rolloutStartedAt.*só vale em nonprod/);
+  assert.match(r.stdout + r.stderr, /prod\.ios\.rolloutStartedAt não existe mais/);
 });
 
 test('FF sem equipe é reprovada e a mensagem lista as equipes válidas', () => {
