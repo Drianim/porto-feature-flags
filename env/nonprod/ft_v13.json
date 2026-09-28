@@ -2,12 +2,10 @@
   "nonprod": {
     "default": "false",
     "ios": {
-      "value": "true",
-      "rolloutStartedAt": "2026-09-27T14:26:15.690Z"
+      "value": "true"
     },
     "android": {
-      "value": "true",
-      "rolloutStartedAt": "2026-09-27T14:26:15.690Z"
+      "value": "true"
     }
   }
 }
