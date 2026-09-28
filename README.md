@@ -29,6 +29,37 @@ veja o [deck de apresentação](docs/processo-de-deploy-de-feature-flags.html).
 | mudar **script, pipeline, docs** | `chore/*` (com **spec**; só admin) | nenhum (não publica) | SDD |
 | desfazer um merge | `revert/*` (só admin) | nenhum (a `main` volta) | Proteções |
 
+## Duas formas de executar o processo
+
+Os mesmos passos (criar/alterar/remover FF, levar para PROD, consultar status, evoluir scripts) podem ser
+executados de **duas formas**. Escolha a que fizer mais sentido para você; nada impede alternar entre as duas.
+
+### 1 - Scripts (rodando os comandos você mesmo)
+
+**Pré-requisito: ter Node.js e npm instalados** (`node -v` e `npm -v` para conferir; se algum comando não for
+encontrado, instale o Node 22 antes de continuar — os scripts deste repositório não rodam sem ele). Depois disso,
+o caminho mais comum (criar uma FF nova) é:
+
+1. Crie a branch `feature/ft-minha-flag` a partir da `main`.
+2. `npm run new:flag -- ft_minha_flag --team squad-poc --criticality media --description "..." --platforms ambas --min-version 2.61.0`.
+3. Edite `env/nonprod/ft_minha_flag.json` com os valores por plataforma.
+4. `npm run catalog && npm run validate`.
+5. `npm run preflight` (ou `npm run pr`, que já empurra a branch e imprime o link do PR).
+
+O passo a passo completo (inclusive alterar `update/*`, remover `remove/*`, levar para PROD `release/*` e o menu
+interativo `npm run flags`) está em *[Processo: como uma FF chega ao Firebase](#processo-como-uma-ff-chega-ao-firebase)*.
+
+### 2 - Com o Claude Code (pedindo para ele executar por você)
+
+Não precisa decorar comando nem sintaxe: descreva o que quer, em português ou inglês (ex.: "cria uma FF nova
+`ft_minha_flag` para a squad-poc", "qual o status da ft_x?", "quero mudar o script de validação"). O Claude Code lê
+o `CLAUDE.md`, identifica a skill certa (`feature-flag` para operar FF, `ff-status` para só consultar, `sdd-scripts`
+para evoluir scripts/pipeline/docs) e roda os mesmos comandos da forma 1 por conta própria — perguntando os dados
+que não pode inventar (equipe, plataforma, versão mínima, data de PROD, etc.) e só fazendo `git push`/abrindo PR se
+você pedir.
+
+Detalhe completo das skills e do ciclo de SDD em *[Trabalhando com o Claude Code e o SDD](#trabalhando-com-o-claude-code-e-o-sdd)*.
+
 ### Mapa de pastas e arquivos
 
 | Caminho | Conteúdo |
