@@ -200,3 +200,17 @@ duas linhas novas renderizavam no tamanho de fonte "cheio" e caíam por cima da 
 correção. Fix: as 5 linhas do card passam a usar o mesmo par `flex-basis`/`--fit` (recalculado para o novo total
 de 5 linhas, em vez das 3 originais), aplicado só dentro da `<section id="8">`. Sem mudança de contagem de slides,
 `deck-motion` ou qualquer outro slide — `npm test`, `npm run validate` e `npm run specs` continuam passando.
+
+## Correção pós-entrega: nota de critérios de classificação faltando no slide 12
+
+O usuário reportou que o slide 12 ("Criticidade, RM e aprovações") estava diferente do proposto. Comparando com os
+três slides de origem (`19 + 20 + 21`, fundidos na Task 2), a tabela de criticidade, a linha de aprovação PROD em
+negrito e os dois cards ("Arquivo de RM" e "Dupla aprovação obrigatória") vieram completos — mas uma linha do
+slide 19 (a nota `"[Critérios exatos de classificação a validar com a plataforma]"`, logo abaixo da linha em
+negrito) tinha ficado de fora do merge, violando o CA-4 (preservar todo o conteúdo textual relevante das origens).
+
+Fix: nota reinserida como um novo nó (`data-text-path="3"`), no mesmo estilo de legenda cinza do slide 19 original,
+entre a linha em negrito (`data-text-path="2"`) e o par de cards (renumerado de `data-node-path="3"` para `"4"`).
+Confirmado por renderização real (Chrome headless) que o slide cabe sem sobreposição com a linha extra. Sem mudança
+de contagem de slides, `deck-motion` ou qualquer outro slide — `npm test`, `npm run validate` e `npm run specs`
+continuam passando.
