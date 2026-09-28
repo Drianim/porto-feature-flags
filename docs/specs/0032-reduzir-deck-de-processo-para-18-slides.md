@@ -185,3 +185,32 @@ sem reescrever texto.
 - **Por que não regenerar o deck do zero (outro layout/ferramenta):** a spec 0011 já decidiu que este é um
   artefato manualmente mantido; refazer do zero fugiria do escopo (só reduzir a quantidade de slides) e
   arriscaria mudar o estilo visual sem necessidade.
+
+## Correção pós-entrega: sobreposição de texto no slide 8
+
+Depois da spec `implementada`, o usuário reportou (captura de tela) texto sobreposto/ilegível no card "Regras" do
+slide 8 ("Tipo, plataforma e versão mínima"). Causa raiz: ao fundir os slides 11+12 (Task 2), as duas linhas
+novas do card (`data-text-path="1.0.2.4"` e `"1.0.2.5"`, vindas do slide 11) ficaram sem os valores de
+auto-encolhimento (`flex-basis`/`--fit`) que as três linhas irmãs (`1.0.2.1`-`1.0.2.3`, vindas do slide 12) já
+tinham — pré-calculados pela ferramenta original de autoria do deck para a fonte cheia de 5 linhas dentro da
+altura fixa do card, e nunca recalculados dinamicamente por nenhum script embutido no HTML. Sem esses valores, as
+duas linhas novas renderizavam no tamanho de fonte "cheio" e caíam por cima da linha anterior.
+
+**Confirmado por renderização real** (Chrome headless `--screenshot`, não só leitura do HTML) antes e depois da
+correção. Fix: as 5 linhas do card passam a usar o mesmo par `flex-basis`/`--fit` (recalculado para o novo total
+de 5 linhas, em vez das 3 originais), aplicado só dentro da `<section id="8">`. Sem mudança de contagem de slides,
+`deck-motion` ou qualquer outro slide — `npm test`, `npm run validate` e `npm run specs` continuam passando.
+
+## Correção pós-entrega: nota de critérios de classificação faltando no slide 12
+
+O usuário reportou que o slide 12 ("Criticidade, RM e aprovações") estava diferente do proposto. Comparando com os
+três slides de origem (`19 + 20 + 21`, fundidos na Task 2), a tabela de criticidade, a linha de aprovação PROD em
+negrito e os dois cards ("Arquivo de RM" e "Dupla aprovação obrigatória") vieram completos — mas uma linha do
+slide 19 (a nota `"[Critérios exatos de classificação a validar com a plataforma]"`, logo abaixo da linha em
+negrito) tinha ficado de fora do merge, violando o CA-4 (preservar todo o conteúdo textual relevante das origens).
+
+Fix: nota reinserida como um novo nó (`data-text-path="3"`), no mesmo estilo de legenda cinza do slide 19 original,
+entre a linha em negrito (`data-text-path="2"`) e o par de cards (renumerado de `data-node-path="3"` para `"4"`).
+Confirmado por renderização real (Chrome headless) que o slide cabe sem sobreposição com a linha extra. Sem mudança
+de contagem de slides, `deck-motion` ou qualquer outro slide — `npm test`, `npm run validate` e `npm run specs`
+continuam passando.
