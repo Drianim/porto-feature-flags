@@ -1,7 +1,26 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 7,
+  "total": 8,
   "keys": [
+    {
+      "key": "ft_teste_deck",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ambas",
+      "minVersion": "2.61.0",
+      "team": "plataforma",
+      "description": "FF de teste do processo de deploy",
+      "environments": {
+        "nonprod": {
+          "default": "false"
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    },
     {
       "key": "ft_teste_deck_media",
       "kind": "toggle",

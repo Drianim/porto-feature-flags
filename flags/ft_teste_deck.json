@@ -1,0 +1,8 @@
+{
+  "key": "ft_teste_deck",
+  "description": "FF de teste do processo de deploy",
+  "team": "plataforma",
+  "criticality": "baixa",
+  "platforms": "ambas",
+  "minVersion": "2.61.0"
+}
