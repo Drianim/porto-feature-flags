@@ -1,8 +1,0 @@
-{
-  "key": "ft_teste_rollout_auto",
-  "description": "Teste do rollout automatico em nao prod (spec 0028)",
-  "team": "plataforma",
-  "criticality": "critica",
-  "platforms": "ambas",
-  "minVersion": "2.61.0"
-}
