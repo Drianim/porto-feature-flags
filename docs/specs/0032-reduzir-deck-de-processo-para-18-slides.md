@@ -214,3 +214,82 @@ entre a linha em negrito (`data-text-path="2"`) e o par de cards (renumerado de 
 Confirmado por renderização real (Chrome headless) que o slide cabe sem sobreposição com a linha extra. Sem mudança
 de contagem de slides, `deck-motion` ou qualquer outro slide — `npm test`, `npm run validate` e `npm run specs`
 continuam passando.
+
+## Correção pós-entrega: 5 pontos reportados nos slides 6, 13 e 14
+
+O usuário reportou 5 pontos num único lote (texto quebrado/ilegível em dois slides, conteúdo a revisar em outros
+três). Cada ponto foi conferido por leitura do HTML, renderização real (Chrome headless) e, para os pontos de
+conteúdo, comparação com a implementação real (`scripts/`, `README.md`, `CLAUDE.md`). Todos os 5 pontos foram
+resolvidos ou confirmados como já corretos, sem mudar a contagem de slides nem o `deck-motion`.
+
+**1. Slide 13 ("Ambientes, agendamento e rollout progressivo"): agendamento sumiu e texto quebrado.** O card PROD
+não deixava claro que é o desenvolvedor quem define o horário de PROD, ao abrir o PR de `release/*` (o RM que ele
+cria tem o campo `prodSchedule`). Fix: a linha "Quando sobe" do card PROD passou a dizer "no horário do PR de
+release/* (prodSchedule do RM); avança por horário". Causa raiz do texto quebrado: essa linha, mais longa que a
+original, quebrava em 2 linhas e invadia a linha "Objetivo" abaixo — as 3 linhas do card PROD (`data-text-path`
+`1.1.1.0`-`1.1.1.2`) não tinham os valores de auto-encolhimento (`flex-basis`/`--fit`) que o card NÃO PROD irmão já
+tinha. Fix aplicado nas 3 linhas (`--fit: 0.55`, `flex-basis: 20.02px`) e o texto foi encurtado até caber numa
+linha só, igual ao card irmão. Confirmado por medição real do DOM (Chrome headless, `getBoundingClientRect`): as 3
+linhas não se sobrepõem (392–401px, 416–424px, 439–447px).
+
+**2. Slide 14 ("Camadas de proteção e o conserto automático"): texto quebrado e ilegível.** Todos os 9 cards
+(5 + 4, duas fileiras) e as 3 legendas no rodapé estavam sobrepostos. Causa raiz (achada por medição do DOM, não só
+visual): as duas fileiras de cards (`data-node-path="1"` e `"2"`) tinham `flex-grow: 1; flex-basis: 0px`, forçando
+cada fileira a esticar e consumir todo o espaço vertical sobrando na coluna flex, em vez de ocupar só a altura do
+próprio conteúdo — isso empurrava as legendas para fora da área visível, por cima do rodapé da página. Fix:
+`flex-grow: 0; flex-basis: auto` nas duas fileiras, mais um ajuste fino de padding/gap (raiz e os 9 cards) e
+encolhimento das 3 legendas (`--fit: 0.6`). Confirmado por medição real: o conteúdo mais baixo termina em 862px e o
+rodapé da página começa em 903px, uma folga de 41px sem sobreposição. **Não corrigido:** o placeholder
+`[icon: Refresh]` no card "Reversão automática" (texto cru em vez de um glifo, `data-icon-path` ausente) já existia
+no slide 25 original, antes da fusão da spec 0032 — é um bug pré-existente e não afeta a legibilidade do texto (o
+motivo do relato do usuário); corrigi-lo exigiria inventar um codepoint da fonte `mc-anthropicons` sem uma fonte
+confiável para isso, então foi deixado como está.
+
+**3. Slide 6 ("Como subir uma FF por PR"): faltava mencionar as 2 formas de executar e qual comando abre o PR.** O
+rodapé do slide já explicava `npm run preflight` vs. `npm run pr`, mas não deixava claro que `npm run pr` é o
+comando que cria/empurra o PR automaticamente, nem mencionava a segunda forma de executar o processo (pedir ao
+Claude Code), que o `README.md` já documenta na seção "Duas formas de executar o processo". Fix: o texto do rodapé
+(`data-text-path="2"`) passou a dizer explicitamente que "`npm run pr` é o comando que cria o PR automaticamente" e
+acrescentou uma frase nova ("Duas formas de rodar esse passo a passo: você mesmo, digitando os comandos npm acima;
+ou pedindo ao Claude Code, que lê o `CLAUDE.md` e os `.md` das skills e executa por você"). Confirmado por medição
+real que o texto (mais longo) ainda cabe sem encostar no rodapé da página (conteúdo termina em 864px, rodapé começa
+em 903px).
+
+**4. Slide 7 ("Equipe dona e nome único"): pedido para conferir se está implementado como descrito.** Comparado
+linha a linha com `scripts/lib/ownership.js` (`checkOwnership`, identidade por e-mail dos commits, plataforma pode
+mexer em qualquer FF) e `scripts/check-new-flags.js`/`scripts/lib/new-flags.js` (nome novo não pode existir no
+repositório nem no Firebase NÃO PROD; nome existente exige `update/*`). O conteúdo do slide já batia exatamente com
+a implementação — nenhuma mudança necessária.
+
+**5. Slide 17 ("Consultar o status"): pedido para conferir se está implementado como descrito.** Comparado com
+`scripts/ff-status.js` (a lista de subcomandos `list|detail|rollout|summary|sync|history|stale`, a regra de "só lê,
+nenhuma escrita no Firebase", e que sem a chave (`FIREBASE_SA_KEY_NONPROD`) ele responde só com o repositório). O
+conteúdo do slide já batia exatamente com a implementação — nenhuma mudança necessária.
+
+Confirmado por `npm test` (306 testes), `npm run validate` e `npm run specs` continuando a passar, e por
+`grep -c 'class="deck-slide"'` = 18 e 18 `aria-label="Slide N of 18"` distintos (nenhum slide adicionado, removido
+ou renumerado). Trabalho feito **só localmente**, a pedido explícito do usuário (sem `git push`).
+
+## Correção pós-entrega: tabela de criticidade do slide 12 tinha um 4º nível que não existe no código
+
+O usuário colou uma tabela de 4 níveis de criticidade (Baixa/Média/Alta/Crítica) e pediu para validar contra o
+código antes de ajustar o documento. Essa tabela já era exatamente o conteúdo do slide 12
+("Criticidade, RM e aprovações"). Conferido em `scripts/lib/status.js` (`CRITICALITIES`), `scripts/validate.js`
+(`CRIT`) e `scripts/new-rm.js` (`order`/`plans`): o código só implementa **3** níveis —
+`baixa`/`media`/`critica` — e não existe `alta` em nenhum lugar do repositório (`scripts/`, `config/`, testes).
+O README (seção *PROD, RM e criticidade*) confirma os mesmos 3 níveis, com o `critica` já descrito como "rollout
+progressivo obrigatório + monitoramento intensivo: 5 → 25 → 50 → 100".
+
+A tabela do slide tinha, na prática, duas linhas para o mesmo nível: a linha "Alta" (5%→25%→50%→100%) era
+exatamente o plano de `critica` no código, e a linha "Crítica" ("mesmo plano da alta, com monitoramento
+intensivo") descrevia uma variação que não existe como nível separado — é o mesmo `critica`, com o texto de
+"monitoramento intensivo" já embutido no README. Não é um gap de negócio vs. implementação: é a tabela do slide
+desatualizada em relação a uma decisão de produto que já existe (só 3 níveis).
+
+Fix: as duas últimas linhas foram fundidas numa só ("Crítica" — cor e nome do nível mantidos, por ser o termo
+usado no README/CLAUDE.md —, descrição combinando as duas frases originais, e o rollout com "monitoramento
+intensivo" incorporado ao texto do plano). A nota `[Critérios exatos de classificação a validar com a plataforma]`
+foi mantida (é sobre a fronteira exata entre os 3 níveis, não sobre a contagem de níveis). Confirmado por
+renderização real (Chrome headless): tabela com 3 linhas, sem sobreposição. `npm test` (306 testes), `npm run
+validate` e `npm run specs` continuam passando; contagem de slides (18) e `deck-motion` inalterados. Trabalho
+feito **só localmente** (sem `git push`).
