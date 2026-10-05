@@ -1,5 +1,28 @@
 {
   "_comment": "Gerado por scripts/catalog.js. Não editar à mão: altere flags/*.json e rode npm run catalog.",
-  "total": 0,
-  "keys": []
+  "total": 1,
+  "keys": [
+    {
+      "key": "ft_v4",
+      "kind": "toggle",
+      "group": null,
+      "valueType": "BOOLEAN",
+      "criticality": "baixa",
+      "platforms": "ambas",
+      "minVersion": {
+        "ios": "2.11.0",
+        "android": "2.10.0"
+      },
+      "team": "plataforma",
+      "description": "teste",
+      "environments": {
+        "nonprod": {
+          "default": "true"
+        },
+        "prod": {
+          "default": "false"
+        }
+      }
+    }
+  ]
 }
